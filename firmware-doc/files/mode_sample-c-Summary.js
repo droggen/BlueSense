@@ -1,0 +1,1 @@
+NDFramePage.OnPageTitleLoaded("File:mode_sample.c","mode_sample.c");NDSummary.OnSummaryLoaded("File:mode_sample.c",[["C/C++","C"]],[["Files","File"],["Functions","Function"],["Groups","Group"]],[[122,0,0,"mode_sample","mode_sample"],[123,0,2,"Functions","Functions"],[124,0,1,"CommandParserSampleLog","CommandParserSampleLog"],[125,0,1,"mode_sample_logend","mode_sample_logend"]]);

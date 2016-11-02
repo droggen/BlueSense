@@ -1,0 +1,1 @@
+NDFramePage.OnPageTitleLoaded("File:mode_sample_motion.c","mode_sample_motion.c");NDSummary.OnSummaryLoaded("File:mode_sample_motion.c",[["C/C++","C"]],[["Files","File"],["Functions","Function"],["Groups","Group"]],[[105,0,0,"mode_motionstream","mode_motionstream"],[106,0,2,"Functions","Functions"],[107,0,1,"mode_motionstream","mode_motionstream(2)"]]);

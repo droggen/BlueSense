@@ -1,0 +1,1 @@
+NDSummary.OnToolTipsLoaded("File:megalol/i2c.c",{2:"<div class=\"NDToolTip TFile LC\"><div class=\"TTSummary\">I2C functions</div></div>"});

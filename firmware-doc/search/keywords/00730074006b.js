@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("stk",["Section"],[["STK500v2",,[[,"STK500v2 compatible bootloader",,,0,"File:stk500boot.c:STK500v2_compatible_bootloader"]]]]);

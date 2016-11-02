@@ -1,0 +1,1 @@
+avr-size -C --mcu=atmega1284p main.elf

@@ -1,0 +1,1 @@
+NDFramePage.OnPageTitleLoaded("File:mode_mputest.c","mode_mputest.c");NDSummary.OnSummaryLoaded("File:mode_mputest.c",[["C/C++","C"]],[["Files","File"],["Functions","Function"],["Groups","Group"]],[[126,0,0,"mode_mputest","mode_mputest"],[127,0,2,"Functions","Functions"],[128,0,1,"mode_mputest","mode_mputest(2)"]]);

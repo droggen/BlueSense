@@ -1,0 +1,1 @@
+avrdude -p atmega1284p -c avrispmkii -P usb -B .4 -D -V -U flash:w:main.hex:i 

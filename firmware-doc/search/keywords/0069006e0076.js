@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("inv",["Function"],[["invSqrt3",,[[,,,,0,"File:mathfix.c:invSqrt3"]]]]);

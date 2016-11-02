@@ -1,0 +1,1 @@
+NDFramePage.OnPageTitleLoaded("File:stk500boot.c","stk500boot.c");NDSummary.OnSummaryLoaded("File:stk500boot.c",[["C/C++","C"]],[["Sections","Section"]],[[1,0,0,"STK500v2 compatible bootloader","STK500v2_compatible_bootloader"]]);

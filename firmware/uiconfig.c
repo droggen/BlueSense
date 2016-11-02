@@ -1,0 +1,205 @@
+
+#include "cpu.h"
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <avr/pgmspace.h>
+#include <avr/sleep.h>
+#include <avr/power.h>
+#include <avr/eeprom.h>
+#include <util/delay.h>
+#include <stdio.h>
+#include <string.h>
+#include "main.h"
+#include "wait.h"
+#include "serial.h"
+#include "init.h"
+#include "menu.h"
+#include "pkt.h"
+#include "uiconfig.h"
+
+
+
+
+
+/******************************************************************************
+Configuration menu
+******************************************************************************/
+
+
+
+
+void ConfigSaveStreamTimestamp(unsigned char timestamp)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ENABLE_TIMESTAMP, timestamp?1:0);
+}
+unsigned char ConfigLoadStreamTimestamp(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_ENABLE_TIMESTAMP) ? 1:0;
+}
+void ConfigSaveStreamBattery(unsigned char battery)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ENABLE_BATTERY, battery?1:0);
+}
+unsigned char ConfigLoadStreamBattery(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_ENABLE_BATTERY) ? 1:0;
+}
+void ConfigSaveStreamBinary(unsigned char binary)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_STREAM_BINARY, binary?1:0);
+}
+unsigned char ConfigLoadStreamBinary(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_STREAM_BINARY) ? 1:0;
+}
+void ConfigSaveStreamPktCtr(unsigned char pktctr)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_STREAM_PKTCTR, pktctr?1:0);
+}
+unsigned char ConfigLoadStreamPktCtr(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_STREAM_PKTCTR) ? 1:0;
+}
+void ConfigSaveStreamLabel(unsigned char label)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_STREAM_LABEL, label?1:0);
+}
+unsigned char ConfigLoadStreamLabel(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_STREAM_LABEL) ? 1:0;
+}
+
+/*void ConfigSaveADCMask(unsigned char mask)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ADC_MASK,mask);
+}
+unsigned char ConfigLoadADCMask(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_ADC_MASK);
+}
+void ConfigSaveADCPeriod(unsigned long period)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ADC_PERIOD0,(period>>0)&0xff);
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ADC_PERIOD1,(period>>8)&0xff);
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ADC_PERIOD2,(period>>16)&0xff);
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ADC_PERIOD3,(period>>24)&0xff);
+}
+unsigned long ConfigLoadADCPeriod(void)
+{
+	unsigned long v=0;
+	v = eeprom_read_byte((uint8_t*)CONFIG_ADDR_ADC_PERIOD3);
+	v<<=8;
+	v |= eeprom_read_byte((uint8_t*)CONFIG_ADDR_ADC_PERIOD2);
+	v<<=8;
+	v |= eeprom_read_byte((uint8_t*)CONFIG_ADDR_ADC_PERIOD1);
+	v<<=8;
+	v |= eeprom_read_byte((uint8_t*)CONFIG_ADDR_ADC_PERIOD0);
+	
+	if(v>5000000)
+	{
+		v=5000000;
+		ConfigSaveADCPeriod(v);
+	}
+	
+	return v;
+}*/
+void ConfigSaveTSPeriod(unsigned long period)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_TS_PERIOD0,(period>>0)&0xff);
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_TS_PERIOD1,(period>>8)&0xff);
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_TS_PERIOD2,(period>>16)&0xff);
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_TS_PERIOD3,(period>>24)&0xff);
+}
+unsigned long ConfigLoadTSPeriod(void)
+{
+	unsigned long v=0;
+	v = eeprom_read_byte((uint8_t*)CONFIG_ADDR_TS_PERIOD3);
+	v<<=8;
+	v |= eeprom_read_byte((uint8_t*)CONFIG_ADDR_TS_PERIOD2);
+	v<<=8;
+	v |= eeprom_read_byte((uint8_t*)CONFIG_ADDR_TS_PERIOD1);
+	v<<=8;
+	v |= eeprom_read_byte((uint8_t*)CONFIG_ADDR_TS_PERIOD0);
+	
+	if(v>5000000)
+	{
+		v=5000000;
+		ConfigSaveTSPeriod(v);
+	}
+	
+	return v;
+}
+void ConfigSaveEnableLCD(unsigned char lcden)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ENABLE_LCD, lcden?1:0);
+}
+unsigned char ConfigLoadEnableLCD(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_ENABLE_LCD) ? 1:0;
+}
+void ConfigSaveEnableInfo(unsigned char ien)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ENABLE_INFO, ien?1:0);
+}
+unsigned char ConfigLoadEnableInfo(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_ENABLE_INFO) ? 1:0;
+}
+void ConfigSaveMotionMode(unsigned char mode)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_SENSORSR,mode);
+}
+unsigned char ConfigLoadMotionMode(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_SENSORSR);
+}
+
+/******************************************************************************
+	function: ConfigLoadScript
+*******************************************************************************
+	Load the startup configuration script from EEPROM address 
+	CONFIG_ADDR_SCRIPTSTART.
+	
+	This function reads exactly CONFIG_ADDR_SCRIPTLEN bytes and does not add
+	a null-terminating byte.
+	
+	Parameters:
+		buf		-		Buffer to receive the configuration script. Buf large 
+						enough to receive CONFIG_ADDR_SCRIPTLEN bytes
+******************************************************************************/
+void ConfigLoadScript(char *buf)
+{
+	for(unsigned char i=0;i<CONFIG_ADDR_SCRIPTLEN;i++)
+	{
+		buf[i] = eeprom_read_byte((uint8_t*)(CONFIG_ADDR_SCRIPTSTART+i));
+	}
+}
+/******************************************************************************
+	function: ConfigSaveScript
+*******************************************************************************
+	Save a startup configuration script to EEPROM address 
+	CONFIG_ADDR_SCRIPTSTART.
+
+	Writes up to CONFIG_ADDR_SCRIPTLEN bytes. Does not append a null-terminating byte
+
+	Parameters:
+		buf		-		Buffer containing the configuration script.
+		n		-		Number of bytes to write. Maximum is CONFIG_ADDR_SCRIPTLEN.
+						If n is larger, only the first CONFIG_ADDR_SCRIPTLEN bytes
+						are written.
+******************************************************************************/
+void ConfigSaveScript(char *buf,unsigned char n)
+{
+	if(n>CONFIG_ADDR_SCRIPTLEN)
+		n=CONFIG_ADDR_SCRIPTLEN;
+	
+	for(unsigned char i=0;i<n;i++)
+	{
+		eeprom_write_byte((uint8_t*)(CONFIG_ADDR_SCRIPTSTART+i),buf[i]);
+	}
+}
+
+
+
+
+

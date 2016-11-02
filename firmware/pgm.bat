@@ -1,0 +1,1 @@
+avrdude -p atmega1284p -c stk500v2 - /? P com4 -U eeprom:w:00,01,33,66,99:m
