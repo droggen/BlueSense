@@ -141,7 +141,7 @@ SRC += motionconfig.c
 SRC += ltc2942.c
 SRC += ufat.c
 SRC += MadgwickAHRS_fixed.c
-SRC += MadgwickAHRS_float2.c
+SRC += MadgwickAHRS_float.c
 SRC += mathfix.c
 
 

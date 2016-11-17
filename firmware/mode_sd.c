@@ -102,7 +102,7 @@ unsigned char CommandParserSDFormat(unsigned char *buffer,unsigned char size)
 	if(ParseCommaGetInt((char*)buffer,1,&numlog))
 		return 2;
 		
-	printf("Formatting with %u log files\n",numlog);
+	fprintf_P(file_pri,PSTR("Formatting with %u log files\n"),numlog);
 	ufat_format(numlog);
 	return 0;
 }

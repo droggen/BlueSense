@@ -314,13 +314,13 @@ unsigned char ufat_format(unsigned char numlogfile)
 	memset(ufatblock,0x00,512);				// Clear our temp buffer
 	// Erase the root in range [_fsinfo.cluster_begin; _fsinfo.cluster_begin+3*_fsinfo.sectors_per_cluster[ 
 	// The assumption is that the ROOT takes 3 clusters, as _ufat_format_fat_root initialises 3 clusters for the ROOT. This assumption has not been fully analysed.
-	printf_P(PSTR("%sClearing ROOT and FAT\n"),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sClearing ROOT and FAT\n"),_str_ufat);
 	for(unsigned char i=0;i<3*_fsinfo.sectors_per_cluster;i++)
 	{
 		rv = sd_block_write(_fsinfo.cluster_begin+i,ufatblock);
 		if(rv)
 		{
-			printf_P(PSTR("%sError clearing root at sector %lu\n"),_str_ufat,_fsinfo.cluster_begin+i);
+			fprintf_P(file_pri,PSTR("%sError clearing root at sector %lu\n"),_str_ufat,_fsinfo.cluster_begin+i);
 			return 1;
 		}
 	}
@@ -330,7 +330,7 @@ unsigned char ufat_format(unsigned char numlogfile)
 		rv = sd_block_write(i,ufatblock);
 		if(rv)
 		{
-			printf_P(PSTR("%sError clearing FAT at sector %lu\n"),i);
+			fprintf_P(file_pri,PSTR("%sError clearing FAT at sector %lu\n"),i);
 			return 1;
 		}
 	}
@@ -407,7 +407,7 @@ unsigned char ufat_format(unsigned char numlogfile)
 	//if(_fsinfo.fat2_sector) _ufat_format_fat_root(_fsinfo.fat2_sector);
 	for(unsigned l=0;l<numlogfile;l++)
 	{
-		printf_P(PSTR("%sWriting FAT for log %d\n"),_str_ufat,l);
+		fprintf_P(file_pri,PSTR("%sWriting FAT for log %d\n"),_str_ufat,l);
 		_ufat_format_fat_log(l,_fsinfo.fat_sector);
 		//if(_fsinfo.fat2_sector) _ufat_format_fat_log(l,_fsinfo.fat2_sector);
 	}
@@ -441,10 +441,10 @@ unsigned char ufat_init(void)
 	// Init the filesystem info: read card filesystem and initialise the fsinfo structure 
 	if(_ufat_init_fs())
 	{
-		printf_P(PSTR("%serror, reformat card\r"),_str_ufat);
+		fprintf_P(file_pri,PSTR("%serror, reformat card\r"),_str_ufat);
 		return 1;
 	}
-	printf_P(PSTR("%sinitialised\n"),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sinitialised\n"),_str_ufat);
 
 	return 0;
 }
@@ -706,16 +706,16 @@ unsigned char _ufat_init_sd(void)
 	_fsinfo.fs_available=0;
 	
 	// Initialise the SD card
-	printf_P(PSTR("%sInit SD...\n"),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sInit SD...\n"),_str_ufat);
 	if(sd_init(&cid,&csd,&capacity_sector))
 	{
-		printf_P(PSTR("%sInit SD error\r"),_str_ufat);
+		fprintf_P(file_pri,PSTR("%sInit SD error\r"),_str_ufat);
 		return 1;
 	}
 	// Check that we deal with an SDHC card with block length of 512 bytes
 	if(csd.CSD!=1 || csd.READ_BL_LEN!=9 || csd.WRITE_BL_LEN!=9)
 	{
-		printf_P(PSTR("%sSD unsuitable\n"),_str_ufat);
+		fprintf_P(file_pri,PSTR("%sSD unsuitable\n"),_str_ufat);
 		return 1;
 	}
 	_fsinfo.card_available=1;
@@ -783,10 +783,10 @@ unsigned char _ufat_init_fs(void)
 		checksum+=fe->name[i];
 	checksum+=fe->ext[0];
 	checksum+=fe->ext[1];
-	printf_P(PSTR("%sid: %02X checksum: %02X (obtained: %02X)\n"),_str_ufat,fe->name[0],fe->ext[2],checksum);
+	fprintf_P(file_pri,PSTR("%sid: %02X checksum: %02X (obtained: %02X)\n"),_str_ufat,fe->name[0],fe->ext[2],checksum);
 	if(!(fe->name[0]==0xE5 && fe->ext[2]==checksum))
 	{
-		printf_P(PSTR("%serror: log data field invalid\n"),_str_ufat);
+		fprintf_P(file_pri,PSTR("%serror: log data field invalid\n"),_str_ufat);
 		//return 1;
 	}
 	_fsinfo.logstartcluster = *(unsigned long*)(fe->name+1);
@@ -794,7 +794,7 @@ unsigned char _ufat_init_fs(void)
 	_fsinfo.lognum=fe->ext[1];
 	_fsinfo.logsizebytes=_fsinfo.logsizecluster*_fsinfo.sectors_per_cluster*512;	
 	
-	printf_P(PSTR("%snumlogs: %d startcluster: %lu sizecluster: %lu sizebytes: %lu\n"),_str_ufat,_fsinfo.lognum,_fsinfo.logstartcluster,_fsinfo.logsizecluster,_fsinfo.logsizebytes);
+	fprintf_P(file_pri,PSTR("%snumlogs: %d startcluster: %lu sizecluster: %lu sizebytes: %lu\n"),_str_ufat,_fsinfo.lognum,_fsinfo.logstartcluster,_fsinfo.logsizecluster,_fsinfo.logsizebytes);
 	
 	// 7. Convert root to _logentries
 	for(unsigned l=0;l<_fsinfo.lognum;l++)
@@ -871,14 +871,14 @@ unsigned char _ufat_format_mbr_boot(void)
 	ufatblock[510] = 0x55;					// 0x55
 	ufatblock[511] = 0xaa;					// 0xaa
 	
-	printf_P(PSTR("%sWriting MBR... "),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sWriting MBR... "),_str_ufat);
 	rv = sd_block_write(0,ufatblock);
 	if(rv!=0)
 	{
-		printf_P(PSTR("error\n"));
+		fprintf_P(file_pri,PSTR("error\n"));
 		return 1;
 	}
-	printf_P(PSTR("\n"));
+	fprintf_P(file_pri,PSTR("\n"));
 	
 	// Write the FAT32 Volume ID for the first partition, aka boot sector
 	// ------------------------------------------	
@@ -924,21 +924,21 @@ unsigned char _ufat_format_mbr_boot(void)
 	bs->reservedsectors<<=9;*/
 	bs->reservedsectors=0x20;							// Documentation says usually 0x20
 	
-	printf_P(PSTR("%sWriting bootsect... "),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sWriting bootsect... "),_str_ufat);
 	rv = sd_block_write(_UFAT_PARTITIONSTART,ufatblock);
 	if(rv!=0)
 	{
-		printf_P(PSTR("error\n"));
+		fprintf_P(file_pri,PSTR("error\n"));
 		return 1;
 	}
-	printf_P(PSTR("\n%sWriting bkp bootsect... "),_str_ufat);
+	fprintf_P(file_pri,PSTR("\n%sWriting bkp bootsect... "),_str_ufat);
 	rv = sd_block_write(_UFAT_PARTITIONSTART+bs->fat32_bootbackupsector,ufatblock);
 	if(rv!=0)
 	{
-		printf_P(PSTR("error\n"));
+		fprintf_P(file_pri,PSTR("error\n"));
 		return 1;
 	}
-	printf_P(PSTR("\n"));
+	fprintf_P(file_pri,PSTR("\n"));
 	
 	// Initialise the fsinfo structure from the boot sector
 	_ufat_bs2keyinfo(bs,&_fsinfo);
@@ -1080,11 +1080,11 @@ unsigned char _ufat_write_root(unsigned char numlogfile)
 	
 
 	// Write root sector
-	printf_P(PSTR("%sWriting root... "),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sWriting root... "),_str_ufat);
 	unsigned char rv = sd_block_write(_fsinfo.cluster_begin,ufatblock);
 	if(rv!=0)
 	{
-		printf("error\n");
+		fprintf_P(file_pri,PSTR("error\n"));
 		return 1;
 	}
 	// Write the sector afterwards as all zeroes
@@ -1092,10 +1092,10 @@ unsigned char _ufat_write_root(unsigned char numlogfile)
 	rv = sd_block_write(_fsinfo.cluster_begin+1,ufatblock);
 	if(rv!=0)
 	{
-		printf("error\n");
+		fprintf_P(file_pri,PSTR("error\n"));
 		return 1;
 	}
-	printf_P(PSTR("\n"));
+	fprintf_P(file_pri,PSTR("\n"));
 	return 0;	
 }
 
@@ -1196,7 +1196,7 @@ unsigned char _ufat_format_fat_log(unsigned char i,unsigned long fat_sector)
 			unsigned char rv = sd_block_write(fat_sector+oldfatsect,ufatblock);
 			if(rv!=0)
 			{
-				printf_P(PSTR("Error writing FAT sector %lu (%lu/%lu)... "),fat_sector+oldfatsect,cluster,fsc);
+				fprintf_P(file_pri,PSTR("Error writing FAT sector %lu (%lu/%lu)... "),fat_sector+oldfatsect,cluster,fsc);
 				return 1;
 			}
 			//printf_P(PSTR("\n"));
@@ -1231,14 +1231,14 @@ unsigned char _ufat_format_fat_root(unsigned long fat_sector)
 	c[0]=0x0ffffff8;
 	c[1]=0x0fffffff;
 	c[2]=0x0fffffff;	
-	printf_P(PSTR("%sWriting FAT for root... "),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sWriting FAT for root... "),_str_ufat);
 	unsigned char rv = sd_block_write(fat_sector,ufatblock);
 	if(rv!=0)
 	{
-		printf_P(PSTR("error\n"));
+		fprintf_P(file_pri,PSTR("error\n"));
 		return 1;
 	}
-	printf("\n");
+	fprintf_P(file_pri,PSTR("\n"));
 	return 0;
 }
 
@@ -1320,14 +1320,14 @@ unsigned char _ufat_mbr_boot_read(void)
 {
 	PARTITION p[4];
 	
-	printf_P(PSTR("%sReading MBR... "),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sReading MBR... "),_str_ufat);
 	
 	// 1. Read MBR and partition table	
 	sd_block_read(0,ufatblock);	
 	// Sanity check
 	if(ufatblock[510]!=0x55 || ufatblock[511]!=0xAA)
 	{
-		printf_P(PSTR("invalid\n"));
+		fprintf_P(file_pri,PSTR("invalid\n"));
 		return 1;
 	}
 	printf_P(PSTR("\n"));
@@ -1341,13 +1341,13 @@ unsigned char _ufat_mbr_boot_read(void)
 	}
 	if(p[0].type!=0x0b)
 	{
-		printf_P(PSTR("%sInvalid partition table\n"),_str_ufat);
+		fprintf_P(file_pri,PSTR("%sInvalid partition table\n"),_str_ufat);
 		return 1;
 	}
 
 	
 	// 2. Read first partition
-	printf_P(PSTR("%sReading bootsect... "),_str_ufat);
+	fprintf_P(file_pri,PSTR("%sReading bootsect... "),_str_ufat);
 	sd_block_read(p[0].lbabegin,ufatblock);	
 	BOOTSECT_FAT32 *bs;	
 	bs = (BOOTSECT_FAT32*)ufatblock;		// cast to bootsector to simplify checking	
@@ -1356,10 +1356,10 @@ unsigned char _ufat_mbr_boot_read(void)
 	// - 0x55 0xaa terminator
 	if(! (strncmp(bs->fstype,"FAT32   ",8)==0 && ufatblock[510]==0x55 && ufatblock[511]==0xaa) )
 	{
-		printf_P(PSTR("invalid uFAT\n"));
+		fprintf_P(file_pri,PSTR("invalid uFAT\n"));
 		return 1;
 	}
-	printf_P(PSTR("\n"));
+	fprintf_P(file_pri,PSTR("\n"));
 	// Print info
 	#ifdef UFATDBG
 		ufat_print_boot(file_pri,bs);
@@ -1370,7 +1370,7 @@ unsigned char _ufat_mbr_boot_read(void)
 	// - number of FAT is 1 with uFAT
 	if(! (bs->sectorsize==512 && p[0].lbabegin==bs->numberhiddensectors && bs->numfat==1 && p[0].numsec==bs->totsectors_long) )
 	{
-		printf_P(PSTR("invalid uFAT\n"));
+		fprintf_P(file_pri,PSTR("invalid uFAT\n"));
 		return 1;
 	}
 	
