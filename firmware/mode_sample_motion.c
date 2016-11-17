@@ -348,18 +348,58 @@ void mode_motionstream(void)
 			if(sample_mode==MPU_MODE_ACCGYRMAGQ || sample_mode==MPU_MODE_Q)
 			{
 				#if FIXEDPOINTQUATERNION==1
+				
+				/*float tax,tay,taz;
+				tax = mpu_data_ax[mpu_data_rdptr]*1.0/16384.0;
+				tay = mpu_data_ay[mpu_data_rdptr]*1.0/16384.0;
+				taz = mpu_data_az[mpu_data_rdptr]*1.0/16384.0;
+				
+				// change range to avoid possible overflow
+				tax /= 16;
+				tay /= 16;
+				taz /= 16;
+				*/
 				FIXEDPOINTTYPE ax,ay,az,gx,gy,gz;
+				
+				//ax=tax;
+				//ay=tay;
+				//az=taz;
+				
 				ax = mpu_data_ax[mpu_data_rdptr]*atog;
 				ay = mpu_data_ay[mpu_data_rdptr]*atog;
 				az = mpu_data_az[mpu_data_rdptr]*atog;
 				gx = mpu_data_gx[mpu_data_rdptr]*mpu_gtor;
 				gy = mpu_data_gy[mpu_data_rdptr]*mpu_gtor;
 				gz = mpu_data_gz[mpu_data_rdptr]*mpu_gtor;				
+				
+				// Killing g does not fix bug
+				// Killing a seems to fix bug
+				// Killing m does not seem to fix bug.
+				//gx=0;
+				//gy=0;
+				//gz=0;
+				
+				// bug still present with g=0 and m=0 and a amplitude reduced to avoid overflow. seems related to normalisation
+				// bug not related to normalisation of a
+				// bug seems in recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
+				
+				
+				
+				// Bug might be normalisation related
+				
+				
 				// Sensors x (y)-axis of the accelerometer is aligned with the y (x)-axis of the magnetometer;
 				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
-				MadgwickAHRSupdate(gx,gy,gz,ax,ay,az,	-mpu_data_my[mpu_data_rdptr],
+				//unsigned long t1,t2;
+				//t1=timer_us_get();
+				MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	-mpu_data_my[mpu_data_rdptr],
 														-mpu_data_mx[mpu_data_rdptr],
 														mpu_data_mz[mpu_data_rdptr]);
+				//t2=timer_us_get();
+				//printf("%lu\n",t2-t1);
+				//MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	0,
+				//										0,
+				//										0);
 				#else
 				float ax,ay,az,gx,gy,gz;
 				ax = mpu_data_ax[mpu_data_rdptr]*atog;
@@ -370,9 +410,13 @@ void mode_motionstream(void)
 				gz = mpu_data_gz[mpu_data_rdptr]*mpu_gtor;				
 				// Sensors x (y)-axis of the accelerometer is aligned with the y (x)-axis of the magnetometer;
 				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
-				MadgwickAHRSupdate(gx,gy,gz,ax,ay,az,	-mpu_data_my[mpu_data_rdptr],
+				//unsigned long t1,t2;
+				//t1=timer_us_get();
+				MadgwickAHRSupdate_float(gx,gy,gz,ax,ay,az,	-mpu_data_my[mpu_data_rdptr],
 														-mpu_data_mx[mpu_data_rdptr],
 														mpu_data_mz[mpu_data_rdptr]);
+				//t2=timer_us_get();
+				//printf("%lu\n",t2-t1);
 				#endif
 			}
 			#endif

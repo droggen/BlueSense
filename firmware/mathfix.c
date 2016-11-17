@@ -286,6 +286,7 @@ int32_t fixsqrt16(int32_t a)
 	Reciprocal square root.
 	Uses the quake algorithm with a fixed point Newton-Raphson step.
 	Internally uses a float representation which pulls conversion from fixed to float and back.
+	Accuracy decreases as value of x tends to zero.
 *******************************************************************************/
 _Accum invSqrt3(_Accum x) {
 	_Accum halfx = x>>1;
@@ -479,8 +480,9 @@ _Accum invSqrt(_Accum x) {
 	//printf("invsqrt of %f is %f\n",(float)x,r);
 	//return r;
 	
-	//return invSqrtflt(x);
-	return invSqrt3(x);
+	//return invSqrtflt(x);	// leads to errors in normalisation
+	//return invSqrtflt_ref(x);
+	return invSqrt3(x);		// leads to errors in normalisation
 	//return fixrsqrt15a(x);
 	
 	//return invSqrtOlliw(x);

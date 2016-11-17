@@ -22,6 +22,9 @@
 #include <stdfix.h>
 
 #define FIXEDPOINTTYPE _Accum
+//#define FIXEDPOINTTYPE float
+//#define FIXEDPOINTTYPE long _Accum
+
 
 #if ENABLEQUATERNION==1
 #if FIXEDPOINTQUATERNION==1
@@ -34,13 +37,17 @@
 //#define FIXEDPOINTTYPE _Accum
 //#define FIXEDPOINTTYPE long _Accum
 
+#define FIXEDPOINTTYPE_FRACT _Fract
+//#define FIXEDPOINTTYPE_FRACT _Accum
+//#define FIXEDPOINTTYPE_FRACT float
+//#define FIXEDPOINTTYPE_FRACT long _Accum
 
 //----------------------------------------------------------------------------------------------------
 // Variable declaration
 
 //extern FIXEDPOINTTYPE beta;			// algorithm gain
 //extern FIXEDPOINTTYPE q0, q1, q2, q3;	// quaternion of sensor frame relative to auxiliary frame
-extern _Fract q0, q1, q2, q3;	// quaternion of sensor frame relative to auxiliary frame
+extern FIXEDPOINTTYPE_FRACT q0, q1, q2, q3;	// quaternion of sensor frame relative to auxiliary frame
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -49,7 +56,7 @@ extern _Fract q0, q1, q2, q3;	// quaternion of sensor frame relative to auxiliar
 
 
 //void MadgwickAHRSupdate(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz, FIXEDPOINTTYPE ax, FIXEDPOINTTYPE ay, FIXEDPOINTTYPE az, FIXEDPOINTTYPE mx, FIXEDPOINTTYPE my, FIXEDPOINTTYPE mz);
-void MadgwickAHRSupdate(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz, FIXEDPOINTTYPE ax, FIXEDPOINTTYPE ay, FIXEDPOINTTYPE az, signed short mx, signed short my, signed short mz);
+void MadgwickAHRSupdate_fixed(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz, FIXEDPOINTTYPE ax, FIXEDPOINTTYPE ay, FIXEDPOINTTYPE az, signed short mx, signed short my, signed short mz);
 //void MadgwickAHRSupdateIMU(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz, FIXEDPOINTTYPE ax, FIXEDPOINTTYPE ay, FIXEDPOINTTYPE az);
 
 #endif

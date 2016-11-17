@@ -30,7 +30,6 @@
 
 
 #include "MadgwickAHRS.h"
-#include "MadgwickAHRS2.h"
 #include "mathfix.h"
 
 #define PI 3.1415926535f

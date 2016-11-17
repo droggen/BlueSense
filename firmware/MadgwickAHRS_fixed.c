@@ -19,7 +19,7 @@
 #if FIXEDPOINTQUATERNION==1
 
 
-#include "MadgwickAHRS2.h"
+#include "MadgwickAHRS_fixed.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,14 +43,15 @@
 
 
 
+
 //---------------------------------------------------------------------------------------------------
 // Variable definitions
 //FIXEDPOINTTYPE invSampleFreq = 1.0k/sampleFreq;
-_Fract invSampleFreq = 1.0k/sampleFreq;
+FIXEDPOINTTYPE_FRACT invSampleFreq = 1.0k/sampleFreq;
 //FIXEDPOINTTYPE beta = betaDef;										// 2 * proportional gain (Kp)
-unsigned _Fract beta = betaDef;
+FIXEDPOINTTYPE_FRACT beta = betaDef;
 //FIXEDPOINTTYPE q0 = 1.0k, q1 = 0.0k, q2 = 0.0k, q3 = 0.0k;	// quaternion of sensor frame relative to auxiliary frame
-_Fract q0 = 0.999999k, q1 = 0.0k, q2 = 0.0k, q3 = 0.0k;	// quaternion of sensor frame relative to auxiliary frame
+FIXEDPOINTTYPE_FRACT q0 = 0.999999k, q1 = 0.0k, q2 = 0.0k, q3 = 0.0k;	// quaternion of sensor frame relative to auxiliary frame
 
 
 
@@ -95,7 +96,7 @@ _Fract q0 = 0.999999k, q1 = 0.0k, q2 = 0.0k, q3 = 0.0k;	// quaternion of sensor 
 */
 
 
-void MadgwickAHRSupdate(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz, FIXEDPOINTTYPE _ax, FIXEDPOINTTYPE _ay, FIXEDPOINTTYPE _az, signed short _mx, signed short _my, signed short _mz) {
+void MadgwickAHRSupdate_fixed(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz, FIXEDPOINTTYPE _ax, FIXEDPOINTTYPE _ay, FIXEDPOINTTYPE _az, signed short _mx, signed short _my, signed short _mz) {
 	FIXEDPOINTTYPE recipNorm;
 	FIXEDPOINTTYPE s0, s1, s2, s3;
 	FIXEDPOINTTYPE qDot1, qDot2, qDot3, qDot4;
@@ -103,9 +104,11 @@ void MadgwickAHRSupdate(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz,
 	FIXEDPOINTTYPE _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3;
 	FIXEDPOINTTYPE _4q0, _4q1, _4q2 ,_8q1, _8q2;
 	// The following numbers are fractional (<1)
-	_Fract q0q0,q1q1,q2q2,q3q3,q0q1,q0q2,q0q3,q1q2,q1q3,q2q3;
-	_Fract ax,ay,az;
-	_Fract mx,my,mz;
+	FIXEDPOINTTYPE_FRACT q0q0,q1q1,q2q2,q3q3,q0q1,q0q2,q0q3,q1q2,q1q3,q2q3;
+	FIXEDPOINTTYPE_FRACT ax,ay,az;
+	FIXEDPOINTTYPE_FRACT mx,my,mz;
+
+
 	
 	// Rate of change of quaternion from gyroscope
 	// q e [-1;1] g e [-inf;inf] qDot e [-inf;inf]
@@ -130,7 +133,8 @@ void MadgwickAHRSupdate(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz,
 		ax *= recipNorm;
 		ay *= recipNorm;
 		az *= recipNorm;  */
-		recipNorm = invSqrt(_ax * _ax + _ay * _ay + _az * _az);
+		//recipNorm = invSqrt(_ax * _ax + _ay * _ay + _az * _az);
+		recipNorm = 1.0/sqrt(_ax * _ax + _ay * _ay + _az * _az);
 		ax = _ax*recipNorm;
 		ay = _ay*recipNorm;
 		az = _az*recipNorm;  
@@ -244,7 +248,22 @@ void MadgwickAHRSupdate(FIXEDPOINTTYPE gx, FIXEDPOINTTYPE gy, FIXEDPOINTTYPE gz,
 			s2 = 4.0k * q0q0 * q2 + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az;
 			s3 = 4.0k * q1q1 * q3 - _2q1 * ax + 4.0k * q2q2 * q3 - _2q2 * ay;			
 		}
-		recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
+		//printf("_ax-z: %f %f %f\n",_ax,_ay,_az);
+		//printf("ax-z: %f %f %f\n",ax,ay,az);
+		//printf("s0-4: %f %f %f %f\n",s0,s1,s2,s3);
+		/*while(s0<0.0001k && s1<0.0001k && s2<0.0001k && s3<0.0001k)
+		{
+			s0<<=3;
+			s1<<=3;
+			s2<<=3;
+			s3<<=3;
+			printf(".");
+		}*/
+		//recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
+		recipNorm = invSqrtflt_ref(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
+		//FIXEDPOINTTYPE recipNorm2=1.0/sqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
+		//recipNorm = 1.0/sqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
+		//printf("recipnorm: %f 2: %f\n",recipNorm,recipNorm2);
 		
 		
 		s0 *= recipNorm;
