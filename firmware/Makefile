@@ -190,6 +190,9 @@ CFLAGS += $(CSTANDARD)
 CFLAGS += -Werror=implicit-function-declaration
 CFLAGS += -Wall
 
+# Dan: remove unused functions with compile flag -ffunction-sections and linker flag -Wl,-gc-sections
+CFLAGS += -ffunction-sections
+
 
 # Compiler flag to set the C Standard level.
 #     c89   = "ANSI" C
@@ -321,6 +324,9 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 
 #---------------- Dan's library simplification ---------------
 #LDFLAGS += -Wl,-u,_delay_ms -l_delay_ms_boot
+#---------------- Dan's library simplification ---------------
+# Dan: remove unused functions with compile flag -ffunction-sections and linker flag -Wl,-gc-sections
+LDFLAGS += -Wl,-gc-sections
 
 
 
