@@ -1,7 +1,7 @@
 /*
 	file: main_bl-minimal
 	
-	Minimalistic test bootloader.
+	Minimalistic test bootloader for BlueSense2.
 	
 	Setups the board interfaces; signal aliveness with the LEDs and sending a message to the USB interface; and jumps to the user code.
 	

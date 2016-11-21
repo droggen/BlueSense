@@ -1,5 +1,7 @@
+# Makefile for BlueSense2 minimalistic bootloader (main_bl-minimal).
+#
+#
 # ----------------------------------------------------------------------------
-# Makefile to compile and link stk500boot bootloader
 # Author: Peter Fleury
 # based on WinAVR Makefile Template written by Eric B. Weddington, Jörg Wunsch, et al.
 #

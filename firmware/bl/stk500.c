@@ -14,17 +14,17 @@
 
 #include "cpu.h"
 
-#include	<inttypes.h>
-#include	<avr/io.h>
-#include	<avr/interrupt.h>
-#include	<avr/boot.h>
-#include	<avr/pgmspace.h>
-#include	<util/delay.h>
+#include <inttypes.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <avr/boot.h>
+#include <avr/pgmspace.h>
+#include <util/delay.h>
 #include <util/atomic.h>
-#include	<avr/eeprom.h>
-#include	<avr/common.h>
-#include	<stdlib.h>
-#include	<stdio.h>
+#include <avr/eeprom.h>
+#include <avr/common.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "serial.h"
 #include "stk500-command.h"
 #include "system.h"
@@ -199,7 +199,7 @@ unsigned char sendmessage(unsigned char *buffer, unsigned short size, unsigned c
 
 void stk500(void)
 {
-	unsigned char	buffer[285];
+	unsigned char buffer[285];
 	unsigned short size;
 	unsigned char seq;
 	unsigned char ctr=0;

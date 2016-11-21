@@ -1,5 +1,20 @@
 /*
-	BlueSense2 Bootloader
+	file: main_bl
+	
+	STK500v2 compatible bootloader for BlueSense2.
+	
+	Three case exist for entering the bootloader:
+	- The device has been turned on and during the bootloader wait period a program command is received
+	- The device is running the application which intercepted a program command on the USB interface and jumped to the bootloader
+	- The device is running the application which intercepted a program command on the BT interface and jumped to the bootloader
+	
+	The booloader must be called as follows from avrdude:
+		avrdude -p atmega1284p -c stk500v2 -P com11 -U flash:w:main.hex -D
+	The option -D is required as the chip erase function is not implemented.
+	
+	
+	
+	Compile with Makefile_bl
 */
 
 #include "cpu.h"
@@ -254,11 +269,12 @@ int main(void)
 	MCUSR=0;
 	if(mcusr&0x8)
 	{
+		// Rebooted due to a watchdog reset: go to application code.
 		wdt_disable();
 		app_start();
 	}
 	
-	
+
 	// INIT MODULE
 	init_ports();
 	init_timers();
@@ -281,6 +297,8 @@ int main(void)
 	dbg_rx_callback=echo_dbg2bt;
 	sei();
 	
+		
+start:
 		
 	fputs("BlueSense2 Bootloader\n",file_usb);
 	fputs("BlueSense2 BTBootloader\n",file_bt);
@@ -345,7 +363,13 @@ int main(void)
 		
 	fputs("Reboot\n",file_dbg);
 	
+	
+	
+	
 reboot:
+
+	goto start;
+
 	// Blink, which also waits for I/O transfers to complete
 	system_blink(20,50,0b00);
 	// Move interrupt vector and enable interrupts
