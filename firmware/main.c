@@ -124,7 +124,6 @@ FILE *file_dbg;			// Debug (assigned to file_bt or file_usb)
 FILE *file_pri;			// Primary (assigned to file_bt or file_usb)
 
 unsigned char sharedbuffer[520];
-volatile unsigned long rtc_time=0,rtc_time_sec=0,cpu_time=0;
 
 volatile unsigned char bluetoothrts=0;
 
@@ -206,14 +205,12 @@ ISR(TIMER1_COMPA_vect)
 		USART1_RX_vect_core();
 	}*/
 	//wdt_reset();
-	cpu_time++;
 	_timer_tick_1024hz();
 }
 // RTC 1024Hz
 #if HWVER==1
 ISR(TIMER2_COMPA_vect)
 {
-	rtc_time++;
 	//_timer_tick_1024hz();
 }
 #endif
@@ -224,7 +221,6 @@ ISR(PCINT0_vect)
 	// Check pin state; second counter incremented on falling edge
 	if(!(PINA&0b01000000))
 	{
-		rtc_time_sec++;
 		_timer_tick_hz();
 	}
 }

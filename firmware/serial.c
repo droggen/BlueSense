@@ -49,7 +49,7 @@ unsigned char serial_numopen=0;
 *******************************************************************************	
 	Opens a serial communication peripheral.
 	
-	periph:		0:		UART0
+	periph:				0:		UART0
 						1:		UART1
 						10:		I2C FTDI DBG interface
 	interrupt:

@@ -38,7 +38,7 @@ FILE *file_dbg;			// Debugging interface
 
 
 // Define to read actual battery voltage
-#define ENABLE_TRUEVTARGET
+//#define ENABLE_TRUEVTARGET
 //#define BOOTDBG
 //#define DISABLE_EEPROM
 

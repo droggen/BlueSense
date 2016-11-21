@@ -23,14 +23,15 @@ void system_status_ok(unsigned char status);
 void system_status_ok2(unsigned char status);
 void system_status_error(unsigned char error,unsigned char forever);
 
+unsigned char system_isbtconnected(void);
+unsigned char system_isusbconnected(void);
+
 #if BOOTLOADER==0
 void system_samplebattery_sample(void);
 unsigned char system_samplebattery_start(unsigned char p);
 void system_samplebattery_end(unsigned short v);
 unsigned short system_getbattery(void);
 unsigned long system_getbatterytime(void);
-unsigned char system_isbtconnected(void);
-unsigned char system_isusbconnected(void);
 void system_off(void);
 void system_power_low(void);
 void system_power_normal(void);

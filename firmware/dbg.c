@@ -82,8 +82,8 @@ void dbg_setnumtxbeforerx(unsigned char c)
 {
 	if(c<1)
 		c=1;
-	if(c>256)
-		c=256;
+	if(c>128)
+		c=128;
 	_dbg_newnumtxbeforerx=c;
 }
 int dbg_fputchar(char c, FILE*stream)
@@ -178,7 +178,7 @@ unsigned char dbg_callback(unsigned char p)
 	unsigned char r;
 	unsigned short lvl;
 	//static unsigned char ctr=0;
-	char b[32];
+	//char b[32];
 	
 	// If not connected we don't run the callback at all
 	//return 0;
@@ -459,9 +459,11 @@ unsigned char _dbg_read_callback(I2C_TRANSACTION *t)
 	{
 		// Error
 		//system_blink(4,20,0b01);	
+		#ifdef DBG_DBG
 		char b[32];
 		b[0]='R'; b[1]=hex2chr(t->status>>4); b[2]=hex2chr(t->status&0x0f); b[3]=hex2chr(t->i2cerror>>4); b[4]=hex2chr(t->i2cerror&0x0f); b[5]='\n'; b[6]=0;
 		fputs(b,file_bt);
+		#endif
 		// Return to write cycle
 		dbg_general_busy=0;
 		dbg_general_state=0;	

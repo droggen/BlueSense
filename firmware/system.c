@@ -1,6 +1,7 @@
 #include "cpu.h"
 #include <avr/io.h>
 #include <util/atomic.h>
+
 #if BOOTLOADER==0
 #define __DELAY_BACKWARD_COMPATIBLE__
 #include <util/delay.h>
@@ -9,7 +10,8 @@
 #include "adc.h"
 #include "interface.h"
 #else
-extern unsigned long int timer_ms_get(void);
+//extern unsigned long int timer_ms_get(void);
+#include <util/delay.h>
 #endif
 
 #include "system.h"
@@ -25,12 +27,12 @@ unsigned char system_enable_lcd=0;
 
 void system_delay_ms(unsigned short t)
 {
-	#if BOOTLOADER==1
-		unsigned long int tstart=timer_ms_get();
-		while(timer_ms_get()-tstart<(unsigned long int)t);
-	#else
+	//#if BOOTLOADER==1
+	//	unsigned long int tstart=timer_ms_get();
+	//	while(timer_ms_get()-tstart<(unsigned long int)t);
+	//#else
 		_delay_ms(t);
-	#endif
+	//#endif
 }
 
 #if HWVER==1
@@ -357,13 +359,22 @@ void system_adcpu_on(void)
 	PORTA = init_porta;								// enable pull-up on 4 ADC input
 }
 
-#if BOOTLOADER==0
 unsigned char *system_getdevicename(void)
 {
 	return system_devname;
 }
+
 #endif
 
 
 
+#if BOOTLOADER==1
+unsigned char system_isusbconnected(void)
+{
+	return 1;
+}
+unsigned char system_isbtconnected(void)
+{
+	return 1;
+}
 #endif

@@ -67,6 +67,9 @@ FORMAT = ihex
 # Target file name (without extension).
 TARGET = main
 
+# Secondary hex file to program; e.g. bootloader or main
+SECONDARYHEX = bl-minimal
+
 # Optimization level, can be [0, 1, 2, 3, s]. 
 #     0 = turn off optimization. s = optimize for size.
 #     (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
@@ -192,6 +195,7 @@ CFLAGS += -Wall
 
 # Dan: remove unused functions with compile flag -ffunction-sections and linker flag -Wl,-gc-sections
 CFLAGS += -ffunction-sections
+CFLAGS += -fdata-sections
 
 
 # Compiler flag to set the C Standard level.
@@ -354,6 +358,8 @@ AVRDUDE_PORT = usb	   # programmer connected to serial device
 #AVRDUDE_PORT = com1    # programmer connected to serial device
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
+AVRDUDE_WRITE_SECONDARY = -U flash:w:$(SECONDARYHEX).hex -D
+
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
 
 
@@ -513,6 +519,8 @@ gccversion :
 # Program the device.  
 program: $(TARGET).hex $(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+	powershell start-sleep .5
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
 
 
 # Generate avr-gdb config/init file which does the following:

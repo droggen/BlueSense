@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-
+#include "init.h"
 #include "system.h"
 
 
@@ -31,7 +31,7 @@ int main(void)
 	//dbg_init();
 	//file_usb = serial_open(10,1);
 	//file_bt=serial_open(1,1);
-	//serial_setblocking(file_usb,0);
+	//serial_setblockin g(file_usb,0);
 	
 	
 	int n=3;
@@ -39,8 +39,8 @@ int main(void)
 	//fprintf(0,"a %d",4);			// 2886, 2528, 4428
 	//fputs("a",0);					// 1560
 	
-	char *b;
-	b = malloc(128);
+	//char *b;
+	//b = malloc(128);
 	
 	//scanf("%d",&n);
 	

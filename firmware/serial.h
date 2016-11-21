@@ -39,7 +39,7 @@ typedef struct
 	unsigned char blocking;
 	BUFFEREDIO *txbuf;
 	BUFFEREDIO *rxbuf;	
-	unsigned char (*putbuf)(unsigned char *data,unsigned char n);
+	unsigned char (*putbuf)(char *data,unsigned char n);
 } SERIALPARAM;
 
 /*

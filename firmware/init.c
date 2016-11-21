@@ -147,17 +147,15 @@ void init_portchangeint(void)
 void init_timers(void)
 {
 	// Timer 0: CPU
-	TCCR1A = 0x00;										// Clear timer on compare
+	TCCR1A = 0x00;									// Clear timer on compare
 	TCCR1B = 0x08|0x01;								// Clear timer on compare, prescaler 1
 	TIMSK1 = (1<<OCIE1A);							// Output compare match A interrupt enable
 	#if HWVER==1
-	OCR1A = 7199;											// Top value: divides by OCR1A+1; 7199 leads to divide by 7200
+	OCR1A = 7199;									// Top value: divides by OCR1A+1; 7199 leads to divide by 7200
 	#endif
 	#if (HWVER==4) || (HWVER==5) || (HWVER==6)
-	OCR1A = 10799;										// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
+	OCR1A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
 	#endif
-	//OCR1A = 7200;											// Top value
-	//OCR1A = 7201;											// Top value
 	
 	/*
 	// Timer 2: asynchronous from RTC
@@ -181,7 +179,10 @@ void init_module(void)
 	init_ports();
 	init_portchangeint();
 	init_timers();
+	
+#if BOOTLOADER==0
 	spi_init(SPI_DIV_2);
+#endif
 	
 #if BOOTLOADER==0
 	

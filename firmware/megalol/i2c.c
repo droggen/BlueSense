@@ -85,20 +85,20 @@ void i2c_init(void)
 
 	#if HWVER==1
 	TWCR = 0;					// Deactivate
-	TWBR = 1; TWSR = 0;	// 409.6KHz @ 7'372'800 Hz
+	TWBR = 1; TWSR = 0;			// 409.6KHz @ 7'372'800 Hz
 	//TWBR = 0; TWSR = 0;		// 460.8KHz @ 7'372'800 Hz
-	//TWBR = 1; TWSR = 1;	// 307.2KHz @ 7'372'800 Hz
-	//TWBR = 1; TWSR = 3;	// 409.6KHz/64=6KHz @ 7'372'800 Hz
-	//TWBR = 255; TWSR = 3;	// 225Hz @ 7'372'800 Hz
-	//TWBR = 255; TWSR = 3;	// 225Hz @ 7'372'800 Hz
+	//TWBR = 1; TWSR = 1;		// 307.2KHz @ 7'372'800 Hz
+	//TWBR = 1; TWSR = 3;		// 409.6KHz/64=6KHz @ 7'372'800 Hz
+	//TWBR = 255; TWSR = 3;		// 225Hz @ 7'372'800 Hz
+	//TWBR = 255; TWSR = 3;		// 225Hz @ 7'372'800 Hz
 	
-		//TWBR = 4; TWSR = 3;		// 13963Hz @ 7'372'800 Hz
+	//TWBR = 4; TWSR = 3;		// 13963Hz @ 7'372'800 Hz
 	//TWBR = 10; TWSR = 3;		// 5689Hz @ 7'372'800 Hz
 	
-	//TWBR = 0; TWSR = 0;	// 460.8KHz @ 7'372'800 Hz
+	//TWBR = 0; TWSR = 0;		// 460.8KHz @ 7'372'800 Hz
 	#endif
 	#if (HWVER==4) || (HWVER==5) || (HWVER==6)
-	TWBR = 6; TWSR = 0;		// 394.9KHz @ 11'059'200 Hz
+	TWBR = 6; TWSR = 0;			// 394.9KHz @ 11'059'200 Hz
 	//TWBR = 47; TWSR = 0;		// 100.5KHz @ 11'059'200 Hz
 	//TWBR = 34; TWSR = 2;		// 10KHz @ 11'059'200 Hz
 	//TWBR = 172; TWSR = 3;		// 501.9Hz @ 11'059'200 Hz

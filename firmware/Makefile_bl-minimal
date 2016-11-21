@@ -62,23 +62,28 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = mainbl
+TARGET = bl-minimal
+
+# Secondary hex file to program; e.g. bootloader or main
+SECONDARYHEX = main
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = mainbl.c
+SRC = main_bl-minimal.c
+#SRC = mainbl.c
 SRC += init.c
 SRC += system.c
+#SRC += megalol/wait.c
 SRC += megalol/i2c.c
 SRC += megalol/i2c_internal.c
 SRC += circbuf.c
 SRC += dbg.c
 SRC += serial.c
 SRC += serial1.c
-SRC += adc.c
-SRC += stk500.c
+#SRC += megalol/adc.c
+#SRC += stk500.c
 
-#SRC = mainbl2.c
+
 #SRC += system.c
 #SRC += init.c
 
@@ -91,7 +96,7 @@ SRC += stk500.c
 #     it will preserve the spelling of the filenames, and gcc itself does
 #     care about how the name is spelled on its command-line.
 ASRC = 
-ASRC += numeric.S
+#ASRC += numeric.S
 
 
 # Optimization level, can be [0, 1, 2, 3, s]. 
@@ -126,8 +131,8 @@ CSTANDARD = -std=gnu99
 CDEFS = 
 #CDEFS = -DF_CPU=$(F_CPU)UL
 
-CDEFS  += -DBOOTLOADER
-CDEFS += -DHWVER=4
+CDEFS += -DBOOTLOADER=1
+CDEFS += -DHWVER=6
 #CDEFS += -DENABLE_I2CINTERRUPT
 #CDEFS += -DENABLE_I2CPOLL
 CDEFS += -DENABLE_SERIAL1
@@ -158,7 +163,9 @@ CFLAGS += $(CSTANDARD)
 
 CFLAGS += -Werror=implicit-function-declaration
 
-
+# Dan: remove unused functions with compile flag -ffunction-sections and linker flag -Wl,-gc-sections
+CFLAGS += -ffunction-sections
+CFLAGS += -fdata-sections
 
 #---------------- Assembler Options ----------------
 #  -Wa,...:   tell GCC to pass this to the assembler.
@@ -224,6 +231,11 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 
 #---------------- Dan's library simplification ---------------
 #LDFLAGS += -Wl,-u,_delay_ms -l_delay_ms_boot
+#---------------- Dan's library simplification ---------------
+# Dan: remove unused functions with compile flag -ffunction-sections and linker flag -Wl,-gc-sections
+LDFLAGS += -Wl,-gc-sections
+
+
 
 
 #--------------- bootloader linker Options -------
@@ -242,12 +254,17 @@ LDFLAGS += -Wl,--section-start=.text=$(BOOTLOADER_ADDRESS)
 # Type: avrdude -c ?
 # to get a full listing.
 #
-AVRDUDE_PROGRAMMER = stk500v2
+#AVRDUDE_PROGRAMMER = stk500v2
+AVRDUDE_PROGRAMMER = avrispmkii
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
-AVRDUDE_PORT = com1    # programmer connected to serial device
+AVRDUDE_PORT = usb	   # programmer connected to serial device
+#AVRDUDE_PORT = com1    # programmer connected to serial device
 
+#AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex 
+# Add a -D flag to AVRDUDE_WRITE_FLASH to avoid erasing the flash
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
+AVRDUDE_WRITE_SECONDARY = -U flash:w:$(SECONDARYHEX).hex -D
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
 
 
@@ -258,7 +275,7 @@ AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 
 # Uncomment the following if you do /not/ wish a verification to be
 # performed after programming the device.
-#AVRDUDE_NO_VERIFY = -V
+AVRDUDE_NO_VERIFY = -V
 
 # Increase verbosity level.  Please use this when submitting bug
 # reports about avrdude. See <http://savannah.nongnu.org/projects/avrdude> 
@@ -407,6 +424,8 @@ gccversion :
 # Program the device.  
 program: $(TARGET).hex $(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+	powershell start-sleep .5
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
 
 
 # Generate avr-gdb config/init file which does the following:
