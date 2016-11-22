@@ -6,6 +6,12 @@
 	Setups the board interfaces; signal aliveness with the LEDs and sending a message to the USB interface; and jumps to the user code.
 	
 	Compile with Makefile_bl-minimal.
+	
+	Flags must be: 
+		Extended: FF
+		High: D0
+		Low: FF
+
 
 */
 

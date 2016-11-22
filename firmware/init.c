@@ -1,3 +1,9 @@
+/*
+	File: init
+	
+	Initialisation and deinitialisation functions.
+	
+*/
 #include "cpu.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -141,6 +147,14 @@ void init_portchangeint(void)
 	// Enable PCIE0 and PCIE2
 	PCICR = 0b00001101;				// Enable interrupt on port A and C
 }
+void deinit_portchangeint(void)
+{
+	// Deinitialise the port change interrupt	
+	PCICR=0;
+	PCMSK0=0;
+	PCMSK2=0;
+	PCMSK3=0;
+}
 
 #endif
 
@@ -156,23 +170,12 @@ void init_timers(void)
 	#if (HWVER==4) || (HWVER==5) || (HWVER==6)
 	OCR1A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
 	#endif
-	
-	/*
-	// Timer 2: asynchronous from RTC
-	ASSR = (1<<EXCLK)|(1<<AS2);				// External clock, asynchronous
-	TCCR2A = 0x02;										// Clear timer on compare
-	TCCR2B = 0x01;										// Prescaler 1
-	TIMSK2 = (1<<OCIE2A);							// Output compare match A interrupt enable
-	//OCR2A = 31;												// Top value: divides by OCR2A+1; 31 leads to divide by 32
-	//OCR2A = 32;												// Top value
-	OCR2A = 31;												// Top value
-	//OCR2A = 10;												// Top value
-	*/
-	
-	
-
 }
-
+void deinit_timers(void)
+{
+	// Deinitialise timer 0
+	TIMSK1 = 0;
+}
 
 void init_module(void)
 {
@@ -190,26 +193,7 @@ void init_module(void)
 	
 	
 	
-	// 
-	// Setup the serial port
-	/*UCSR0B = 0x00; 				  //disable while setting baud rate
-	UCSR0C = 0x06; 				  // Asyn,NoParity,1StopBit,8Bit,
-	UCSR0A = 0x00;					// u2x=0
-	UBRR0H = 0;
-	UBRR0L = 3;
-	//UCSR0B = (1<<RXCIE0)|(1<<RXEN0)|(1<<TXEN0);			// RX/TX Enable, RX/TX Interrupt Enable
-	UCSR0B = (1<<RXEN0)|(1<<TXEN0);			// RX/TX Enable, RX/TX Interrupt Enable*/
 	
-	// Communication setup
-	//uart_init(2);
-	// UART0=USB in v1, motion in v4
-	// UART1=BT
-	
-	// (3,0) 115200bps  @ 7.37 Mhz
-	// (5,0) 115200bps  @ 11.06 Mhz
-	// (1,0) 230400bps  @ 7.37 Mhz
-	//uart0_init(3,0);	
-	//uart0_init(1,0);	
 	
 	#if HWVER==1
 		uart1_init(3,0);	

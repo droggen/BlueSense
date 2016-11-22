@@ -102,6 +102,17 @@ PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBL
 ************************************************************************************************************************************************************/
 
 /******************************************************************************
+   function: ADCDeinit
+*******************************************************************************
+	Deactivate the ADC and cancels any pending transaction
+******************************************************************************/
+void ADCDeinit(void)
+{
+	ADCSRA=0b00010000;						// Deactivate ADC, clear ADC interrupt flag
+	__adc_convtype=_ADC_CONVERSION_IDLE;	// Mark as idle
+}
+
+/******************************************************************************
    function: ADCSetAutoPowerOff
 *******************************************************************************
 	Sets whether the ADC should automatically be powered off after a conversion.

@@ -50,6 +50,7 @@ extern ADC_CALLBACK __adc_callback;								// Callback for the last triggered co
 extern volatile unsigned char __adc_convtype;					// 0: none, 1: ongoing
 
 // Public functions
+void ADCDeinit(void);
 void ADCSetAutoPowerOff(unsigned char autopoweroff);
 void ADCSetPrescaler(unsigned char prescaler);
 unsigned short ADCRead(unsigned char channel,unsigned char intvref);

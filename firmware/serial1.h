@@ -48,6 +48,7 @@ extern unsigned char  (*uart1_rx_callback)(unsigned char);
 
 // Initialisation
 int uart1_init(unsigned int ubrr, unsigned char u2x);
+void uart1_deinit(void);
 void uart1_clearbuffers(void);
 
 

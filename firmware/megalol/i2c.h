@@ -39,6 +39,7 @@ GENERAL & WRAPPER
 *******************************************************************************
 ******************************************************************************/
 void i2c_init(void);
+void i2c_deinit(void);
 unsigned char i2c_readreg(unsigned char addr7,unsigned char reg,unsigned char *val);
 unsigned char i2c_readregs(unsigned char addr7,unsigned char reg,unsigned char n,unsigned char *val);
 unsigned char i2c_writereg(unsigned char addr7,unsigned char reg,unsigned char val);

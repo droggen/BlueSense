@@ -118,6 +118,10 @@ void i2c_init(void)
 	
 
 }
+void i2c_deinit(void)
+{
+	TWCR=0;			// Disable TWI
+}
 
 #if BOOTLOADER==0
 unsigned char i2c_readreg(unsigned char addr7,unsigned char reg,unsigned char *val)

@@ -12,6 +12,7 @@ extern void (*_spiusart0_callback)(void);
 
 
 void spiusart0_init(void);
+void spiusart0_deinit(void);
 void _spiusart0_waitavailandreserve(void);
 unsigned char spiusart0_rw(unsigned char d);
 void spiusart0_rwn(unsigned char *ptr,unsigned char n);

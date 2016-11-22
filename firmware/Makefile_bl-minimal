@@ -64,7 +64,7 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = bl-minimal
+TARGET = bootloader-minimal
 
 # Secondary hex file to program; e.g. bootloader or main
 SECONDARYHEX = main

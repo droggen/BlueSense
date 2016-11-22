@@ -184,7 +184,7 @@ unsigned char dbg_callback(unsigned char p)
 	//return 0;
 	if(!system_isusbconnected())
 		return 0;
-	
+		
 	
 	//system_led_toggle(0b1);
 	//_delay_us(20);
@@ -273,25 +273,41 @@ unsigned char dbg_callback(unsigned char p)
 	// Inquire available data
 	if(dbg_general_state==_dbg_numtxbeforerx)
 	{
-		// If there is no space in tx buffer, no need to inquire space, and instead go to send
-		lvl = buffer_freespace(&_dbg_rx_state);
-		if(lvl==0)
-		{
-			dbg_general_state=0;
+		// Should only inquire if dbg_rxlevel is <DBG_MAXPAYLOAD, otherwise we know we have enough data that can be read without inquiring to fill a complete I2C transaction; this speeds up receiving data
+		//if(dbg_rxlevel<DBG_MAXPAYLOAD)
+		//{	
+			// If there is no space in rx buffer, no need to inquire space, and instead go to send
+			lvl = buffer_freespace(&_dbg_rx_state);
+			if(lvl==0)
+			{
+				dbg_general_state=0;
+				return 0;
+			}			
+			
+			r = i2c_transaction_queue(2,0,&_dbg_trans_query1,&_dbg_trans_query2);
+			if(r)
+			{
+				// Does not change state, i.e. retries
+				return 2;
+			}
+			dbg_general_busy=1;
 			return 0;
-		}			
+		//}
+		//else
+		//{
+			// Go to next state which is read
+		//	dbg_general_state++;
+		//}
 		
-		r = i2c_transaction_queue(2,0,&_dbg_trans_query1,&_dbg_trans_query2);
-		if(r)
-		{
-			// Does not change state, i.e. retries
-			return 2;
-		}
-		dbg_general_busy=1;
-		return 0;
 	}
 	if(dbg_general_state>_dbg_numtxbeforerx)
 	{
+		/*if(dbg_rxlevel==0)
+			system_led_set(0b000);
+		else
+			system_led_set(0b100);*/
+	
+	
 		lvl = buffer_freespace(&_dbg_rx_state);
 		
 		/*char b[32];
@@ -376,8 +392,10 @@ unsigned char _dbg_query_callback1(I2C_TRANSACTION *t)
 	if(t->status==0)
 		return 0;
 	// First transaction failed -> not busy, go to initial state
+	// The transactions were linked, so the transaction2 should be removed by the i2c engine 
 	dbg_general_busy=0;
-	dbg_general_state=0;
+	dbg_general_state=0;	
+	
 	//system_blink(4,40,0b01);	
 	#ifdef DBG_DBG
 	// Print data 
@@ -398,14 +416,16 @@ unsigned char _dbg_query_callback2(I2C_TRANSACTION *t)
 		dbg_general_busy=0;
 		if(dbg_rxlevel!=0)
 		{
+			//system_led_set(1);
 			dbg_general_state++;		
-			/*char b[32];
-			b[0]='A'; b[1]=hex2chr(dbg_rxlevel>>4); b[2]=hex2chr(dbg_rxlevel&0x0f); 
-			b[3]='\n'; b[4]=0;
-			fputs(b,file_bt);*/
+			//char b[32];
+			//b[0]='A'; b[1]=hex2chr(dbg_rxlevel>>4); b[2]=hex2chr(dbg_rxlevel&0x0f); 
+			//b[3]='\n'; b[4]=0;
+			//fputs(b,file_bt);
 		}
 		else
 		{
+			//system_led_set(0);
 			dbg_general_state=0;
 		}
 		

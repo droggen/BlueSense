@@ -9,8 +9,11 @@ extern unsigned char init_portb;
 
 void init_ports(void);
 void init_timers(void);
+void deinit_timers(void);
 void init_module(void);
 void init_spi(void);
+void init_portchangeint(void);
+void deinit_portchangeint(void);
 
 
 #if BOOTLOADER==0

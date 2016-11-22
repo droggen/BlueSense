@@ -5,16 +5,43 @@
 	
 	Three case exist for entering the bootloader:
 	- The device has been turned on and during the bootloader wait period a program command is received
+	  In this case: UBRR0=0
 	- The device is running the application which intercepted a program command on the USB interface and jumped to the bootloader
-	- The device is running the application which intercepted a program command on the BT interface and jumped to the bootloader
+	  In this case: UBRR0=250
+	- The device is running the application which intercepted a program command on the Bluetooth interface and jumped to the bootloader
+	  In this case: UBRR0=251
 	
 	The booloader must be called as follows from avrdude:
-		avrdude -p atmega1284p -c stk500v2 -P com11 -U flash:w:main.hex -D
+		avrdude -p atmega1284p -c stk500v2 -P com11 [-V] -U flash:w:main.hex -D 
 	The option -D is required as the chip erase function is not implemented.
+	The option -V prevents verification.
+	
+	The code uses a bootloader interface and a debug interface.
+	file_usb and file_bt are respectively the USB and Bluetooth interface. 
+	Depending on which is the interface on which the bootloader is detected, the bootloader interface
+	becomes file_bl and the other one file_dbg.
 	
 	
+	The stk500 booloader implements only the following functions:
+	- CMD_SIGN_ON: to enter the ISP
+	- CMD_SPI_MULTI: to query signature and fuse bits
+	- CMD_GET_PARAMETER: to provide AVRISP HW and SW version
+	- CMD_LOAD_ADDRESS: 
+	- CMD_PROGRAM_FLASH_ISP
+	- CMD_PROGRAM_EEPROM_ISP
+	- CMD_READ_FLASH_ISP
+	- CMD_READ_EEPROM_ISP
+	
+	ISSUES:
+	- If jumping to bootloader from the application all the application interrupt are enabled, in particular port change interrupts. 
+	  As there is no interrupt handler defined for these, if they occur they will lead to a reset.
 	
 	Compile with Makefile_bl
+	
+	Flags must be: 
+		Extended: FF
+		High: D0
+		Low: FF
 */
 
 #include "cpu.h"
@@ -39,12 +66,19 @@
 #include "serial.h"
 #include "stk500.h"
 
-FILE *file_usb,*file_bt;
+//#define ENABLEBOOTLOADERONBLUETOOTH
+
+FILE *file_usb;
+FILE *file_bt;
 volatile unsigned long time_ms=0;
 
-#define TIMEOUTMS 10000
+#define TIMEOUTMS 3000
+//#define TIMEOUTMS 10000
+
+
 
 void (*app_start)(void) = 0x0000;
+
 
 unsigned long int timer_ms_get(void)
 {
@@ -56,23 +90,26 @@ unsigned long int timer_ms_get(void)
 	return t;
 }
 
-FILE *detectbl(FILE *f1,FILE *f2)
+// This detects a bootloader on 
+FILE *detectbl(void)
 {
 	unsigned long tstart,tblink;
 	tblink=tstart=timer_ms_get();
 	while(timer_ms_get()-tstart<(unsigned long)TIMEOUTMS)
 	{
-		if(fgetrxbuflevel(f1))
+		if(fgetrxbuflevel(file_usb))
 		{
-			return f1;
+			return file_usb;
 		}
-		if(fgetrxbuflevel(f2))
-		{
-			return f2;
-		}		
+		#ifdef ENABLEBOOTLOADERONBLUETOOTH
+			if(fgetrxbuflevel(file_bt))
+			{
+				return file_bt;
+			}
+		#endif
 		if(timer_ms_get()-tblink>500)
 		{
-			system_led_toggle(0b1);
+			system_led_toggle(0b010);
 			tblink = timer_ms_get();
 		}
 	}			
@@ -115,7 +152,7 @@ int getchar_timeout(void)
 // CPU 1024Hz
 ISR(TIMER1_COMPA_vect)
 {
-	wdt_reset();
+	//wdt_reset();
 	time_ms++;
 	dbg_callback(0);
 }
@@ -131,7 +168,9 @@ extern volatile unsigned char dbg_rxlevel;
 
 unsigned char echo_dbg2bt(unsigned char c)
 {
-	fputc(c,file_bt);
+	//#ifdef ENABLEBOOTLOADERONBLUETOOTH
+		fputc(c,file_bt);
+	//#endif
 	return 1;
 }
 
@@ -259,6 +298,8 @@ Main program loop
 int main(void)
 {
 	unsigned char mcusr;
+	char *blstr="BS2 BL\n";
+	char *leavingstr="BS2 BL: end\n";
 	
 	/*
 		We have a hard time rebooting to the application once all the registers are initialised. 
@@ -270,9 +311,11 @@ int main(void)
 	if(mcusr&0x8)
 	{
 		// Rebooted due to a watchdog reset: go to application code.
-		wdt_disable();
-		app_start();
+		wdt_disable();			// The watchdog is still activated and must be deactivated now
+		app_start();			// Jump to address 0.
 	}
+	
+	
 	
 
 	// INIT MODULE
@@ -282,8 +325,8 @@ int main(void)
 	i2c_init();
 	dbg_init();
 	file_usb = serial_open(10,1);
-	file_bt=serial_open(1,1);
 	serial_setblocking(file_usb,0);
+	file_bt=serial_open(1,1);
 	serial_setblocking(file_bt,0);
 	dbg_setnumtxbeforerx(10);
 	
@@ -293,92 +336,146 @@ int main(void)
 	MCUCR = temp|(1<<IVSEL);
 	sei();
 	
+	// Activate this to echo the data received from the USB interface on the BT interface
 	cli();
 	dbg_rx_callback=echo_dbg2bt;
 	sei();
 	
 		
 start:
-		
-	fputs("BlueSense2 Bootloader\n",file_usb);
-	fputs("BlueSense2 BTBootloader\n",file_bt);
-		
-	system_blink(20,100,0b00);
+	// Bootloader life sign
+	system_led_set(0b111);
+	_delay_ms(100);
+	system_led_set(0b101);
+	_delay_ms(100);
+
+	//mfprintf(file_usb,"PCMSK0: - UBRR0: - \n",PCMSK0,UBRR0);
 	
-//	mfprintf(file_usb,"MCUSR: -\n",mcusr);
+	/*
+		One of three cases can occur:
+		- The processor was reset/powered up: we wait for a lifesign on one of the interface
+		- The bootloader was called from a hook in the application on interface USB
+		- The bootloader was called from a hook in the application on interface BT
+	*/
 	
-//if(mcusr&0x8)
-//		goto reboot;
-	
-	
-	unsigned char b[64];
-	//mfprintf(file_bt,"UBRRO: -\n",UBRR0);
-	
-	// Find how we have been called: reset or from the main application
-	if(UBRR0 == 0)
+	// Find how we entered the bootloader
+	switch(UBRR0)
 	{
-		// Were reseted - must autodetect from which port bootloader may come
-		//fputs("AD\n",file_bt);
-		file_bl = detectbl(file_usb,file_bt);
-		
-		//msprintf(b,"Detect: +\n",file_bl);
-		//fputs(b,file_bt);
-		if(file_bl==0)
+		case 0:
 		{
-			// Must jump to application code
-			goto reboot;
+			// The bootloader is entered due to processor reset or power up.
+			// Display welcome message
+			fputs(blstr,file_usb);
+			fputs(blstr,file_bt);
+			
+			// Detect on which interface there is activity
+			file_bl = detectbl();
+			
+			
+			// Nothing received on any interface: jump to application code
+			if(file_bl==0)
+			{
+				// Got to reboot
+				goto reboot;
+			}
+			// Something received - check which interface is used. 
+			// detectbl is aware of ENABLEBOOTLOADERONBLUETOOTH and will not return file_bt if ENABLEBOOTLOADERONBLUETOOTH is not enabled
+			// Set the bootloader and debug interface according to where a life sign was detected
+			if(file_bl==file_usb)
+				file_dbg=file_bt;
+			else
+				file_dbg=file_usb;
+			// Got to the boot loader
+			goto enterboot;
 		}
-		if(file_bl==file_usb)
-			file_dbg=file_bt;
-		else
-			file_dbg=file_usb;
-		
-	}
-	if(UBRR0 == 250)
-	{
-		// Called from application, boot over dbg
-		file_bl = file_usb;
-		file_dbg = file_bt;
-	}
-	if(UBRR0 == 251)
-	{
-		// Called from application, boot over bluetooth
-		file_bl = file_bt;
-		file_dbg = file_usb;
-	}
-	
-		
-	if(UBRR0==250 || UBRR0==251)
-	{
-		//fputs("SE\n",file_bt);
-		b[0] = CMD_SIGN_ON;
-		b[1] = STATUS_CMD_FAILED;
-		sendmessage(b,2,1);
+		case 250:
+		{
+			// Called from application with boot over USB interface
+			file_bl = file_usb;
+			file_dbg = file_bt;
+			break;
+		}
+		#if ENABLEBOOTLOADERONBLUETOOTH
+		// Only check if ENABLEBOOTLOADERONBLUETOOTH is enabled
+		case 251:
+		{
+			// Called from application with boot over Bluetooth interface
+			file_bl = file_bt;
+			file_dbg = file_usb;
+			break;
+		}
+		#endif
+		default:
+		{
+			// Unknown code: reboot
+			goto reboot;			
+		}
 	}
 	
-	fputs("Entering ISP\n",file_dbg);
-	
+	// Code arrives here if the bootloader was called from a hook in the application
+	// It is likely that the interface would loose a few incoming bytes due to the transition to the bootloader and reinitialisation. 
+	// Therefore we send a message 'fail' to invite the programmer to re-send the command.
+
+	// If we received a character indicative of bootloader, return immediately with an error, which will lead avrdude to resend a signon command.
+	// TODO: if the code is fast enough the bootloader may be entered the character that has been received 
+	//fputs("SE\n",file_bt);
+	char b[64];
+	b[0] = CMD_SIGN_ON;
+	b[1] = STATUS_CMD_FAILED;
+	sendmessage(b,2,1);
+
+enterboot:
+
+	mfprintf(file_usb,"file_usb: + file_bt: + file_bl: + file_dbg: +\n",file_usb,file_bt,file_bl,file_dbg);
+			
+
 	stk500();
 	
-		
-	fputs("Reboot\n",file_dbg);
+	/*system_led_set(0b010);
 	
 	
-	
-	
-reboot:
+	system_led_set(0b001);
+	fputs("fake bootloader stuff 1\n",file_usb);
+	_delay_ms(1000);
+	system_led_set(0b010);
+	fputs("fake bootloader stuff 1\n",file_usb);
+	_delay_ms(1000);
+	system_led_set(0b100);
+	fputs("fake bootloader stuff 1\n",file_usb);
+	_delay_ms(1000);*/
 
-	goto start;
+
+reboot:
+	
+	// Print bye message
+	fputs(leavingstr,file_usb);
+	fputs(leavingstr,file_bt);
+	
+	//system_led_set(0b101);
+		
+	
+	
+	
+	
+
+
+//	goto start;
 
 	// Blink, which also waits for I/O transfers to complete
-	system_blink(20,50,0b00);
+	//system_blink(20,50,0b00);
+	_delay_ms(200);
 	// Move interrupt vector and enable interrupts
-	cli();
+	/*cli();
 	temp = MCUCR;
 	MCUCR = temp|(1<<IVCE);
-	MCUCR = temp&(~(1<<IVSEL));
+	MCUCR = temp&(~(1<<IVSEL));*/
+	
+	system_led_set(0b110);
 	
 	wdt_enable(WDTO_250MS);
+	
+	system_led_set(0b111);
+	
 	while(1); // WDT will do reset
 	
 }

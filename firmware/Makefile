@@ -86,7 +86,7 @@ SRC = $(TARGET).c
 # SRC += ../common/core.c
 # SRC += ../common/global.c
 SRC += serial.c
-SRC += serial0.c
+#SRC += serial0.c
 SRC += serial1.c
 SRC += megalol/adc.c
 SRC += megalol/i2c.c
@@ -519,8 +519,8 @@ gccversion :
 # Program the device.  
 program: $(TARGET).hex $(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-	powershell start-sleep .5
-	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
+#	powershell start-sleep .5
+#	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
 
 
 # Generate avr-gdb config/init file which does the following:

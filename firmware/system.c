@@ -179,7 +179,7 @@ unsigned short Battery_ADC2mv(unsigned short adc)
 	return (unsigned short)t;
 }
 
-#if BOOTLOADER==0
+
 unsigned char system_isbtconnected(void)
 {
 	return (PIND&0x80)?1:0;
@@ -208,7 +208,7 @@ unsigned char system_isusbconnected(void)
 #endif
 
 
-
+#if BOOTLOADER==0
 /******************************************************************************
 	system_samplebattery
 *******************************************************************************	
@@ -367,14 +367,3 @@ unsigned char *system_getdevicename(void)
 #endif
 
 
-
-#if BOOTLOADER==1
-unsigned char system_isusbconnected(void)
-{
-	return 1;
-}
-unsigned char system_isbtconnected(void)
-{
-	return 1;
-}
-#endif

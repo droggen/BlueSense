@@ -168,7 +168,7 @@ void spiusart0_init(void)
 	
 	// Set frame format
 	// SPI mode: MSB first, data latched on rising edge, data must be transitionned on falling edge, sck high when idle -> mode 3
-	UCSR0C = 0b11000011;		// Master, MSB first, UCPHA = 1, UCPOL = 1	
+	UCSR0C = 0b11000011;			// Master, MSB first, UCPHA = 1, UCPOL = 1	
 	
 	UCSR0B = 0b00011000;			// Enable RX&TX
 	//UCSR0B = 0b11111000;			// Enable RXCIE TXCIE UDRIE interrupts and RX TX 
@@ -176,9 +176,9 @@ void spiusart0_init(void)
 	//UCSR0B = 0b01011000;			// Enable TXCIE interrupts and RX TX 
 	
 	// Set baud rate
-	//UBRR0=1;			//	2764 KHz @ 11'059'200 Hz
-	//UBRR0=3;			//	1382 KHz @ 11'059'200 Hz
-	UBRR0=5;			//	921.6 KHz @ 11'059'200 Hz
+	//UBRR0=1;				//	2764 KHz @ 11'059'200 Hz
+	//UBRR0=3;				//	1382 KHz @ 11'059'200 Hz
+	UBRR0=5;				//	921.6 KHz @ 11'059'200 Hz
 	//UBRR0=54;				//	100.5 KHz @ 11'059'200 Hz
 	//UBRR0=255;			//	21.6 KHz @ 11'059'200 Hz
 	
@@ -186,8 +186,13 @@ void spiusart0_init(void)
 	_spiusart0_ongoing=0;
 	
 	printf_P(PSTR("SPI USART: A: %02X B: %02X C: %02X\n"),UCSR0A,UCSR0B,UCSR0C);
-	
 }
+void spiusart0_deinit(void)
+{
+	// Deinitialise the SPI interface
+	UCSR0B &= 0b10111111;	
+}
+
 /******************************************************************************
 	function: _spiusart0_waitavailandreserve
 *******************************************************************************	

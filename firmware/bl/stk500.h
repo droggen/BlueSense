@@ -16,7 +16,7 @@ int getchar_timeout(void);
 unsigned char sendmessage(unsigned char *buffer, unsigned short size, unsigned char seq);
 void msprintf(char *buffer,char *format,...);
 void mfprintf(FILE *f,char *format,...);
-FILE *detectbl(FILE *f1,FILE *f2);
+FILE *detectbl(void);
 extern int bootmain(void);
 extern void stk500(void);
 

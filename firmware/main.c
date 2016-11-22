@@ -812,7 +812,7 @@ void system_sampletemperature_cb(unsigned char s,signed short t)
 
 extern void stk500(void);
 
-void boottest(void)
+/*void boottest(void)
 {
 	fprintf(file_bt,"Boot test\n");
 	fprintf(file_bt,"Setting passing register\n");
@@ -823,20 +823,43 @@ void boottest(void)
 	//void boot_bluetooth(void);
 	fprintf(file_bt,"Done\n");
 	while(1);
-}
+}*/
 
+/******************************************************************************
+	function: bootloaderhook_dbg
+*******************************************************************************	
+	Hook checking the data received on the usb interface for the byte indicating
+	that an stk500v2 bootloader message is received. 
+	In which case, enter the bootloader	
+	
+	Parameters:
+		c			-		Character received on the interface
+	Returns:
+		1			-		To place the character in the receive buffer
+		otherwise	-		The character is discarded
+******************************************************************************/
 unsigned char bootloaderhook_dbg(unsigned char c)
 {
 	// Enters the bootloader on reception of 0x1B
-	//if(c==0x1B)
-//		boot_dbg();
+	if(c==0x1B)
+	//if(c=='a')		// to help debugging
+	{
+		for(char i=0;i<5;i++)
+		{
+			system_led_set(0b000);
+			_delay_ms(50);
+			system_led_set(0b111);
+			_delay_ms(50);
+		}
+		boot_dbg();
+	}
 	return 1;
 }
 unsigned char bootloaderhook_bluetooth(unsigned char c)
 {
 	// Enters the bootloader on reception of 0x1B
-//	if(c==0x1B)
-		//boot_bluetooth();
+	if(c==0x1B)
+		boot_bluetooth();
 	return 1;
 }
 
@@ -920,12 +943,14 @@ int main(void)
 	
 	// Hook bootloader detector
 	cli(); 
-	dbg_rx_callback = bootloaderhook_dbg; 
-	uart1_rx_callback = bootloaderhook_bluetooth; 
+	dbg_rx_callback = bootloaderhook_dbg; 					// Hook the bootloader detector
+	//uart1_rx_callback = bootloaderhook_bluetooth; 		// Hook the bootloader detector
 	sei();															
 	
 	
 	//boottest();
+	
+	
 	
 	
 	//stk500();
@@ -1025,8 +1050,6 @@ int main(void)
 	//system_status_ok(5);
 	
 	system_status_ok(3);
-	
-	
 	
 	
 	

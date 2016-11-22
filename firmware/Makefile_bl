@@ -53,8 +53,6 @@ MCU = atmega1284p
 # 0x0e00*2=0x1C00 for ATmega8  512 words Boot Size
 # 0xFC00*2=0x1F800 for ATmega128  1024 words Boot Size
 # 0xF800*2=0x1F000 for ATmega1280
-# 0xF000*2=0x1E000 for ATmega1280
-#BOOTLOADER_ADDRESS = 1E000
 BOOTLOADER_ADDRESS = 1E000
 
 
@@ -64,7 +62,7 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = bl-minimal
+TARGET = bootloader
 
 # Secondary hex file to program; e.g. bootloader or main
 SECONDARYHEX = main
@@ -80,7 +78,7 @@ SRC += circbuf.c
 SRC += dbg.c
 SRC += serial.c
 SRC += serial1.c
-SRC += megalol/adc.c
+#SRC += megalol/adc.c
 SRC += bl/stk500.c
 
 
@@ -132,7 +130,7 @@ CDEFS =
 #CDEFS = -DF_CPU=$(F_CPU)UL
 
 CDEFS  += -DBOOTLOADER
-CDEFS += -DHWVER=4
+CDEFS += -DHWVER=6
 #CDEFS += -DENABLE_I2CINTERRUPT
 #CDEFS += -DENABLE_I2CPOLL
 CDEFS += -DENABLE_SERIAL1
@@ -322,6 +320,7 @@ DEBUG_HOST = localhost
 # Define programs and commands.
 SHELL = sh
 CC = avr-gcc
+#CC = avr-g++
 OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 SIZE = avr-size
@@ -422,7 +421,7 @@ gccversion :
 # Program the device.  
 program: $(TARGET).hex $(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-	powershell start-sleep .5
+	powershell start-sleep 1
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
 
 
