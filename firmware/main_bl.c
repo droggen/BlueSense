@@ -16,6 +16,7 @@
 	The option -D is required as the chip erase function is not implemented.
 	The option -V prevents verification.
 	
+
 	The code uses a bootloader interface and a debug interface.
 	file_usb and file_bt are respectively the USB and Bluetooth interface. 
 	Depending on which is the interface on which the bootloader is detected, the bootloader interface
@@ -42,6 +43,16 @@
 		Extended: FF
 		High: D0
 		Low: FF
+*/
+/*
+	period	ctr		time
+	1ms		0		29.09
+	1ms		0		29.07
+	1ms		1		29.15
+	1ms		2		39.22
+	1ms		3		52.42
+	
+	
 */
 
 #include "cpu.h"
@@ -72,7 +83,7 @@ FILE *file_usb;
 FILE *file_bt;
 volatile unsigned long time_ms=0;
 
-#define TIMEOUTMS 3000
+#define TIMEOUTMS 1500
 //#define TIMEOUTMS 10000
 
 
@@ -152,9 +163,19 @@ int getchar_timeout(void)
 // CPU 1024Hz
 ISR(TIMER1_COMPA_vect)
 {
+	//static char ctr=0;
+	//char maxctr=0;
+	
 	//wdt_reset();
 	time_ms++;
-	dbg_callback(0);
+	
+	//if(ctr>=maxctr)
+	//{
+		dbg_callback(0);
+	//	ctr=0;
+	//}
+	//ctr++;
+	
 }
 
 unsigned char hex2chr(unsigned char v)
@@ -321,6 +342,14 @@ int main(void)
 	// INIT MODULE
 	init_ports();
 	init_timers();
+	
+	/*
+	TCCR1A = 0x00;									// Clear timer on compare
+	TCCR1B = 0x08|0x01;								// Clear timer on compare, prescaler 1
+	TIMSK1 = (1<<OCIE1A);							// Output compare match A interrupt enable
+	OCR1A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
+	//OCR1A = 5399;									// Top value: divides by OCR1A+1;*/
+	
 	uart1_init(5,0);
 	i2c_init();
 	dbg_init();

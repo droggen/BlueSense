@@ -1,7 +1,4 @@
-/** \file main.h
- * A brief file description. main.h
- * A more elaborated file description. main.h
- */
+
 
 /*
    NTSensors - Firmware
@@ -25,19 +22,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-/**
- * @file main.h
- * @author My Self
- * @date some date
- * @brief File containing example of doxygen usage for quick reference.
- *
- * Here typically goes a more extensive explanation of what the header
- * defines. Doxygens tags are words preceeded by either a backslash @\
- * or by an at symbol @@.
- * @see http://www.stack.nl/~dimitri/doxygen/docblocks.html
- * @see http://www.stack.nl/~dimitri/doxygen/commands.html
- */
-
 
 
 
@@ -47,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 #include <stdio.h>
-
+#include "command.h"
 
 
 
@@ -107,8 +91,11 @@ extern unsigned char system_devname[];
 #define CONFIG_ADDR_MAG_SENSZL 40
 #define CONFIG_ADDR_MAG_SENSZH 41
 #define CONFIG_ADDR_MAG_CORMOD 42
+#define CONFIG_ADDR_ACC_SCALE 43
+#define CONFIG_ADDR_GYRO_SCALE 44
+
 #define CONFIG_ADDR_SCRIPTSTART 100
-#define CONFIG_ADDR_SCRIPTLEN 16
+#define CONFIG_ADDR_SCRIPTLEN COMMANDMAXSIZE
 #define CONFIG_ADDR_SCRIPTEND (CONFIG_ADDR_SCRIPTSTART+CONFIG_ADDR_SCRIPTLEN-1)
 #define STATUS_ADDR_OFFCURRENT_CHARGE0 200
 #define STATUS_ADDR_OFFCURRENT_CHARGE1 201
@@ -162,9 +149,7 @@ void system_sampletemperature_cb(unsigned char s,signed short t);
 	Resets all statistics related to motion sampling
 **/
 void main_samplestatclear(void);
-/** Brief description which ends at this dot. Details follow
- *  here.
- */
+
 unsigned short Battery_ADC2mv(unsigned short adc);
 void isr_motionint_sample(void);
 char ui_shouldexit(FILE *file);

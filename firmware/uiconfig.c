@@ -10,11 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "main.h"
-#include "wait.h"
-#include "serial.h"
-#include "init.h"
-#include "menu.h"
-#include "pkt.h"
 #include "uiconfig.h"
 
 
@@ -153,6 +148,23 @@ unsigned char ConfigLoadMotionMode(void)
 {
 	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_SENSORSR);
 }
+void ConfigSaveMotionAccScale(unsigned char scale)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ACC_SCALE,scale&0b11);
+}
+unsigned char ConfigLoadMotionAccScale(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_ACC_SCALE);
+}
+void ConfigSaveMotionGyroScale(unsigned char scale)
+{
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_GYRO_SCALE,scale&0b11);
+}
+unsigned char ConfigLoadMotionGyroScale(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_GYRO_SCALE);
+}
+
 
 /******************************************************************************
 	function: ConfigLoadScript

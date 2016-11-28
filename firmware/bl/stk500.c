@@ -202,7 +202,6 @@ void stk500(void)
 	unsigned char buffer[285];
 	unsigned short size;
 	unsigned char seq;
-	unsigned char ctr=0;
 	unsigned char leave=0;
 	address_t address = 0;
 	char s[128];
@@ -453,7 +452,7 @@ void stk500(void)
 					//boot_page_erase(eraseAddress);			// Perform page erase, byte address
 					ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 					{
-						boot_page_erase(address);			// Perform page erase, byte address
+						boot_page_erase(address);				// Perform page erase, byte address
 						boot_spm_busy_wait();								// Wait until the memory is erased.
 						boot_rww_enable();
 					}
@@ -492,6 +491,7 @@ void stk500(void)
 							
 							boot_page_fill(address+i,data);			// Byte address
 						}
+					
 						boot_page_write(address);				
 						boot_spm_busy_wait();
 						boot_rww_enable();				// Re-enable the RWW section
@@ -597,8 +597,6 @@ void stk500(void)
 		seq = sendmessage(buffer,size,seq);
 	}
 	fputs("Leaving ISP\n",file_dbg);
-
-	
 
 }
 /*

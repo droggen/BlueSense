@@ -2,7 +2,7 @@
 #define __COMMAND_H
 
 
-#define COMMANDMAXSIZE 16
+#define COMMANDMAXSIZE 32
 
 /*typedef struct 
 {
@@ -26,7 +26,7 @@ typedef struct
 
 typedef struct {
 	unsigned char cmd;
-	unsigned char (*parser)(unsigned char *,unsigned char size);
+	unsigned char (*parser)(char *,unsigned char size);
 	const char *help;
 } COMMANDPARSER;
 
@@ -37,7 +37,7 @@ extern unsigned char CommandParsersCurrentNum;
 
 unsigned char CommandProcess(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum);
 unsigned char CommandGet(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum,unsigned char *msgid);
-unsigned char CommandDecodeExec(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum,unsigned char *buffer,unsigned char size,unsigned char *msgid);
+unsigned char CommandDecodeExec(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum,char *buffer,unsigned char size,unsigned char *msgid);
 void CommandSet(char *script,unsigned char n);
 
 #endif

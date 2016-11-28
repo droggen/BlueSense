@@ -68,7 +68,7 @@ FORMAT = ihex
 TARGET = main
 
 # Secondary hex file to program; e.g. bootloader or main
-SECONDARYHEX = bl-minimal
+SECONDARYHEX = bootloader
 
 # Optimization level, can be [0, 1, 2, 3, s]. 
 #     0 = turn off optimization. s = optimize for size.
@@ -419,6 +419,7 @@ DEBUG_HOST = localhost
 # Define programs and commands.
 SHELL = sh
 CC = avr-gcc
+#CC = avr-g++
 OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 SIZE = avr-size
@@ -519,8 +520,8 @@ gccversion :
 # Program the device.  
 program: $(TARGET).hex $(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-#	powershell start-sleep .5
-#	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
+	powershell start-sleep 1
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
 
 
 # Generate avr-gdb config/init file which does the following:

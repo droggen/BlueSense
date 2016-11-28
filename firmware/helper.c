@@ -421,7 +421,7 @@ void swalloweol(FILE *file)
 		1:	some characters are not digits
 	
 ******************************************************************************/
-unsigned char checkdigits(unsigned char *str,unsigned char n)
+unsigned char checkdigits(const char *str,unsigned char n)
 {
 	for(unsigned char i=0;i<n;i++)
 	{

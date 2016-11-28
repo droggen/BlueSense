@@ -8,19 +8,19 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Functions"></a><a name="Topic18"></a><div class="CTopic TGroup LC first">
+<a name="Functions"></a><a name="Topic5"></a><div class="CTopic TGroup LC first">
  <div class="CTitle">Functions</div>
 </div>
 
-<a name="ConfigLoadScript"></a><a name="Topic19"></a><div class="CTopic TFunction LC">
+<a name="ConfigLoadScript"></a><a name="Topic6"></a><div class="CTopic TFunction LC">
  <div class="CTitle">ConfigLoadScript</div>
- <div id="NDPrototype19" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> ConfigLoadScript(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PType first"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">buf</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype6" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> ConfigLoadScript(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PType first"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">buf</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Load the startup configuration script from EEPROM address CONFIG_ADDR_SCRIPTSTART.</p><p>This function reads exactly CONFIG_ADDR_SCRIPTLEN bytes and does not add a null-terminating byte.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">buf<div class="CDLParameterType"><span class="SHKeyword">char</span>*</div></td><td class="CDLDefinition"><p>Buffer to receive the configuration script. Buf large enough to receive CONFIG_ADDR_SCRIPTLEN bytes</p></td></tr></table></div>
 </div>
 
-<a name="ConfigSaveScript"></a><a name="Topic20"></a><div class="CTopic TFunction LC last">
+<a name="ConfigSaveScript"></a><a name="Topic7"></a><div class="CTopic TFunction LC last">
  <div class="CTitle">ConfigSaveScript</div>
- <div id="NDPrototype20" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> ConfigSaveScript(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="first"></td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">buf,</td></tr><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td></td><td class="PName last">n</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype7" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> ConfigSaveScript(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="first"></td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">buf,</td></tr><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td></td><td class="PName last">n</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Save a startup configuration script to EEPROM address CONFIG_ADDR_SCRIPTSTART.</p><p>Writes up to CONFIG_ADDR_SCRIPTLEN bytes. Does not append a null-terminating byte</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">buf<div class="CDLParameterType"><span class="SHKeyword">char</span>*</div></td><td class="CDLDefinition"><p>Buffer containing the configuration script.</p></td></tr><tr><td class="CDLEntry">n<div class="CDLParameterType"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span></div></td><td class="CDLDefinition"><p>Number of bytes to write. Maximum is CONFIG_ADDR_SCRIPTLEN.&nbsp; If n is larger, only the first CONFIG_ADDR_SCRIPTLEN bytes are written.</p></td></tr></table></div>
 </div>
 

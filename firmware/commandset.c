@@ -92,7 +92,7 @@ unsigned char __CommandQuit=0;
 		2:	Message invalid 		
 */
 
-unsigned char CommandParserTime(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserTime(char *buffer,unsigned char size)
 {
 	unsigned char h,m,s;
 	if(size==0)
@@ -132,7 +132,7 @@ unsigned char CommandParserTime(unsigned char *buffer,unsigned char size)
 	return 1;
 }
 
-unsigned char CommandParserDate(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserDate(char *buffer,unsigned char size)
 {
 	unsigned char d,m,y;
 	if(size==0)
@@ -169,13 +169,13 @@ unsigned char CommandParserDate(unsigned char *buffer,unsigned char size)
 	return 1;
 }
 // Always success
-unsigned char CommandParserQuit(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserQuit(char *buffer,unsigned char size)
 {
 	__CommandQuit=1;
 	return 0;
 }
 // Always success
-unsigned char CommandParserHelp(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserHelp(char *buffer,unsigned char size)
 {
 	fprintf_P(file_pri,PSTR("Available commands:\n"));
 	for(unsigned char i=0;i<CommandParsersCurrentNum;i++)
@@ -187,20 +187,20 @@ unsigned char CommandParserHelp(unsigned char *buffer,unsigned char size)
 	}	
 	return 0;
 }
-unsigned char CommandParserSuccess(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSuccess(char *buffer,unsigned char size)
 {
 	return 0;
 }
-unsigned char CommandParserError(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserError(char *buffer,unsigned char size)
 {
 	return 1;
 }
 
-unsigned char CommandParserLCD(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserLCD(char *buffer,unsigned char size)
 {	
 	int lcden;
 	
-	unsigned char rv = ParseCommaGetInt((char*)buffer,1,&lcden);
+	unsigned char rv = ParseCommaGetInt(buffer,1,&lcden);
 	if(rv)
 		return 2;
 	
@@ -214,11 +214,11 @@ unsigned char CommandParserLCD(unsigned char *buffer,unsigned char size)
 		deinit_lcd();
 	return 0;
 }
-unsigned char CommandParserInfo(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserInfo(char *buffer,unsigned char size)
 {	
 	int ien;
 	
-	unsigned char rv = ParseCommaGetInt((char*)buffer,1,&ien);
+	unsigned char rv = ParseCommaGetInt(buffer,1,&ien);
 	if(rv)
 		return 2;
 	
@@ -235,7 +235,7 @@ unsigned char CommandShouldQuit(void)
 	return t;
 }
 
-unsigned char CommandParserIO(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserIO(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int period,txslot;
@@ -255,13 +255,13 @@ unsigned char CommandParserIO(unsigned char *buffer,unsigned char size)
 		
 	return 0;
 }
-unsigned char CommandParserSwap(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSwap(char *buffer,unsigned char size)
 {
 	interface_swap();
 		
 	return 0;
 }
-unsigned char CommandParserOff(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserOff(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	char *p1;
@@ -312,7 +312,7 @@ unsigned char CommandParserOff(unsigned char *buffer,unsigned char size)
 }
 
 
-unsigned char CommandParserStreamFormat(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserStreamFormat(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int bin,pktctr,ts,bat,label;
@@ -349,7 +349,7 @@ unsigned char CommandParserStreamFormat(unsigned char *buffer,unsigned char size
 	return 0;
 }
 
-unsigned char CommandParserPower(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserPower(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	char *p1;
@@ -372,7 +372,7 @@ unsigned char CommandParserPower(unsigned char *buffer,unsigned char size)
 	return 0;
 }
 
-unsigned char CommandParserSync(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSync(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	
@@ -409,14 +409,14 @@ unsigned char CommandParserSync(unsigned char *buffer,unsigned char size)
 		return 1;
 	return 0;
 }
-unsigned char CommandParserTestSync(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserTestSync(char *buffer,unsigned char size)
 {
 	fprintf_P(file_pri,PSTR("Test sync command\n"));
 	CommandChangeMode(APP_MODE_TESTSYNC);
 	return 0;
 }
 
-unsigned char CommandParserIdentify(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserIdentify(char *buffer,unsigned char size)
 {
 	fprintf(file_pri,"My name is %s\n",system_getdevicename());
 	system_blink(10,100,0);
@@ -424,7 +424,7 @@ unsigned char CommandParserIdentify(unsigned char *buffer,unsigned char size)
 }
 
 
-unsigned char CommandParserAnnotation(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserAnnotation(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	char *p1;
@@ -443,13 +443,14 @@ unsigned char CommandParserAnnotation(unsigned char *buffer,unsigned char size)
 	return 0;
 }
 
-unsigned char CommandParserMPUTest(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest(char *buffer,unsigned char size)
 {
 	CommandChangeMode(APP_MODE_MPUTEST);
 	return 0;
 }
-unsigned char CommandParserBootScript(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserBootScript(char *buffer,unsigned char size)
 {
+
 	printf("size: %d\n",size);
 	if(size==0)
 	{
@@ -496,6 +497,10 @@ void CommandChangeMode(unsigned char newmode)
 		__CommandQuit=1;
 	system_mode = newmode;
 }
+
+
+
+
 
 
 

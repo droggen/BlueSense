@@ -8,24 +8,24 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="mode_sample"></a><a name="Topic122"></a><div class="CTopic TFile LC first">
+<a name="mode_sample"></a><a name="Topic117"></a><div class="CTopic TFile LC first">
  <div class="CTitle">mode_sample</div>
  <div class="CBody"><p>Contains common functionalities between mode_sample_adc and mode_sample_motion.</p><div class="CHeading">Offers</div><ul><li><p>mode_sample_logend: 			to terminate logs</p></li><li><p>help_samplelog				help string</p></li><li><p>mode_sample_file_log			FILE* for logging</p></li></ul><p><b>TODO</b></p><ul><li><p>Statistics when logging could display log-only information (samples acquired, samples lost, samples per second)</p></li></ul></div>
 </div>
 
-<a name="Functions"></a><a name="Topic123"></a><div class="CTopic TGroup LC">
+<a name="Functions"></a><a name="Topic118"></a><div class="CTopic TGroup LC">
  <div class="CTitle">Functions</div>
 </div>
 
-<a name="CommandParserSampleLog"></a><a name="Topic124"></a><div class="CTopic TFunction LC">
+<a name="CommandParserSampleLog"></a><a name="Topic119"></a><div class="CTopic TFunction LC">
  <div class="CTitle">CommandParserSampleLog</div>
- <div id="NDPrototype124" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span> CommandParserSampleLog(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">buffer,</td></tr><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td></td><td class="PName last">size</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype119" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span> CommandParserSampleLog(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">buffer,</td></tr><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td></td><td class="PName last">size</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Parses a user command to enable logging to a specified logfile.</p><p>This is used by mode_adc and mode_motionstream. It relies on the global variable mode_file_log</p><p>Command format: L[,&lt;lognum&gt;]</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">buffer<div class="CDLParameterType"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span>*</div></td><td class="CDLDefinition"><p>Buffer containing the command</p></td></tr><tr><td class="CDLEntry">size<div class="CDLParameterType"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span></div></td><td class="CDLDefinition"><p>Length of the buffer containing the command</p></td></tr></table></div>
 </div>
 
-<a name="mode_sample_logend"></a><a name="Topic125"></a><div class="CTopic TFunction LC last">
+<a name="mode_sample_logend"></a><a name="Topic120"></a><div class="CTopic TFunction LC last">
  <div class="CTitle">mode_sample_logend</div>
- <div id="NDPrototype125" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> mode_sample_logend(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype120" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> mode_sample_logend(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Checks whether logging was in progress, and if yes closes the log</p></div>
 </div>
 

@@ -17,6 +17,8 @@
 
 
 /*
+	file: rn41
+
 	Notes about RN41:
 		Changing a setting (i.e. ST for the configuration timeout) requires a reset either with "R,1" or with the reset button
 		Setting the speed to 230.4 and higher leads to data overrun. Decreasing dbg callback frequency decrease the occurrence, but it still happens. Issue if receiving data (such as bootloader). Not if streaming out.

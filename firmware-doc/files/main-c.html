@@ -8,25 +8,31 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Main_file"></a><a name="Topic164"></a><div class="CTopic TFile LC first">
+<a name="Main_file"></a><a name="Topic169"></a><div class="CTopic TFile LC first">
  <div class="CTitle">Main file</div>
  <div class="CBody"><p>todo - ADC sample multiple channels in A mode - ADC sample/return multiple channels - Increase the size of the command buffer - Reactivate the bootloader - Label in the motion mode - Add test in wait function that would allow to detect non-monoticity/wraparound of uS counter - Log becoming an system-wide functionality that redirects all serial comm to file?</p><p>1) Auto-detect SD card on boot?&nbsp; H 2) Motion stream mode: two parameters: mode and logging 3) Power measurements in background 4) PC interface 5) Default mode (e.g. to automatically stream or enter demo or clock mode) 6) Background blinking 7) Speedup boot 8) Download logs?&nbsp; 9) Minimise flash usage 10) Fix warnings in codebase V 11) Malloc pulled in from fdevopen ?&nbsp; 12) Script to launch at start 12.1: CommandGet: must be split in one command reading from file_pri and filling internal buffer, and one reading internal buffer until it is empty</p><p>Not linking unused functions: <a href="http://www.avrfreaks.net/forum/not-linking-unused-functions" target="_top">http://&#8203;www&#8203;.avrfreaks&#8203;.net&#8203;/forum&#8203;/not-linking-unused-functions</a></p><div class="CHeading">Tests on HW6</div><ul><li><p>SD card</p></li><li><p>Interface connect/disconnect and interface swap</p></li><li><p>ADC</p></li></ul><p>When &quot;idle&quot;: must automatically detect which channel is used to send commands Must print information to both channels (if connected).</p><p>What should be the features of the firmware?</p><ul><li><p>Upon connect, auto stream data</p></li><li><p>set time</p></li><li><p>configure: sample rate, format, etc</p></li><li><p>start recording</p></li><li><p>stop recording</p></li><li><p>list files</p></li><li><p>dump files</p></li></ul></div>
 </div>
 
-<a name="Functions"></a><a name="Topic165"></a><div class="CTopic TGroup LC">
+<a name="Functions"></a><a name="Topic170"></a><div class="CTopic TGroup LC">
  <div class="CTitle">Functions</div>
 </div>
 
-<a name="system_lifesign"></a><a name="Topic166"></a><div class="CTopic TFunction LC">
+<a name="system_lifesign"></a><a name="Topic171"></a><div class="CTopic TFunction LC">
  <div class="CTitle">system_lifesign</div>
- <div id="NDPrototype166" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span> system_lifesign(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PName last">unused</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype171" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span> system_lifesign(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PName last">unused</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Blinks an LED to indicate aliveness.</p><p>Called from a timer callback.</p><p>The parameter and return value are not used by the callback system.</p></div>
 </div>
 
-<a name="main_perfbench"></a><a name="Topic167"></a><div class="CTopic TFunction LC last">
+<a name="main_perfbench"></a><a name="Topic172"></a><div class="CTopic TFunction LC">
  <div class="CTitle">main_perfbench</div>
- <div id="NDPrototype167" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">long</span> main_perfbench(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype172" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">long</span> main_perfbench(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Benchmarks the processor, here using simple counting. Use to assess CPU load during sampling.</p><p>Return value:	performance result</p></div>
+</div>
+
+<a name="bootloaderhook_dbg"></a><a name="Topic173"></a><div class="CTopic TFunction LC last">
+ <div class="CTitle">bootloaderhook_dbg</div>
+ <div id="NDPrototype173" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span> bootloaderhook_dbg(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PName last">c</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div class="CBody"><p>Hook checking the data received on the usb interface for the byte indicating that an stk500v2 bootloader message is received.&nbsp; In which case, enter the bootloader</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">c<div class="CDLParameterType"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span></div></td><td class="CDLDefinition"><p>Character received on the interface Returns:</p></td></tr><tr><td class="CDLEntry">1</td><td class="CDLDefinition"><p>To place the character in the receive buffer</p></td></tr><tr><td class="CDLEntry">otherwise</td><td class="CDLDefinition"><p>The character is discarded</p></td></tr></table></div>
 </div>
 
 </body></html>

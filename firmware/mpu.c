@@ -787,7 +787,65 @@ void mpu_setgyroscale(unsigned char scale)
 			break;
 	}
 }
-
+/******************************************************************************
+	Function: mpu_getgyroscale
+*******************************************************************************	
+	Sets the gyro scale.
+	
+	Returns:
+		One of MPU_GYR_SCALE_250, MPU_GYR_SCALE_500, MPU_GYR_SCALE_1000 or MPU_GYR_SCALE_2000
+******************************************************************************/
+unsigned char mpu_getgyroscale(void)
+{
+	unsigned char gconf = mpu_readreg(MPU_R_GYROCONFIG);	
+	return (gconf>>3)&0b11;
+}
+/******************************************************************************
+	Function: mpu_setaccscale
+*******************************************************************************	
+	Sets the acceleromter scale.
+	
+	Must be called when the MPU/accelerometer is activated, otherwise nothing happens.
+	
+	Parameters:
+		scale	-	One of MPU_ACC_SCALE_2, MPU_ACC_SCALE_4, MPU_ACC_SCALE_8, MPU_ACC_SCALE_16
+******************************************************************************/
+void mpu_setaccscale(unsigned char scale)
+{
+	scale&=0b11;
+	unsigned char aconf = mpu_readreg(MPU_R_ACCELCONFIG);	
+	aconf=(aconf&0b11100111)|(scale<<3);
+	mpu_writereg(MPU_R_ACCELCONFIG,aconf);
+	
+	/*switch(scale)
+	{
+		case MPU_ACC_SCALE_2:
+			//mpu_gtor=3.14159665k/180.0k/131.072k;
+			break;
+		case MPU_ACC_SCALE_4:
+			//mpu_gtor=3.14159665k/180.0k/65.536k;
+			break;
+		case MPU_ACC_SCALE_8:
+			//mpu_gtor=3.14159665k/180.0k/32.768k;
+			break;
+		default:
+			//mpu_gtor=3.14159665k/180.0k/16.384k;
+			break;
+	}*/
+}
+/******************************************************************************
+	Function: mpu_getaccscale
+*******************************************************************************	
+	Sets the acceleromter scale.
+	
+	Returns:
+		One of MPU_ACC_SCALE_2, MPU_ACC_SCALE_4, MPU_ACC_SCALE_8, MPU_ACC_SCALE_16
+******************************************************************************/
+unsigned char mpu_getaccscale(void)
+{
+	unsigned char aconf = mpu_readreg(MPU_R_ACCELCONFIG);	
+	return (aconf>>3)&0b11;
+}
 /******************************************************************************
 	mpu_setaccodr
 *******************************************************************************	

@@ -84,7 +84,7 @@ const unsigned char CommandParsersADCNum=sizeof(CommandParsersADC)/sizeof(COMMAN
 		size			-			Length of the buffer containing the command
 			
 ******************************************************************************/
-unsigned char CommandParserADCPullup(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserADCPullup(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	unsigned on;
@@ -117,7 +117,7 @@ unsigned char CommandParserADCPullup(unsigned char *buffer,unsigned char size)
 		size			-			Length of the buffer containing the command
 			
 ******************************************************************************/
-unsigned char CommandParserADC(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserADC(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	char *p1,*p2;

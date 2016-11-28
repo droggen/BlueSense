@@ -247,10 +247,14 @@ void stream_start(void)
 	
 	mpu_config_motionmode(mode,1);	
 	
-	//mpu_setgyroscale(MPU_GYR_SCALE_250);
-	//mpu_setgyroscale(MPU_GYR_SCALE_1000);
-	mpu_setgyroscale(MPU_GYR_SCALE_2000);
-	
+	// Load the persistent data
+	unsigned char scale;
+	scale = ConfigLoadMotionAccScale();	
+	fprintf_P(file_pri,PSTR("Acc scale: %d\n"),scale);
+	mpu_setaccscale(scale);
+	scale = ConfigLoadMotionGyroScale();
+	fprintf_P(file_pri,PSTR("Gyro scale: %d\n"),scale);
+	mpu_setgyroscale(scale);
 }
 void stream_stop(void)
 {

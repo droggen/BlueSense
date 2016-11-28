@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("mai",["File","Function"],[["Main",,[[,"Main file",,,0,"File:main.c:Main_file"]]],["main_perfbench",,[[,,,,1,"File:main.c:main_perfbench"]]]]);
+NDSearch.OnPrefixDataLoaded("mai",["File","Function"],[["Main",,[[,"Main file",,,0,"File:main.c:Main_file"]]],["main_bl",,[[,,,,0,"File:main_bl.c:main_bl"]]],["main_bl-minimal",,[[,,,,0,"File:main_bl-minimal.c:main_bl-minimal"]]],["main_perfbench",,[[,,,,1,"File:main.c:main_perfbench"]]]]);

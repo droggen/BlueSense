@@ -21,14 +21,14 @@
 #define MPU_ADDRESS 105
 
 #define MPU_R_SMPLRT_DIV 			0x19
-#define MPU_R_CONFIG					0x1A
+#define MPU_R_CONFIG				0x1A
 #define MPU_R_GYROCONFIG			0x1B
 #define MPU_R_ACCELCONFIG			0x1C
-#define MPU_R_ACCELCONFIG2		0x1D
-#define MPU_R_LPODR						0x1E
-#define MPU_R_FIFOEN 					0x23
-#define MPU_R_INTERRUPTPIN		0x37
-#define MPU_R_INTERRUPTENABLE 0x38
+#define MPU_R_ACCELCONFIG2			0x1D
+#define MPU_R_LPODR					0x1E
+#define MPU_R_FIFOEN 				0x23
+#define MPU_R_INTERRUPTPIN			0x37
+#define MPU_R_INTERRUPTENABLE 		0x38
 #define MPU_R_USR_CTRL	 			106
 #define MPU_R_PWR_MGMT_1 			0x6B
 #define MPU_R_PWR_MGMT_2			0x6C
@@ -82,6 +82,12 @@
 #define MPU_GYR_SCALE_500 1
 #define MPU_GYR_SCALE_1000 2
 #define MPU_GYR_SCALE_2000 3
+
+// Acc scale
+#define MPU_ACC_SCALE_2		0
+#define MPU_ACC_SCALE_4		1
+#define MPU_ACC_SCALE_8		2
+#define MPU_ACC_SCALE_16	3
 
 
 #if HWVER==1
@@ -196,6 +202,9 @@ void mpu_setaccsamplerate(unsigned char fchoice,unsigned char dlp);
 void mpu_set_interrutenable(unsigned char wom,unsigned char fifo,unsigned char fsync,unsigned char datardy);
 
 void mpu_setgyroscale(unsigned char scale);
+unsigned char mpu_getgyroscale(void);
+void mpu_setaccscale(unsigned char scale);
+unsigned char mpu_getaccscale(void);
 void mpu_temp_enable(unsigned char enable);
 void mpu_clksel(unsigned char clk);
 void mpu_mode_gyrostby(unsigned char stby);

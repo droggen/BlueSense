@@ -38,7 +38,7 @@ void f16toa(_Fract a,char *ptr);
 
 int peek(FILE *file);
 void swalloweol(FILE *file);
-unsigned char checkdigits(unsigned char *str,unsigned char n);
+unsigned char checkdigits(const char *str,unsigned char n);
 unsigned char ParseComma(const char *str,unsigned char n,...);
 unsigned char ParseCommaGetInt(const char *str,int n,...);
 

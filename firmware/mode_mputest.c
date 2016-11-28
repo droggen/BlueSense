@@ -102,11 +102,12 @@ const char help_mt_Q[] PROGMEM ="Q[,<bitmap>] Quaternion test; 3-bit bitmap indi
 const char help_mt_G[] PROGMEM ="G[,<mode>] Calibrate magnetometer, or 0='no correction' 1='correction w/ factory', 2='user correction'";
 const char help_mt_g[] PROGMEM ="Magnetic selt test";
 const char help_mt_b[] PROGMEM ="bench math";
+const char help_mt_L[] PROGMEM ="L[,<scale>] read or set the accelerometer full scale; 0=2G, 1=4G, 2=8G, 3=16G; persistent";
+const char help_mt_l[] PROGMEM ="l[,<scale>] read or set the gyroscope full scale; 0=250dps, 1=500dps, 2=1000dps, 3=2000dps; persistent";
 
 
 
-#define CommandParsersMPUTestNum 22
-const COMMANDPARSER CommandParsersMPUTest[CommandParsersMPUTestNum] =
+const COMMANDPARSER CommandParsersMPUTest[] =
 { 
 	{'H', CommandParserHelp,help_h},
 	{'R', CommandParserMPUTest_ReadReg,help_mt_r},
@@ -129,21 +130,78 @@ const COMMANDPARSER CommandParsersMPUTest[CommandParsersMPUTestNum] =
 	{'G', CommandParserMPUTest_MagneticCalib,help_mt_G},
 	{'g', CommandParserMPUTest_MagneticSelfTest,help_mt_g},
 	{'b', CommandParserMPUTest_BenchMath,help_mt_b},
+	{'L', CommandParserMPUTest_AccScale,help_mt_L},
+	{'l', CommandParserMPUTest_GyroScale,help_mt_l},
 	{'!', CommandParserQuit,help_quit}
 };
 
+const unsigned char CommandParsersMPUTestNum=sizeof(CommandParsersMPUTest)/sizeof(COMMANDPARSER); 
 
 
 /******************************************************************************
-	CommandParserMPUTest_ReadReg
+	CommandParserMPUTest_AccScale
 *******************************************************************************
-	Dump MPU registers
+	Reads or sets the accelerometer full scale
 ******************************************************************************/
-unsigned char CommandParserMPUTest_ReadReg(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_AccScale(char *buffer,unsigned char size)
 {
-	mpu_printreg(file_pri);
-	mpu_printregdesc(file_pri);
-	mpu_printregdesc2(file_pri);
+	unsigned char rv;
+	int scale;
+	
+	if(strlen(buffer)==0)
+	{
+		// No scale specified: read
+		fprintf_P(file_pri,PSTR("Acc scale: %d\n"),mpu_getaccscale());
+		return 0;
+	}
+	rv = ParseCommaGetInt((char*)buffer,1,&scale);
+	if(rv)
+	{
+		return 2;
+	}
+	if(scale<0 || scale>3)
+		return 2;
+	
+
+	// Set scale
+	mpu_setaccscale(scale);
+	// Store the scale persistently
+	ConfigSaveMotionAccScale(scale);
+
+	return 0;
+}
+
+
+/******************************************************************************
+	CommandParserMPUTest_GyroScale
+*******************************************************************************
+	Reads or sets the accelerometer full scale
+******************************************************************************/
+unsigned char CommandParserMPUTest_GyroScale(char *buffer,unsigned char size)
+{
+	unsigned char rv;
+	int scale;
+	
+	if(strlen(buffer)==0)
+	{
+		// No scale specified: read
+		fprintf_P(file_pri,PSTR("Gyro scale: %d\n"),mpu_getgyroscale());
+		return 0;
+	}
+	rv = ParseCommaGetInt((char*)buffer,1,&scale);
+	if(rv)
+	{
+		return 2;
+	}
+	if(scale<0 || scale>3)
+		return 2;
+	
+
+	// Set scale
+	mpu_setgyroscale(scale);
+	// Store the scale persistently
+	ConfigSaveMotionGyroScale(scale);
+
 	return 0;
 }
 
@@ -152,7 +210,21 @@ unsigned char CommandParserMPUTest_ReadReg(unsigned char *buffer,unsigned char s
 *******************************************************************************
 	Dump MPU registers
 ******************************************************************************/
-unsigned char CommandParserMPUTest_Start(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_ReadReg(char *buffer,unsigned char size)
+{
+	mpu_printreg(file_pri);
+	mpu_printregdesc(file_pri);
+	mpu_printregdesc2(file_pri);
+	return 0;
+}
+
+
+/******************************************************************************
+	CommandParserMPUTest_ReadReg
+*******************************************************************************
+	Dump MPU registers
+******************************************************************************/
+unsigned char CommandParserMPUTest_Start(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int mode,autoread;
@@ -186,7 +258,7 @@ unsigned char CommandParserMPUTest_Start(unsigned char *buffer,unsigned char siz
 	Data is sampled in the FIFO and the averages computed. The offsets are 
 	then loaded in the bias registers.
 ******************************************************************************/
-unsigned char CommandParserMPUTest_Calibrate(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Calibrate(char *buffer,unsigned char size)
 {
 	mpu_calibrate();
 	
@@ -194,20 +266,20 @@ unsigned char CommandParserMPUTest_Calibrate(unsigned char *buffer,unsigned char
 	return 0;
 }
 
-unsigned char CommandParserMPUTest_Reset(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Reset(char *buffer,unsigned char size)
 {
 	mpu_reset();
 	_delay_ms(100);
 	return 0;
 }
 
-unsigned char CommandParserMPUTest_Fifo(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Fifo(char *buffer,unsigned char size)
 {
 	mpu_printfifo(file_pri);
 
 	return 0;
 }
-unsigned char CommandParserMPUTest_FifoEn(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_FifoEn(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int flags,en,reset;
@@ -221,7 +293,7 @@ unsigned char CommandParserMPUTest_FifoEn(unsigned char *buffer,unsigned char si
 	return 0;
 }
 
-unsigned char CommandParserMPUTest_Test(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Test(char *buffer,unsigned char size)
 {
 	mpu_acquirecalib();
 
@@ -242,7 +314,7 @@ unsigned char CommandParserMPUTest_Test(unsigned char *buffer,unsigned char size
 	}
 	return 0;
 }
-unsigned char CommandParserMPUTest_Magn(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Magn(char *buffer,unsigned char size)
 {/*
 	fprintf_P(file_pri,PSTR("Int en\n"));
 	mpu_mag_interfaceenable(1);
@@ -264,7 +336,7 @@ unsigned char CommandParserMPUTest_Magn(unsigned char *buffer,unsigned char size
 	return 0;
 }
 
-unsigned char CommandParserMPUTest_MagnMode(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_MagnMode(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int mode;
@@ -376,7 +448,7 @@ unsigned char CommandParserMPUTest_MagnMode(unsigned char *buffer,unsigned char 
 	
 	return 0;
 }
-unsigned char CommandParserMPUTest_Interface(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Interface(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int en;
@@ -393,12 +465,12 @@ unsigned char CommandParserMPUTest_Interface(unsigned char *buffer,unsigned char
 
 	return 0;
 }
-unsigned char CommandParserMPUTest_External(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_External(char *buffer,unsigned char size)
 {
 	mpu_printextreg(file_pri);
 	return 0;
 }
-unsigned char CommandParserMPUTest_Shadow(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Shadow(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int en,dly,regstart,numreg;
@@ -417,12 +489,12 @@ unsigned char CommandParserMPUTest_Shadow(unsigned char *buffer,unsigned char si
 
 	return 0;
 }
-unsigned char CommandParserMPUTest_Off(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Off(char *buffer,unsigned char size)
 {
 	mpu_mode_off();
 	return 0;
 }
-unsigned char CommandParserMPUTest_Poll(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Poll(char *buffer,unsigned char size)
 {
 	char str[128];
 	signed short ax,ay,az,gx,gy,gz,mx,my,mz,temp;
@@ -520,7 +592,7 @@ unsigned char CommandParserMPUTest_Poll(unsigned char *buffer,unsigned char size
 *******************************************************************************
 	
 ******************************************************************************/
-unsigned char CommandParserMPUTest_Auto(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Auto(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int mode;
@@ -564,7 +636,7 @@ unsigned char CommandParserMPUTest_Auto(unsigned char *buffer,unsigned char size
 *******************************************************************************
 	
 ******************************************************************************/
-unsigned char CommandParserMPUTest_Bench(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 {
 	long int perf,refperf;
 	mpu_config_motionmode(MPU_MODE_OFF,0);
@@ -597,7 +669,7 @@ unsigned char CommandParserMPUTest_Bench(unsigned char *buffer,unsigned char siz
 	
 ******************************************************************************/
 #if FIXEDPOINTFILTER==0
-unsigned char CommandParserMPUTest_Quaternion(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 {
 	#if ENABLEQUATERNION==1
 	//unsigned long t1,t2;
@@ -711,7 +783,7 @@ unsigned char CommandParserMPUTest_Quaternion(unsigned char *buffer,unsigned cha
 }
 #endif
 #if FIXEDPOINTFILTER==1
-unsigned char CommandParserMPUTest_Quaternion(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 {
 	#if ENABLEQUATERNION==1
 	//unsigned long t1,t2;
@@ -834,7 +906,7 @@ unsigned char CommandParserMPUTest_Quaternion(unsigned char *buffer,unsigned cha
 }
 #endif
 
-unsigned char CommandParserMPUTest_MagneticCalib(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_MagneticCalib(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int mode;
@@ -881,7 +953,7 @@ unsigned char CommandParserMPUTest_MagneticCalib(unsigned char *buffer,unsigned 
 	
 	return 0;
 }
-unsigned char CommandParserMPUTest_MagneticSelfTest(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_MagneticSelfTest(char *buffer,unsigned char size)
 {
 	unsigned char mag[7];
 	signed short mx,my,mz;
@@ -1359,7 +1431,7 @@ void test_rsqrt(void)
 }
 */
 
-unsigned char CommandParserMPUTest_BenchMath(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_BenchMath(char *buffer,unsigned char size)
 {
 	/*printf("bench math\n");
 	int r[256];

@@ -66,7 +66,7 @@ const char help_samplelog[] PROGMEM="L[,<lognum>]: Stops streaming and start log
 		size			-			Length of the buffer containing the command	
 
 ******************************************************************************/
-unsigned char CommandParserSampleLog(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSampleLog(char *buffer,unsigned char size)
 {
 	unsigned int lognum;
 	

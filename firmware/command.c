@@ -24,7 +24,7 @@
 */
 	
 
-unsigned char CommandBuffer[COMMANDMAXSIZE];
+char CommandBuffer[COMMANDMAXSIZE];
 unsigned char CommandBufferPtr=0;
 
 const char CommandSuccess[] PROGMEM = "CMDOK\n";
@@ -187,7 +187,7 @@ unsigned char CommandGet(const COMMANDPARSER *CommandParsers,unsigned char Comma
 		1		-	Message execution error (message valid)
 		2		-	Message invalid 		
 ******************************************************************************/
-unsigned char CommandDecodeExec(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum,unsigned char *buffer,unsigned char size,unsigned char *msgid)
+unsigned char CommandDecodeExec(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum,char *buffer,unsigned char size,unsigned char *msgid)
 {
 	unsigned char rv;
 	
@@ -230,6 +230,9 @@ void CommandSet(char *script,unsigned char n)
 	memcpy(CommandBuffer,script,n);
 	CommandBufferPtr=n;
 }
+
+
+
 
 
 
