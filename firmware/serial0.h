@@ -34,8 +34,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define SERIAL0_RX_BUFFERSIZE_MAX 256
 #define SERIAL0_TX_BUFFERSIZE_MAX 512
 // Serial buffers
-extern volatile BUFFEREDIO SerialData0Rx;
-extern volatile BUFFEREDIO SerialData0Tx;
+extern volatile CIRCULARBUFFER SerialData0Rx;
+extern volatile CIRCULARBUFFER SerialData0Tx;
 
 
 // Callbacks for hooking into the interrupt routines.
@@ -69,8 +69,8 @@ unsigned char uart0_ischar_int(void);
 unsigned short uart0_txbufferfree(void);
 int uart0_peek_int(void);
 void uart0_ungetch_int(unsigned char c);
-BUFFEREDIO *uart0_get_rxbuf(void);
-BUFFEREDIO *uart0_get_txbuf(void);
+CIRCULARBUFFER *uart0_get_rxbuf(void);
+CIRCULARBUFFER *uart0_get_txbuf(void);
 
 
 #endif

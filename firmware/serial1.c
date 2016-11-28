@@ -34,8 +34,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #ifdef ENABLE_SERIAL1
 
-volatile BUFFEREDIO SerialData1Rx;
-volatile BUFFEREDIO SerialData1Tx;
+volatile CIRCULARBUFFER SerialData1Rx;
+volatile CIRCULARBUFFER SerialData1Tx;
 
 volatile unsigned long Serial1DOR=0;
 
@@ -396,11 +396,11 @@ void uart1_ungetch_int(unsigned char c)
 }
 #endif
 
-BUFFEREDIO *uart1_get_rxbuf(void)
+CIRCULARBUFFER *uart1_get_rxbuf(void)
 {
 	return &SerialData1Rx;
 }
-BUFFEREDIO *uart1_get_txbuf(void)
+CIRCULARBUFFER *uart1_get_txbuf(void)
 {
 	return &SerialData1Tx;
 }

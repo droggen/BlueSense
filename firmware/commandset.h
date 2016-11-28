@@ -38,14 +38,8 @@ extern unsigned char __CommandQuit;
 
 extern unsigned CurrentAnnotation;
 
-/*
-unsigned char CommandParserTime(unsigned char *buffer,unsigned char size,COMMANDDATA *data);
-unsigned char CommandParserDate(unsigned char *buffer,unsigned char size,COMMANDDATA *data);
-unsigned char CommandParserQuit(unsigned char *buffer,unsigned char size,COMMANDDATA *data);
-unsigned char CommandParserSuccess(unsigned char *buffer,unsigned char size,COMMANDDATA *data);
-unsigned char CommandParserError(unsigned char *buffer,unsigned char size,COMMANDDATA *data);
-unsigned char CommandParserHelp(unsigned char *buffer,unsigned char size,COMMANDDATA *data);
-*/
+
+
 unsigned char CommandParserTime(char *buffer,unsigned char size);
 unsigned char CommandParserDate(char *buffer,unsigned char size);
 unsigned char CommandParserQuit(char *buffer,unsigned char size);
@@ -66,10 +60,8 @@ unsigned char CommandParserMPUTest(char *buffer,unsigned char size);
 unsigned char CommandParserBootScript(char *buffer,unsigned char size);
 unsigned char CommandParserInfo(char *buffer,unsigned char size);
 
-/*unsigned char CommandExecTime(COMMANDDATA *data);
-unsigned char CommandExecDate(COMMANDDATA *data);
-unsigned char CommandExecQuit(COMMANDDATA *data);
-unsigned char CommandExecHelp(COMMANDDATA *data);*/
+
+
 
 unsigned char CommandShouldQuit(void);
 void CommandChangeMode(unsigned char newmode);

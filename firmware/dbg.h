@@ -13,7 +13,7 @@
 
 extern volatile unsigned long dbg_tot_tx,dbg_tot_rx;
 
-extern volatile BUFFEREDIO _dbg_tx_state,_dbg_rx_state;
+extern volatile CIRCULARBUFFER _dbg_tx_state,_dbg_rx_state;
 
 extern volatile unsigned char dbg_rxlevel;
 
@@ -28,8 +28,8 @@ int dbg_fputchar_nonblock(char c, FILE*stream);
 int dbg_fgetchar(FILE *stream);
 int dbg_fgetchar_nonblock(FILE *stream);
 unsigned char dbg_putbuf(unsigned char *data,unsigned char n);
-BUFFEREDIO *dbg_get_rxbuf(void);
-BUFFEREDIO *dbg_get_txbuf(void);
+CIRCULARBUFFER *dbg_get_rxbuf(void);
+CIRCULARBUFFER *dbg_get_txbuf(void);
 
 unsigned char dbg_callback(unsigned char p);
 unsigned char dbg_callback_rx(unsigned char p);

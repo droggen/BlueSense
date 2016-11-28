@@ -71,6 +71,24 @@
  <div class="CBody"><p>Sets the gyro scale.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">scale<div class="CDLParameterType"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span></div></td><td class="CDLDefinition"><p>One of MPU_GYR_SCALE_250, MPU_GYR_SCALE_500, MPU_GYR_SCALE_1000 or MPU_GYR_SCALE_2000</p></td></tr></table></div>
 </div>
 
+<a name="mpu_getgyroscale"></a><a name="Topic221"></a><div class="CTopic TFunction LC">
+ <div class="CTitle">mpu_getgyroscale</div>
+ <div id="NDPrototype221" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span> mpu_getgyroscale(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div class="CBody"><p>Sets the gyro scale.</p><div class="CHeading">Returns</div><p>One of MPU_GYR_SCALE_250, MPU_GYR_SCALE_500, MPU_GYR_SCALE_1000 or MPU_GYR_SCALE_2000</p></div>
+</div>
+
+<a name="mpu_setaccscale"></a><a name="Topic222"></a><div class="CTopic TFunction LC">
+ <div class="CTitle">mpu_setaccscale</div>
+ <div id="NDPrototype222" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> mpu_setaccscale(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PName last">scale</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div class="CBody"><p>Sets the acceleromter scale.</p><p>Must be called when the MPU/accelerometer is activated, otherwise nothing happens.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">scale<div class="CDLParameterType"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span></div></td><td class="CDLDefinition"><p>One of MPU_ACC_SCALE_2, MPU_ACC_SCALE_4, MPU_ACC_SCALE_8, MPU_ACC_SCALE_16</p></td></tr></table></div>
+</div>
+
+<a name="mpu_getaccscale"></a><a name="Topic223"></a><div class="CTopic TFunction LC">
+ <div class="CTitle">mpu_getaccscale</div>
+ <div id="NDPrototype223" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span> mpu_getaccscale(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div class="CBody"><p>Sets the acceleromter scale.</p><div class="CHeading">Returns</div><p>One of MPU_ACC_SCALE_2, MPU_ACC_SCALE_4, MPU_ACC_SCALE_8, MPU_ACC_SCALE_16</p></div>
+</div>
+
 <a name="mpu_setsrdiv"></a><a name="Topic145"></a><div class="CTopic TFunction LC">
  <div class="CTitle">mpu_setsrdiv</div>
  <div id="NDPrototype145" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> mpu_setsrdiv(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PName last">div</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
@@ -95,9 +113,9 @@
  <div class="CBody"><p>This function wakes up the MPU from sleep mode and waits until ready.&nbsp; This function modifies the clock selection and the CYCLE and PTAT bits.</p></div>
 </div>
 
-<a name="mpu_clksel"></a><a name="Topic149"></a><div class="CTopic TFunction LC">
+<a name="mpu_clksel"></a><a name="Topic224"></a><div class="CTopic TFunction LC">
  <div class="CTitle">mpu_clksel</div>
- <div id="NDPrototype149" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> mpu_clksel(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PName last">clk</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype224" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> mpu_clksel(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PModifierQualifier first"><span class="SHKeyword">unsigned</span>&nbsp;</td><td class="PType"><span class="SHKeyword">char</span>&nbsp;</td><td class="PName last">clk</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Changes the clksel bits in PWR_MGMT_1. Does not affect any other setting.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">clk<div class="CDLParameterType"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">char</span></div></td><td class="CDLDefinition"><p>Value between 0 and 7 inclusive corresponding to the clock source.</p><p>0 Internal 20MHz oscillator</p><p>1 Auto selects the best available clock source (Gyro X) ? PLL if ready, else use the Internal oscillator.</p><p>2 Auto selects the best available clock source ? PLL if ready, else use the Internal oscillator</p><p>3 Auto selects the best available clock source ? PLL if ready, else use the Internal oscillator</p><p>4 Auto selects the best available clock source ? PLL if ready, else use the Internal oscillator</p><p>5 Auto selects the best available clock source ? PLL if ready, else use the Internal oscillator</p><p>6 Internal 20MHz oscillator</p><p>7 Stops the clock and keeps timing generator in reset</p></td></tr></table></div>
 </div>
 

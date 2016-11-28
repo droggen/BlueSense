@@ -37,8 +37,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 typedef struct 
 {
 	unsigned char blocking;
-	BUFFEREDIO *txbuf;
-	BUFFEREDIO *rxbuf;	
+	CIRCULARBUFFER *txbuf;
+	CIRCULARBUFFER *rxbuf;	
 	unsigned char (*putbuf)(char *data,unsigned char n);
 } SERIALPARAM;
 

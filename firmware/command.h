@@ -4,25 +4,7 @@
 
 #define COMMANDMAXSIZE 32
 
-/*typedef struct 
-{
-	unsigned char h,m,s;
-} COMMANDDATATIME;
-typedef struct 
-{
-	unsigned char d,m,y;
-} COMMANDDATADATE;
-typedef struct
-{
-	unsigned long period;;
-	unsigned char mask;
-} COMMANDDATAADC;
-*/
-/*typedef union {
-	COMMANDDATATIME time;
-	COMMANDDATADATE date;
-	COMMANDDATAADC adc;
-} COMMANDDATA;*/
+
 
 typedef struct {
 	unsigned char cmd;

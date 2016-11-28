@@ -21,7 +21,7 @@
 
 //#define DBG_DBG
 
-volatile BUFFEREDIO _dbg_tx_state,_dbg_rx_state;
+volatile CIRCULARBUFFER _dbg_tx_state,_dbg_rx_state;
 unsigned char _dbg_tx_buffer[DBG_BUFFER_SIZE];
 unsigned char _dbg_rx_buffer[DBG_BUFFER_SIZE];
 unsigned char _dbg_rx_readstate=0;
@@ -127,11 +127,11 @@ int dbg_fgetchar_nonblock(FILE *stream)
 	c = buffer_get(&_dbg_rx_state);
 	return ((int)c)&0xff;
 }
-BUFFEREDIO *dbg_get_rxbuf(void)
+CIRCULARBUFFER *dbg_get_rxbuf(void)
 {
 	return &_dbg_rx_state;
 }
-BUFFEREDIO *dbg_get_txbuf(void)
+CIRCULARBUFFER *dbg_get_txbuf(void)
 {
 	return &_dbg_tx_state;
 }
