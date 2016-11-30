@@ -51,25 +51,25 @@ const COMMANDPARSER CommandParsersTestSync[CommandParsersTestSyncNum] =
 
 void mode_testsync(void)
 {
-	char buffer[64];
-	WAITPERIOD p=0;
-	unsigned short v[8];
-	unsigned long time;
-	unsigned long stat_totsample=0;
-	unsigned long stat_samplesendfailed=0;
-	unsigned long stat_timemsstart=0;
-	unsigned long stat_timemsend=0;
-	unsigned long time_laststatus=0;
+	//char buffer[64];
+	//WAITPERIOD p=0;
+	//unsigned short v[8];
+	//unsigned long time;
+	//unsigned long stat_totsample=0;
+	//unsigned long stat_samplesendfailed=0;
+	//unsigned long stat_timemsstart=0;
+	//unsigned long stat_timemsend=0;
+	//unsigned long time_laststatus=0;
 
 	
 	
 	
 	fprintf_P(file_pri,PSTR("Test sync mode\n"));
 	
-	unsigned short data[8];
-	data[0]=0;	
+	//unsigned short data[8];
+	//data[0]=0;	
 	
-	stat_timemsstart = timer_ms_get();
+	//stat_timemsstart = timer_ms_get();
 	
 	unsigned long oldtime = timer_ms_get()/1000;
 	unsigned long newtime,newtimeus;
@@ -95,7 +95,6 @@ void mode_testsync(void)
 
 	
 	
-	return 0;
 }
 
 

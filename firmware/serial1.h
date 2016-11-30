@@ -35,8 +35,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define SERIAL1_TX_BUFFERSIZE_MAX 512
 //#define SERIAL1_TX_BUFFERSIZE_MAX 2048
 // Serial buffers
-extern volatile CIRCULARBUFFER SerialData1Rx;
-extern volatile CIRCULARBUFFER SerialData1Tx;
+extern CIRCULARBUFFER SerialData1Rx;
+extern CIRCULARBUFFER SerialData1Tx;
 
 void Serial1RTSToggle(unsigned char rts);
 void USART1_RX_vect_core(void);
@@ -65,7 +65,7 @@ int uart1_getchar(void);
 	Interrupt-driven serial access
 */
 int uart1_fputchar_int(char c, FILE*stream);
-unsigned char uart1_fputbuf_int(unsigned char *data,unsigned char n);
+unsigned char uart1_fputbuf_int(char *data,unsigned char n);
 int uart1_fgetchar_nonblock_int(FILE *stream);
 int uart1_fgetchar_int(FILE *stream);
 

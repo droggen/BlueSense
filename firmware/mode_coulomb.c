@@ -60,13 +60,13 @@ const COMMANDPARSER CommandParsersCoulomb[] =
 };
 unsigned char CommandParsersCoulombNum=sizeof(CommandParsersCoulomb)/sizeof(COMMANDPARSER);
 
-unsigned char CommandParserCoulomb(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserCoulomb(char *buffer,unsigned char size)
 {
 	CommandChangeMode(APP_MODE_COULOMB);
 		
 	return 0;
 }
-unsigned char CommandParserCoulombReset(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserCoulombReset(char *buffer,unsigned char size)
 {
 	acccharge=0;
 	accpwr=0;
@@ -77,7 +77,7 @@ unsigned char CommandParserCoulombReset(unsigned char *buffer,unsigned char size
 	return 0;
 }
 
-unsigned char CommandParserCoulombADC(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserCoulombADC(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int adc;
@@ -91,7 +91,7 @@ unsigned char CommandParserCoulombADC(unsigned char *buffer,unsigned char size)
 		return 1;
 	return 0;
 }
-unsigned char CommandParserCoulombPrescaler(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserCoulombPrescaler(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int prescaler;
@@ -106,7 +106,7 @@ unsigned char CommandParserCoulombPrescaler(unsigned char *buffer,unsigned char 
 	return 0;
 }
 
-unsigned char CommandParserCoulombCharge(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserCoulombCharge(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int charge;
@@ -141,7 +141,6 @@ void coulomb(unsigned short q1,unsigned short q2,unsigned short voltage,unsigned
 
 void mode_coulomb(void)
 {
-	unsigned char rv,v;
 	WAITPERIOD p=0;
 	
 	fprintf_P(file_pri,PSTR("Mode coulomb\n"));

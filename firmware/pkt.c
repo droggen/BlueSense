@@ -41,7 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 
-void packet_init(PACKET *packet,char *hdr,unsigned char hdrsize)
+void packet_init(PACKET *packet,const char *hdr,unsigned char hdrsize)
 {
 	for(unsigned char i=0;i<hdrsize;i++)
 	{

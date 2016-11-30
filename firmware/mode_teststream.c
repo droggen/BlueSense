@@ -64,7 +64,7 @@ unsigned long mode_ts_period=1000000;
 */
 
 
-unsigned char CommandParserTSLog(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserTSLog(char *buffer,unsigned char size)
 {
 	unsigned int lognum;
 	if(size==0)
@@ -73,7 +73,8 @@ unsigned char CommandParserTSLog(unsigned char *buffer,unsigned char size)
 	}
 	else
 	{
-		unsigned char rv,*p1;
+		unsigned char rv;
+		char *p1;
 		rv = ParseComma(buffer,1,&p1);
 		if(rv)
 			return 2;
@@ -117,9 +118,10 @@ unsigned char CommandParserTSLog(unsigned char *buffer,unsigned char size)
 }
 
 
-unsigned char CommandParserTeststream(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserTeststream(char *buffer,unsigned char size)
 {
-	unsigned char rv,*p1;
+	unsigned char rv;
+	char *p1;
 	rv = ParseComma(buffer,1,&p1);
 	if(rv)
 		return 2;
@@ -152,13 +154,13 @@ void mode_teststream(void)
 	char buffer[64];
 	PACKET packet;
 	WAITPERIOD p=0;
-	unsigned short v[8];
+	//unsigned short v[8];
 	unsigned long time;
 	unsigned long stat_totsample=0;
 	unsigned long stat_samplesendfailed=0;
 	unsigned long stat_timemsstart=0;
 	unsigned long stat_timemsend=0;
-	unsigned long time_laststatus=0;
+	//unsigned long time_laststatus=0;
 
 
 	// Load mode configuration
@@ -274,7 +276,7 @@ void mode_teststream(void)
 			packet_end(&packet);
 			packet_addchecksum_fletcher16_little(&packet);
 			int s = packet_size(&packet);
-			if(fputbuf(file_stream,packet.data,s))
+			if(fputbuf(file_stream,(char*)packet.data,s))
 				stat_samplesendfailed++;
 		}
 		stat_totsample++;	

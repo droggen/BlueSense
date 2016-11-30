@@ -56,8 +56,8 @@ void sd_select_n(char ss);
 unsigned char sd_init(CID *cid,CSD *csd,unsigned long *capacity);
 
 // Block read/write functions
-unsigned char sd_block_write(unsigned long addr,unsigned char *buffer);
-unsigned char sd_block_read(unsigned long addr,unsigned char *buffer);
+unsigned char sd_block_write(unsigned long addr,char *buffer);
+unsigned char sd_block_read(unsigned long addr,char *buffer);
 
 
 
@@ -68,7 +68,7 @@ extern unsigned long _sd_write_stream_address;
 void sd_stream_open(unsigned long addr);
 unsigned char sd_stream_close(unsigned long *currentaddr);
 //unsigned char sd_write_stream_write(unsigned char *buffer,unsigned short size,unsigned long *currentaddr);
-unsigned char sd_streamcache_write(unsigned char *buffer,unsigned short size,unsigned long *currentaddr);
+unsigned char sd_streamcache_write(char *buffer,unsigned short size,unsigned long *currentaddr);
 //unsigned char sd_write_stream_write_block(unsigned char *buffer,unsigned long *currentaddr);
 //unsigned char sd_write_stream_write_block2(unsigned char *buffer,unsigned long *currentaddr);
 unsigned char sd_write_stream_close(unsigned long *currentaddr);

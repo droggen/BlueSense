@@ -6,8 +6,6 @@
 
 
 extern const char help_streamlog[] PROGMEM;
-unsigned char CommandParserStreamLog(unsigned char *buffer,unsigned char size);
-
 
 unsigned char stream_sample(FILE *f);
 
@@ -17,7 +15,7 @@ void stream(void);
 
 
 
-unsigned char CommandParserMotion(unsigned char *buffer,unsigned char size);
+unsigned char CommandParserMotion(char *buffer,unsigned char size);
 void mode_motionstream(void);
 
 

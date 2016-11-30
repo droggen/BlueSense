@@ -3,7 +3,6 @@
 #include <util/atomic.h>
 
 #if BOOTLOADER==0
-#define __DELAY_BACKWARD_COMPATIBLE__
 #include <util/delay.h>
 #include "wait.h"
 #include "main.h"

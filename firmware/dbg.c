@@ -21,7 +21,7 @@
 
 //#define DBG_DBG
 
-volatile CIRCULARBUFFER _dbg_tx_state,_dbg_rx_state;
+CIRCULARBUFFER _dbg_tx_state,_dbg_rx_state;
 unsigned char _dbg_tx_buffer[DBG_BUFFER_SIZE];
 unsigned char _dbg_rx_buffer[DBG_BUFFER_SIZE];
 unsigned char _dbg_rx_readstate=0;
@@ -147,7 +147,7 @@ CIRCULARBUFFER *dbg_get_txbuf(void)
 		nonzero		-	error
 
 ******************************************************************************/
-unsigned char dbg_putbuf(unsigned char *data,unsigned char n)
+unsigned char dbg_putbuf(char *data,unsigned char n)
 {
 	//if(buffer_level(&_dbg_tx_state)<n)
 	// If not connected: don't fill buffer

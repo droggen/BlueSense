@@ -59,7 +59,7 @@ void boot_dbg(void)
 	uart1_deinit();
 
 	cli();
-	void (*bl)(void) = 0x1E000;
+	void (*bl)(void) = (void(*)(void))0x1E000;
 	UBRR0=250;
 	bl();
 }
@@ -85,7 +85,7 @@ void boot_bluetooth(void)
 	uart1_deinit();
 	
 	cli();
-	void (*bl)(void) = 0x1E000;
+	void (*bl)(void) = (void(*)(void))0x1E000;
 	UBRR0=251;
 	bl();
 }

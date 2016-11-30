@@ -99,7 +99,7 @@ void spi_init(unsigned char spidiv)
 	Returns:
 		byte	-	byte read from the slave		
 ******************************************************************************/
-unsigned char spi_rw(unsigned char data)
+unsigned char spi_rw(char data)
 {
 	//while(_spi_ongoing);	// Wait for end of interrupt transfer if any
 
@@ -130,7 +130,7 @@ unsigned char spi_rw(unsigned char data)
 	Returns:
 		byte	-	byte read from the slave		
 ******************************************************************************/
-unsigned char spi_rw_noselect(unsigned char data)
+unsigned char spi_rw_noselect(char data)
 {
 	//while(_spi_ongoing);	// Wait for end of interrupt transfer if any
 	
@@ -159,7 +159,7 @@ unsigned char spi_rw_noselect(unsigned char data)
 	Returns:
 		-
 ******************************************************************************/
-void spi_rwn(unsigned char *ptr,unsigned char n)
+void spi_rwn(char *ptr,unsigned char n)
 {
 	//while(_spi_ongoing);	// Wait for end of interrupt transfer if any
 
@@ -197,7 +197,7 @@ void spi_rwn(unsigned char *ptr,unsigned char n)
 	Returns:
 		-
 ******************************************************************************/
-void spi_rwn_noselect(unsigned char *ptr,unsigned short n)
+void spi_rwn_noselect(char *ptr,unsigned short n)
 {
 	//while(_spi_ongoing);	// Wait for end of interrupt transfer if any
 
@@ -234,7 +234,7 @@ void spi_rwn_noselect(unsigned char *ptr,unsigned short n)
 	Returns:
 		-
 ******************************************************************************/
-void spi_wn_noselect(unsigned char *ptr,unsigned short n)
+void spi_wn_noselect(char *ptr,unsigned short n)
 {
 	//while(_spi_ongoing);	// Wait for end of interrupt transfer if any
 		

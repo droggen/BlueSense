@@ -47,7 +47,7 @@ const COMMANDPARSER CommandParsersBT[CommandParsersBTNum] =
 
 
 
-unsigned char CommandParserBT(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserBT(char *buffer,unsigned char size)
 {	
 	
 	CommandChangeMode(APP_MODE_BT);
@@ -69,7 +69,7 @@ void help(void)
 
 void mode_bt(void)
 {
-	unsigned char cmdchar;
+	unsigned char cmdchar=0;
 	unsigned char cmdn=0;
 	unsigned char shouldrun=1;
 	int c;

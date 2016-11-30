@@ -1,4 +1,4 @@
-const unsigned char __font_4x6[] = {
+unsigned char __font_4x6[] = {
 // 032: ' '
 	0x00, 0x00, 0x00, 
 // 033: '!'

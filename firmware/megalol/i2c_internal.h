@@ -42,21 +42,21 @@ typedef struct  _I2C_TRANSACTION {
 	unsigned char rw;																// write: 0. read: 1.
 	unsigned char data[16];													// data to send/receive
 	unsigned char *extdata;													// If nonzero, use this buffer for send/receive, otherwise data is used
-	//volatile unsigned char dataack[16];						// acknowledge to send/receive
-	unsigned char dodata;														// Send/read the data (otherwise, only the rest is done): specifies the number of bytes, or 0.
-	unsigned char dostop;														// Send I2C stop 
+	//volatile unsigned char dataack[16];									// acknowledge to send/receive
+	unsigned char dodata;													// Send/read the data (otherwise, only the rest is done): specifies the number of bytes, or 0.
+	unsigned char dostop;													// Send I2C stop 
 	I2C_CALLBACK callback;													// Callback to call upon completion or error
-	void *user;																			// User data
+	void *user;																// User data
 
 	unsigned char link2next;												// Linked: failure in this transaction cancels the next one; success in this transaction do not call callback, only last one
 	
 	// Status information
-	volatile unsigned char status;									// Status:	Lower 4 bit indicate status. 
-																									//				0: success. 
-																									//				1: failed in start condition.
-																									//				2: failed in address.
-																									//				3: failed in data (high 4 bit indicated how many bytes were transmitted successfully before the error)
-	volatile unsigned char i2cerror;								// Indicate the AVR I2C error code, when status is non-null
+	volatile unsigned char status;											// Status:	Lower 4 bit indicate status. 
+																			//				0: success. 
+																			//				1: failed in start condition.
+																			//				2: failed in address.
+																			//				3: failed in data (high 4 bit indicated how many bytes were transmitted successfully before the error)
+	volatile unsigned char i2cerror;										// Indicate the AVR I2C error code, when status is non-null
 } I2C_TRANSACTION;
 
 

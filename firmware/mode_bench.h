@@ -7,7 +7,7 @@
 extern unsigned char mode_bench_io;
 
 void mode_bench(void);
-unsigned char CommandParserBench(unsigned char *buffer,unsigned char size);
+unsigned char CommandParserBench(char *buffer,unsigned char size);
 
 #endif
 

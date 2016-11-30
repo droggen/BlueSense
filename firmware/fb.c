@@ -57,7 +57,7 @@ void fb_putchar(unsigned char x,unsigned char y,unsigned char t)
 		//fb_putnibble(x,y*6+i,0xff);
 	}
 }						
-void fb_putstring(unsigned char x,unsigned char y,char *t)
+void fb_putstring(unsigned char x,unsigned char y,const char *t)
 {
 	for(unsigned char i=0;i<strlen(t);i++)
 		fb_putchar(x+i,y,t[i]);

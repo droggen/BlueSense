@@ -12,12 +12,12 @@ extern const char help_cr[];
 
 void mode_coulomb(void);
 
-unsigned char CommandParserCoulomb(unsigned char *buffer,unsigned char size);
-unsigned char CommandParserCoulombCharge(unsigned char *buffer,unsigned char size);
-//unsigned char CommandParserCoulombControl(unsigned char *buffer,unsigned char size);
-unsigned char CommandParserCoulombPrescaler(unsigned char *buffer,unsigned char size);
-unsigned char CommandParserCoulombADC(unsigned char *buffer,unsigned char size);
-unsigned char CommandParserCoulombReset(unsigned char *buffer,unsigned char size);
+unsigned char CommandParserCoulomb(char *buffer,unsigned char size);
+unsigned char CommandParserCoulombCharge(char *buffer,unsigned char size);
+//unsigned char CommandParserCoulombControl(char *buffer,unsigned char size);
+unsigned char CommandParserCoulombPrescaler(char *buffer,unsigned char size);
+unsigned char CommandParserCoulombADC(char *buffer,unsigned char size);
+unsigned char CommandParserCoulombReset(char *buffer,unsigned char size);
 
 #endif
 

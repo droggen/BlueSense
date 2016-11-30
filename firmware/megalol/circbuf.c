@@ -1,13 +1,46 @@
+/*
+   MEGALOL - ATmega LOw level Library
+   Circular Buffer Module
+*/
+/*
+Copyright (C) 2009-2016:
+         Daniel Roggen, droggen@gmail.com
+		 
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
 /*
 	file: circbuf
 	
-	Implements a circular buffer, typically used for buffering in communication pipes.
+	Implements a circular buffer, typically used for buffering in communication pipes. The buffer size must be a power of 2.
 	
 	The key data structure is CIRCULARBUFFER which holds a pointer to a buffer, read and write pointers, and additional management information.
 	
-	
+	The CIRCULARBUFFER structure members must be initialised as follows:
+			CIRCULARBUFFER.buffer: point to a buffer to hold the data of size power of 2.
+			CIRCULARBUFFER.size: indicate the size; it must be a power of 2.
+			CIRCULARBUFFER.mask: bitmask to efficiently implement wraparound operations; it must be CIRCULARBUFFER.size-1, with CIRCULARBUFFER.size a power of2.
+		
 	*Usage in interrupts*
+	
+	Safe to use in interrupts.
+	
+	*Notes*
+	
+	Must analyse the code and possibly introduce ATOMIC_BLOCK(ATOMIC_RESTORESTATE) for all the functions which use both the rdptr and wrptr (e.g. buffer_isfull, buffer_clear, buffer_isempty, buffer_level, etc).
+	
+	
 	
 	
 */

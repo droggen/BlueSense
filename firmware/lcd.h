@@ -134,7 +134,7 @@ void lcd_sendframe(void);
 void lcd_sendframe444(void);
 void lcd_sendframe565(void);
 void lcd_writechar(unsigned char c,unsigned char x,unsigned char y,unsigned s,unsigned short cbg,unsigned short cfg);
-void lcd_writestring(char *str,unsigned char x,unsigned char y,unsigned s,unsigned short cbg,unsigned short cfg);
+void lcd_writestring(const char *str,unsigned char x,unsigned char y,unsigned s,unsigned short cbg,unsigned short cfg);
 
 
 #endif

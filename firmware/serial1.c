@@ -34,8 +34,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #ifdef ENABLE_SERIAL1
 
-volatile CIRCULARBUFFER SerialData1Rx;
-volatile CIRCULARBUFFER SerialData1Tx;
+CIRCULARBUFFER SerialData1Rx;
+CIRCULARBUFFER SerialData1Tx;
 
 volatile unsigned long Serial1DOR=0;
 
@@ -262,7 +262,7 @@ int uart1_fgetchar_int(FILE *stream)
 		0:				success
 		nonzero:	error
 ******************************************************************************/
-unsigned char uart1_fputbuf_int(unsigned char *data,unsigned char n)
+unsigned char uart1_fputbuf_int(char *data,unsigned char n)
 {
 	if(uart1_txbufferfree()>=n)
 	{

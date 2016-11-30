@@ -50,7 +50,7 @@ const COMMANDPARSER CommandParsersBench[CommandParsersBenchNum] =
 unsigned char mode_bench_io=0;
 
 
-unsigned char CommandParserBench(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserBench(char *buffer,unsigned char size)
 {	
 	if(size!=2 || buffer[0]!=',')
 		return 2;

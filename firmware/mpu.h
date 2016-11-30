@@ -101,7 +101,13 @@
 
 
 extern unsigned char sample_mode;
-extern _Accum mpu_gtor;
+
+// Conversion from gyro raw readings to radians per second
+#ifdef __cplusplus
+extern float mpu_gtorps;
+#else
+extern _Accum mpu_gtorps;
+#endif
 
 //typedef void (*MPU_READ_CALLBACK7)(unsigned char status,unsigned char error,signed short ax,signed short ay,signed short az,signed short gx,signed short gy,signed short gz,signed short temp);
 //typedef void (*MPU_READ_CALLBACK3)(unsigned char status,unsigned char error,signed short x,signed short y,signed short z);
@@ -228,8 +234,8 @@ unsigned char mpu_mag_readreg(unsigned char reg);
 void mpu_mag_writereg(unsigned char reg,unsigned char val);
 void _mpu_mag_regshadow(unsigned char enable,unsigned char dly,unsigned char regstart,unsigned char numreg);
 void _mpu_mag_readasa(void);
-void mpu_mag_correct1(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2);
-void mpu_mag_correct2(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2);
+void mpu_mag_correct1(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2);
+void mpu_mag_correct2(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2);
 void mpu_mag_calibrate(void);
 void mpu_mag_storecalib(void);
 void mpu_mag_loadcalib(void);

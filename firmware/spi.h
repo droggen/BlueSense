@@ -18,12 +18,12 @@
 
 
 void spi_init(unsigned char spidiv);
-unsigned char spi_rw(unsigned char d);
-unsigned char spi_rw_noselect(unsigned char data);
-void spi_rwn(unsigned char *ptr,unsigned char n);
-void spi_rwn_noselect(unsigned char *ptr,unsigned short n);
-void spi_rwn_int(unsigned char *ptr,unsigned char n);
-void spi_wn_noselect(unsigned char *ptr,unsigned short n);
+unsigned char spi_rw(char d);
+unsigned char spi_rw_noselect(char data);
+void spi_rwn(char *ptr,unsigned char n);
+void spi_rwn_noselect(char *ptr,unsigned short n);
+void spi_rwn_int(char *ptr,unsigned char n);
+void spi_wn_noselect(char *ptr,unsigned short n);
 
 
 #endif

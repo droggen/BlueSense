@@ -231,7 +231,7 @@ int uart0_fgetchar_int(FILE *stream)
 		0:				success
 		nonzero:	error
 ******************************************************************************/
-unsigned char uart0_fputbuf_int(unsigned char *data,unsigned char n)
+unsigned char uart0_fputbuf_int(char *data,unsigned char n)
 {
 	if(uart0_txbufferfree()>=n)
 	{

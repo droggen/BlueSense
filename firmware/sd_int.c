@@ -132,7 +132,7 @@ LOW-LEVEL   LOW-LEVEL   LOW-LEVEL   LOW-LEVEL   LOW-LEVEL   LOW-LEVEL   LOW-LEVE
 				
 	Return value: r1
 ******************************************************************************/
-unsigned char _sd_command_rn(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,unsigned char *response, unsigned short n)
+unsigned char _sd_command_rn(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,char *response, unsigned short n)
 {
 	unsigned char r;
 	sd_select_n(0);
@@ -140,7 +140,7 @@ unsigned char _sd_command_rn(unsigned char cmd,unsigned char p1,unsigned char p2
 	sd_select_n(1);
 	return r;
 }
-unsigned char _sd_command_rn_ns(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,unsigned char *response, unsigned short n)
+unsigned char _sd_command_rn_ns(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,char *response, unsigned short n)
 {
 	unsigned char r1;
 	unsigned long int t1;
@@ -219,7 +219,7 @@ unsigned char _sd_command_rn_ns(unsigned char cmd,unsigned char p1,unsigned char
 		0			-		Success
 		1			-		Error
 ******************************************************************************/
-unsigned char _sd_command_rn_retry(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char *response,unsigned short n, unsigned char answermask,unsigned char okanswer)
+unsigned char _sd_command_rn_retry(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,char *response,unsigned short n, unsigned char answermask,unsigned char okanswer)
 {
 	// Compute the crc
 	unsigned char crc = _sd_crc7command(cmd,p1,p2,p3,p4);
@@ -247,7 +247,7 @@ unsigned char _sd_command_rn_retry(unsigned char cmd,unsigned char p1,unsigned c
 		0			-		Success
 		1			-		Error
 ******************************************************************************/
-unsigned char _sd_command_rn_retry_crc(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4, unsigned char crc,unsigned char *response,unsigned short n, unsigned char answermask,unsigned char okanswer)
+unsigned char _sd_command_rn_retry_crc(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4, unsigned char crc,char *response,unsigned short n, unsigned char answermask,unsigned char okanswer)
 {
 	unsigned char c,retry = 0;
 	do
@@ -341,7 +341,7 @@ unsigned char _sd_command_r1_retry_crc(unsigned char cmd,unsigned char p1,unsign
 		0:				Success
 		1:				Error
 ******************************************************************************/
-unsigned char _sd_readbock_ns(unsigned char *buffer,unsigned short n,unsigned short *checksum)
+unsigned char _sd_readbock_ns(char *buffer,unsigned short n,unsigned short *checksum)
 {
 	unsigned char r1;
 	unsigned short i;
@@ -397,7 +397,7 @@ unsigned char _sd_readbock_ns(unsigned char *buffer,unsigned short n,unsigned sh
 		0			-	Success
 		1			-	Error
 ******************************************************************************/
-unsigned char _sd_command_r1_readblock(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char *r1,unsigned char *block,unsigned short n,unsigned short *checksum)
+unsigned char _sd_command_r1_readblock(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,char *r1,char *block,unsigned short n,unsigned short *checksum)
 {
 	unsigned char c;
 	sd_select_n(0);
@@ -446,7 +446,9 @@ unsigned char _sd_command_r1_readblock(unsigned char cmd,unsigned char p1,unsign
 ******************************************************************************/
 unsigned char _sd_cmd9(CSD *csd,unsigned long *capacity_sector)
 {
-	unsigned char response[32],c,r1;
+	char response[32];
+	unsigned char c;
+	char r1;
 	unsigned short checksum;
 	unsigned char n=16;
 	
@@ -529,7 +531,9 @@ unsigned char _sd_cmd9(CSD *csd,unsigned long *capacity_sector)
 ******************************************************************************/
 unsigned char _sd_cmd10(CID *cid)
 {
-	unsigned char response[32],c,r1;
+	char response[32];
+	unsigned char c;
+	char r1;
 	unsigned short checksum;
 	
 	
@@ -581,7 +585,8 @@ unsigned char _sd_cmd10(CID *cid)
 ******************************************************************************/
 unsigned char _sd_cmd58(OCR *ocr)
 {
-	unsigned char c,response[10];
+	unsigned char c;
+	char response[10];
 	#ifdef MMCDBG
 	printf_P(PSTR("SD CMD58\n"));
 	#endif
@@ -638,7 +643,7 @@ SINGLE BLOCK   SINGLE BLOCK   SINGLE BLOCK   SINGLE BLOCK   SINGLE BLOCK   SINGL
 ******************************************************************************/
 unsigned char _sd_block_open(unsigned long addr)
 {
-	unsigned char response;
+	char response;
 
 	sd_select_n(0);				//	Select card
 	response=_sd_command_rn_ns(MMC_WRITE_BLOCK,addr>>24,addr>>16,addr>>8,addr,0x55,&response,1);
@@ -810,7 +815,7 @@ unsigned char _sd_block_stop_dowait(void)
 		buffer		- 	Buffer containing the data to write to the card
 		size		-	Number of bytes to write to the card
 ******************************************************************************/
-void _sd_writebuffer(unsigned char *buffer,unsigned short size)
+void _sd_writebuffer(char *buffer,unsigned short size)
 {
 	// Send data
 	spi_wn_noselect(buffer,size);
@@ -867,7 +872,8 @@ MULTIBLOCK WRITES   MULTIBLOCK WRITES   MULTIBLOCK WRITES   MULTIBLOCK WRITES   
 ******************************************************************************/
 unsigned char _sd_multiblock_open(unsigned long addr)
 {
-	unsigned char rv,r1;
+	unsigned char rv;
+	char r1;
 
 	#ifdef MMCDBG
 		printf_P(PSTR("_sd_multiblock_open\r"));

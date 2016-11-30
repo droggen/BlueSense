@@ -76,13 +76,13 @@ const COMMANDPARSER CommandParsersIdle[] =
 };
 const unsigned char CommandParsersIdleNum=sizeof(CommandParsersIdle)/sizeof(COMMANDPARSER);
 
-unsigned char CommandParserClock(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserClock(char *buffer,unsigned char size)
 {
 	CommandChangeMode(APP_MODE_CLOCK);
 		
 	return 0;
 }
-unsigned char CommandParserDemo(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserDemo(char *buffer,unsigned char size)
 {
 	CommandChangeMode(APP_MODE_DEMO);
 		
@@ -94,10 +94,10 @@ unsigned char CommandParserDemo(unsigned char *buffer,unsigned char size)
 
 void mode_idle(void)
 {
-	char valid;
-	int c;	
+	//char valid;
+	//int c;	
 	unsigned long stat_timemsstart=0;
-	unsigned long stat_timemsend=0;
+	//unsigned long stat_timemsend=0;
 	unsigned long time_laststatus=0;
 	
 	lcd_clear565(0);

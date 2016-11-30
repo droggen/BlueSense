@@ -51,7 +51,7 @@
 	Returns:
 		Value
 ******************************************************************************/
-unsigned long _sd_bit2val(unsigned char *data,unsigned int startbit,unsigned int n)
+unsigned long _sd_bit2val(char *data,unsigned int startbit,unsigned int n)
 {
 	unsigned long v,bit;
 	unsigned int byteptr;

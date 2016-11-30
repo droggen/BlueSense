@@ -352,8 +352,11 @@ unsigned char i2c_writestart(unsigned addr7)
 */
 unsigned char i2c_writedata(unsigned char data)
 {
-	unsigned char twcr,twsr,twdr;	
-
+	unsigned char twcr,twsr;
+	#if I2CDBG==1
+	unsigned char twdr;
+	#endif
+	
 	#if I2CDBG==1
 		printf_P(PSTR("        I2C DATA Write\r"));
 	#endif
@@ -364,8 +367,8 @@ unsigned char i2c_writedata(unsigned char data)
 	{
 		twcr = TWCR;
 		twsr = TWSR;
-		twdr = TWDR;
 		#if I2CDBG==1
+			twdr = TWDR;
 			printf_P(PSTR("                TWCR: %X TWSR: %X TWDR: %X\r"),twcr,twsr,twdr);
 		#endif
 	}
@@ -397,7 +400,11 @@ unsigned char i2c_writedata(unsigned char data)
 */
 unsigned char i2c_readstart(unsigned addr7)
 {
-	unsigned char twcr,twsr,twdr;
+	unsigned char twcr,twsr;
+
+	#if I2CDBG==1
+	unsigned char twdr;
+	#endif
 
 	// Transmit a start condition
 	#if I2CDBG==1
@@ -408,8 +415,8 @@ unsigned char i2c_readstart(unsigned addr7)
 	{
 		twcr = TWCR;
 		twsr = TWSR;
-		twdr = TWDR;
 		#if I2CDBG==1
+			twdr = TWDR;
 			printf_P(PSTR("                TWCR: %X TWSR: %X TWDR: %X\r"),twcr,twsr,twdr);
 		#endif
 	}
@@ -436,8 +443,8 @@ unsigned char i2c_readstart(unsigned addr7)
 	{
 		twcr = TWCR;
 		twsr = TWSR;
-		twdr = TWDR;
 		#if I2CDBG==1
+			twdr = TWDR;
 			printf_P(PSTR("                TWCR: %X TWSR: %X TWDR: %X\r"),twcr,twsr,twdr);
 		#endif
 	}
@@ -505,11 +512,17 @@ unsigned char i2c_readdata(unsigned char *data,unsigned char acknowledge)
 
 void i2c_stop(void)
 {
-	unsigned char twcr,twsr,twdr;	
-	twcr = TWCR;
-	twsr = TWSR;
-	twdr = TWDR;
 	#if I2CDBG==1
+	unsigned char twdr,twsr,twcr;
+	#endif
+	
+	
+	
+	
+	#if I2CDBG==1
+		twdr = TWDR;
+		twsr = TWSR;
+		twcr = TWCR;
 		printf_P(PSTR("        I2C STOP:                TWCR: %X TWSR: %X TWDR: %X\r"),twcr,twsr,twdr);
 	#endif
 	TWCR = (1<<TWINT)|(1<<TWEN)| (1<<TWSTO);		// Transmit stop

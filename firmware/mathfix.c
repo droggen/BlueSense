@@ -288,6 +288,7 @@ int32_t fixsqrt16(int32_t a)
 	Internally uses a float representation which pulls conversion from fixed to float and back.
 	Accuracy decreases as value of x tends to zero.
 *******************************************************************************/
+#ifndef __cplusplus
 _Accum invSqrt3(_Accum x) {
 	_Accum halfx = x>>1;
 	float y = x;
@@ -303,6 +304,7 @@ _Accum invSqrt3(_Accum x) {
 	//yi = yi * (1.5k - (halfx * yi * yi));
 	return yi;
 }
+#endif
 
 
 //---------------------------------------------------------------------------------------------------
@@ -461,7 +463,7 @@ float invSqrtflt(float x) {
 	return y;
 }
 */  
-  
+#ifndef __cplusplus
 _Accum invSqrt(_Accum x) {
 /*	_Accum halfx = 0.5k * x;
 	_Accum y = x;
@@ -499,6 +501,7 @@ _Accum invSqrt2(_Accum x) {
 	
 	
 }
+#endif
 /*int32_t invSqrt4(int32_t x)
 {
 	_Accum r = 1.0k/sqrt(x/32768.0);

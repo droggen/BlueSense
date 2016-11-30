@@ -341,7 +341,7 @@ unsigned char ds3232_readtemp(signed short *temp)
 ******************************************************************************/
 unsigned char ds3232_readtemp_int_cb(void (*cb)(unsigned char,signed short))
 {
-	unsigned char r = i2c_readregs_int_cb(DS3232_ADDRESS,0x11,2,0,ds3232_readtemp_int_cb_cb,cb);
+	unsigned char r = i2c_readregs_int_cb(DS3232_ADDRESS,0x11,2,0,ds3232_readtemp_int_cb_cb,(void*)cb);
 	if(r)
 		return 1;
 			
@@ -358,7 +358,7 @@ unsigned char ds3232_readtemp_int_cb_cb(I2C_TRANSACTION *t)
 	temp = t->data[0]*100;
 	temp += (t->data[1]>>6)*25;
 	void (*cb)(unsigned char,signed short);
-	cb = t->user;
+	cb = (void(*)(unsigned char,signed short))t->user;
 	cb(t->status,temp);
 	return 0;	
 }

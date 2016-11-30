@@ -1711,7 +1711,7 @@ void lcd_writechar(unsigned char c,unsigned char x,unsigned char y,unsigned s,un
 	}
 	lcd_nselect(1);
 }
-void lcd_writestring(char *str,unsigned char x,unsigned char y,unsigned s,unsigned short cbg,unsigned short cfg)
+void lcd_writestring(const char *str,unsigned char x,unsigned char y,unsigned s,unsigned short cbg,unsigned short cfg)
 {
 	CHECKLCDENABLED;
 	for(unsigned char i=0;i<strlen(str);i++)

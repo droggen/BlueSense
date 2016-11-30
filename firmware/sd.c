@@ -132,7 +132,7 @@ unsigned char sd_init(CID *cid,CSD *csd,unsigned long *capacity)
 {
 	unsigned char c;
 	int i;
-	unsigned char response[32];
+	char response[32];
 	unsigned char r1;
 	OCR ocr;
 	unsigned long t1;
@@ -341,9 +341,9 @@ BLOCK READ/WRITE   BLOCK READ/WRITE   BLOCK READ/WRITE   BLOCK READ/WRITE   BLOC
 		0			- 	Success
 		nonzero		- 	Error
 ******************************************************************************/
-unsigned char sd_block_read(unsigned long addr,unsigned char *buffer)
+unsigned char sd_block_read(unsigned long addr,char *buffer)
 {
-	unsigned char r1;
+	char r1;
 	unsigned short checksum;
 	unsigned char response = _sd_command_r1_readblock(MMC_READ_SINGLE_BLOCK,addr>>24,addr>>16,addr>>8,addr,&r1,buffer,512,&checksum);
 	return response;
@@ -365,7 +365,7 @@ unsigned char sd_block_read(unsigned long addr,unsigned char *buffer)
 		0			- 	Success
 		nonzero		- 	Error
 ******************************************************************************/
-unsigned char sd_block_write(unsigned long addr,unsigned char *buffer)
+unsigned char sd_block_write(unsigned long addr,char *buffer)
 {
 	unsigned char response;
 
@@ -414,7 +414,7 @@ unsigned char _sd_write_stream_block_started;			// Block is started (i.e. data t
 unsigned long _sd_write_stream_t1;						// Time of conclusion of block write
 unsigned long _sd_write_stream_error;
 
-unsigned char _sdbuffer[SD_CACHE_SIZE];					// Cache memory for streaming writes with caching, also used for padding
+char _sdbuffer[SD_CACHE_SIZE];					// Cache memory for streaming writes with caching, also used for padding
 unsigned short _sdbuffer_n;								// Amount of memory used in cache
 
 /******************************************************************************
@@ -472,7 +472,7 @@ void sd_stream_open(unsigned long addr)
 		0				-	Success
 		other			-	Failure
 ******************************************************************************/
-unsigned char sd_stream_write(unsigned char *buffer,unsigned short size,unsigned long *currentsect)
+unsigned char sd_stream_write(char *buffer,unsigned short size,unsigned long *currentsect)
 {
 	// Find how many bytes can effectively be written until the sector is full.
 	unsigned long effw;
@@ -641,7 +641,7 @@ STREAM WRITE W/ CACHING   STREAM WRITE W/ CACHING   STREAM WRITE W/ CACHING   ST
 		0				-	Success
 		other			-	Failure
 ******************************************************************************/
-unsigned char sd_streamcache_write(unsigned char *buffer,unsigned short size,unsigned long *currentsect)
+unsigned char sd_streamcache_write(char *buffer,unsigned short size,unsigned long *currentsect)
 {
 	// Find how many bytes can effectively be written until the sector is full.
 	unsigned long effw;

@@ -59,10 +59,19 @@
 	
 	
 	*Units*
-	The variable mpu_gtor can be used to convert the gyroscope readings to radians per second. This variable is updated when mpu_setgyroscale is called.
-	It is a fixed-point (_Accum) variable. Convert the gyroscope reading to radians per second as follows: 
+	The variable mpu_gtorps can be used to convert the gyroscope readings to radians per second. This variable is updated when mpu_setgyroscale is called.
+	Depending on the compiler it is a fixed-point (_Accum) or float variable. Convert the gyroscope reading to radians per second as follows: 
 	
-	_Accum gx_rps = mpu_data_gx[mpu_data_rdptr] * mpu_gtor;
+	_Accum gx_rps = mpu_data_gx[mpu_data_rdptr] * mpu_gtorps;
+	or
+	float gx_rps = mpu_data_gx[mpu_data_rdptr] * mpu_gtorps;
+	
+	Gyroscope sensitivity: 
+		full scale 250:			131.072LSB/dps
+		full scale 500:			65.536LSB/dps
+		full scale 1000:		32.768LSB/dps
+		full scale 2000:		16.384LSB/dps
+	
 	
 	*Magnetometer*	
 	Functions to handle the magnetometer - prefixed by mpu_mag_... - can only be used when the MPU is configured
@@ -131,7 +140,13 @@ void (*isr_motionint)(void) = 0;
 void (*isr_motionint_ds)(void) = 0;
 
 // Conversion from Gyro readings to rad/sec
-_Accum mpu_gtor=3.14159665k/180.0k/131.0k;
+#ifdef __cplusplus
+float mpu_gtorps=3.14159665/180.0/131.072;
+#else
+_Accum mpu_gtorps=3.14159665k/180.0k/131.0k;
+#endif
+
+
 
 // 
 unsigned char sample_mode;
@@ -141,7 +156,7 @@ unsigned char sample_mode;
 MPU ISR   MPU ISR   MPU ISR   MPU ISR   MPU ISR   MPU ISR   MPU ISR   MPU ISR   
 *******************************************************************************
 *******************************************************************************/
-inline void mpu_isr(void)
+void mpu_isr(void)
 {
 	// motionint always called (e.g. WoM)
 	/*if(isr_motionint!=0)
@@ -774,16 +789,32 @@ void mpu_setgyroscale(unsigned char scale)
 	switch(scale)
 	{
 		case MPU_GYR_SCALE_250:
-			mpu_gtor=3.14159665k/180.0k/131.072k;
+			#ifdef __cplusplus
+			mpu_gtorps=3.14159665/180.0/131.072;
+			#else
+			mpu_gtorps=3.14159665k/180.0k/131.072k;
+			#endif			
 			break;
 		case MPU_GYR_SCALE_500:
-			mpu_gtor=3.14159665k/180.0k/65.536k;
+			#ifdef __cplusplus
+			mpu_gtorps=3.14159665/180.0/65.536;
+			#else
+			mpu_gtorps=3.14159665k/180.0k/65.536k;
+			#endif
 			break;
 		case MPU_GYR_SCALE_1000:
-			mpu_gtor=3.14159665k/180.0k/32.768k;
+			#ifdef __cplusplus
+			mpu_gtorps=3.14159665/180.0/32.768;
+			#else
+			mpu_gtorps=3.14159665k/180.0k/32.768k;
+			#endif
 			break;
 		default:
-			mpu_gtor=3.14159665k/180.0k/16.384k;
+			#ifdef __cplusplus
+			mpu_gtorps=3.14159665/180.0/16.384;
+			#else
+			mpu_gtorps=3.14159665k/180.0k/16.384k;
+			#endif
 			break;
 	}
 }
@@ -820,16 +851,16 @@ void mpu_setaccscale(unsigned char scale)
 	/*switch(scale)
 	{
 		case MPU_ACC_SCALE_2:
-			//mpu_gtor=3.14159665k/180.0k/131.072k;
+			//mpu_gtorps=3.14159665k/180.0k/131.072k;
 			break;
 		case MPU_ACC_SCALE_4:
-			//mpu_gtor=3.14159665k/180.0k/65.536k;
+			//mpu_gtorps=3.14159665k/180.0k/65.536k;
 			break;
 		case MPU_ACC_SCALE_8:
-			//mpu_gtor=3.14159665k/180.0k/32.768k;
+			//mpu_gtorps=3.14159665k/180.0k/32.768k;
 			break;
 		default:
-			//mpu_gtor=3.14159665k/180.0k/16.384k;
+			//mpu_gtorps=3.14159665k/180.0k/16.384k;
 			break;
 	}*/
 }
@@ -1559,7 +1590,7 @@ void _mpu_mag_readasa(void)
 
 
 // Magnetic correction using factory parameters in fuse rom
-void mpu_mag_correct1(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2)
+void mpu_mag_correct1(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2)
 {
 	signed long lmx,lmy,lmz;
 	lmx=mx;
@@ -1589,7 +1620,7 @@ void mpu_mag_correct1(signed short mx,signed short my,signed short mz,signed sho
 	
 }
 // Magnetic correction using 
-void mpu_mag_correct2(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2)
+void mpu_mag_correct2(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2)
 {
 	*mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
 	*my2=(my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/128;
@@ -1995,5 +2026,6 @@ void mpu_printstat(FILE *file)
 	if(debug) printf_P(PSTR("FIFO fills at %ld bytes/s\n"),odr);
 	return odr;
 }*/
+
 
 

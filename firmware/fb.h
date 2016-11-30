@@ -10,7 +10,7 @@ FILE *fb_initfb(void);
 void fb_clear(void);
 void fb_putpixel(unsigned char x,unsigned char y,unsigned char p);
 void fb_putchar(unsigned char x,unsigned char y,unsigned char t);
-void fb_putstring(unsigned char x,unsigned char y,char *t);
+void fb_putstring(unsigned char x,unsigned char y,const char *t);
 
 extern unsigned char fb_term_x,fb_term_y;
 extern unsigned char fb_term_buffer[21][32];

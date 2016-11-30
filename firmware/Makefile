@@ -90,9 +90,9 @@ SRC += serial.c
 SRC += serial1.c
 SRC += megalol/adc.c
 SRC += megalol/i2c.c
-SRC += megalol/i2c_poll.c
+#SRC += megalol/i2c_poll.c
 SRC += megalol/i2c_int.c
-SRC += megalol/menu.c
+#SRC += megalol/menu.c
 SRC += ds3232.c
 SRC += rn41.c
 SRC += pkt.c
@@ -143,7 +143,7 @@ SRC += mode_sd.c
 SRC += motionconfig.c
 SRC += ltc2942.c
 SRC += ufat.c
-SRC += MadgwickAHRS_fixed.c
+#SRC += MadgwickAHRS_fixed.c
 SRC += MadgwickAHRS_float.c
 SRC += mathfix.c
 
@@ -185,7 +185,8 @@ CFLAGS = -g$(DEBUG)
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += -O$(OPT)
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -fno-jump-tables
-CFLAGS += -Wall -Wstrict-prototypes
+CFLAGS += -Wall 
+#CFLAGS += -Wstrict-prototypes
 CFLAGS += -Wa,-adhlns=$(<:.c=.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
@@ -198,14 +199,14 @@ CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 
 
+
 # Compiler flag to set the C Standard level.
 #     c89   = "ANSI" C
 #     gnu89 = c89 plus GCC extensions
 #     c99   = ISO C99 standard (not yet fully implemented)
 #     gnu99 = c99 plus GCC extensions
-CSTANDARD = -std=gnu99
-
-
+#CSTANDARD = -std=gnu99
+CSTANDARD = -std=gnu++11
 
 
 # Place -D or -U options here
@@ -226,7 +227,7 @@ CDEFS += -DENABLE_SERIAL0=0
 CDEFS += -DENABLE_SERIAL1=1
 CDEFS += -DENABLE_I2CINTERRUPT
 #CDEFS += -DENABLE_I2CPOLL
-CDEFS += -DFIXEDPOINTQUATERNION=1
+CDEFS += -DFIXEDPOINTQUATERNION=0
 CDEFS += -DFIXEDPOINTQUATERNIONSHIFT=0
 CDEFS += -DENABLEQUATERNION=1
 CDEFS += -DENABLEGFXDEMO=0
@@ -282,9 +283,9 @@ PRINTF_LIB_MIN = -Wl,-u,vfprintf -lprintf_min
 PRINTF_LIB_FLOAT = -Wl,-u,vfprintf -lprintf_flt
 
 # If this is left blank, then it will use the Standard printf version.
-PRINTF_LIB = 
+#PRINTF_LIB = 
 #PRINTF_LIB = $(PRINTF_LIB_MIN)
-#PRINTF_LIB = $(PRINTF_LIB_FLOAT)
+PRINTF_LIB = $(PRINTF_LIB_FLOAT)
 
 
 # Minimalistic scanf version
@@ -299,7 +300,7 @@ SCANF_LIB =
 #SCANF_LIB = $(SCANF_LIB_FLOAT)
 
 
-#MATH_LIB = -lm
+MATH_LIB = -lm
 
 
 
@@ -418,8 +419,8 @@ DEBUG_HOST = localhost
 
 # Define programs and commands.
 SHELL = sh
-CC = avr-gcc
-#CC = avr-g++
+#CC = avr-gcc
+CC = avr-g++
 OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 SIZE = avr-size

@@ -229,7 +229,7 @@ SERIALPARAM _log_file_param;
 
 
 #define _UFAT_NUMLOGENTRY 14								// Maximum number 14; 16 root entries=volid+logs+metadata
-unsigned char ufatblock[512];								// Multiuse buffer
+char ufatblock[512];										// Multiuse buffer
 //unsigned char *ufatblock=_log_buffer[0];					// Multiuse buffer -> points to log buffer as no need for both at same time
 LOGENTRY _logentries[_UFAT_NUMLOGENTRY];					// Predefined number of log entries
 FSINFO _fsinfo;												// Summary of key info here
@@ -610,7 +610,7 @@ void ufat_log_test(unsigned char lognum,unsigned long size,unsigned char ch,unsi
 	for(unsigned long i=0;i<size/bsize;i++)
 	//for(unsigned long i=0;i<size;i++)
 	{
-		_ufat_log_fputbuf((unsigned char*)ufatblock,bsize);	
+		_ufat_log_fputbuf(ufatblock,bsize);	
 		//fputc(ch,&_log_file);
 	}
 	t2 = timer_ms_get();
@@ -831,7 +831,7 @@ unsigned char _ufat_init_fs(void)
 		0					-	Success
 		1					-	Error
 ******************************************************************************/
-void _ufat_getpart(unsigned char *block,unsigned char pn,PARTITION *p)
+void _ufat_getpart(char *block,unsigned char pn,PARTITION *p)
 {
 	memcpy(p,block+446+pn*16,16);
 }
@@ -1485,7 +1485,7 @@ void ufat_print_loginfo(FILE *f)
 		0			-		Success
 		EOF			-		Error
 ******************************************************************************/
-unsigned char _ufat_log_fputbuf(unsigned char *buffer,unsigned char size)
+unsigned char _ufat_log_fputbuf(char *buffer,unsigned char size)
 {
 	// Check if space to write to file
 	if(_log_current_size+size>_fsinfo.logsizebytes)
@@ -1517,7 +1517,7 @@ unsigned char _ufat_log_fputbuf(unsigned char *buffer,unsigned char size)
 		0			-		Success
 		EOF			-		Error
 ******************************************************************************/
-int _ufat_log_fputchar(unsigned char c,FILE *f)
+int _ufat_log_fputchar(char c,FILE *f)
 {
 	// Check if space to write to file
 	if(_log_current_size>=_fsinfo.logsizebytes)

@@ -69,7 +69,7 @@ void rn41_CmdLeave(FILE *fileinfo,FILE *filebt)
 	_delay_ms(1100);
 	rn41_CmdResp(fileinfo,filebt,"---\n");
 }
-void rn41_CmdResp(FILE *fileinfo,FILE *filebt,char *cmd)
+void rn41_CmdResp(FILE *fileinfo,FILE *filebt,const char *cmd)
 {
 	char buffer[64];
 	
@@ -86,7 +86,7 @@ void rn41_CmdResp(FILE *fileinfo,FILE *filebt,char *cmd)
 		fprintf_P(fileinfo,PSTR("BT CmdResp: %s\n"),buffer);
 	#endif
 }
-void rn41_CmdRespn(FILE *fileinfo,FILE *filebt,char *cmd,unsigned char n)
+void rn41_CmdRespn(FILE *fileinfo,FILE *filebt,const char *cmd,unsigned char n)
 {
 	char buffer[256];
 	//int l;
@@ -144,14 +144,14 @@ unsigned char rn41_SetPassData(FILE *fileinfo,FILE *filebt,unsigned char v)
 	rn41_CmdResp(fileinfo,filebt,buffer);
 	return 0;
 }
-unsigned char rn41_SetPIN(FILE *fileinfo,FILE *filebt,char *pin)
+unsigned char rn41_SetPIN(FILE *fileinfo,FILE *filebt,const char *pin)
 {
 	char buffer[64];
 	sprintf(buffer,"SP,%s\n",pin);
 	rn41_CmdResp(fileinfo,filebt,buffer);
 	return 0;
 }
-unsigned char rn41_SetTempBaudrate(FILE *fileinfo,FILE *filebt,char *b)
+unsigned char rn41_SetTempBaudrate(FILE *fileinfo,FILE *filebt,const char *b)
 {
 	char buffer[64];
 	sprintf(buffer,"U,%s,N\n",b);
@@ -165,7 +165,7 @@ unsigned char rn41_SetName(FILE *fileinfo,FILE *filebt,char *name)
 	rn41_CmdResp(fileinfo,filebt,buffer);
 	return 0;
 }
-unsigned char rn41_SetSerializedName(FILE *fileinfo,FILE *filebt,char *name)
+unsigned char rn41_SetSerializedName(FILE *fileinfo,FILE *filebt,const char *name)
 {
 	char buffer[64];
 	sprintf(buffer,"S-,%s\n",name);
@@ -328,8 +328,8 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 	unsigned char p_cfgtimer = 0;									// 255=unlimited local/remote; 0=local only when not connected. 255 leads to instability (reboots) under high throughput, also lowers bitrate
 	char p_mode = 0;															// Slave
 	char p_auth = 0;															// No authentication
-	char *p_pin="0000";														// PIN
-	char *p_name="BlueSense";											// Name
+	const char *p_pin="0000";															// PIN
+	const char *p_name="BlueSense";													// Name
 	
 	fprintf_P(file,PSTR("Reset and enter command mode\n"));
 	rn41_Reset(file);		

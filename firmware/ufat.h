@@ -98,11 +98,11 @@ typedef struct {
 #define _UFAT_PARTITIONSTART 8192											
 
 extern FSINFO _fsinfo;														// Summary of key info here
-extern unsigned char ufatblock[];
+extern char ufatblock[];
 
 unsigned long _ufat_getfilentrycluster(FILEENTRYRAW *fer);
 
-void _ufat_getpart(unsigned char *block,unsigned char pn,PARTITION *p);
+void _ufat_getpart(char *block,unsigned char pn,PARTITION *p);
 unsigned char _ufat_format_mbr_boot(void);
 
 //unsigned char ufat_format_alllinkedfat(unsigned long fat_sector,unsigned long firstcluster,unsigned long totclusters);
@@ -127,8 +127,8 @@ void ufat_fileentryraw2logentry(FILEENTRYRAW *fer,LOGENTRY *le);
 unsigned char ufat_init(void);
 unsigned char ufat_available(void);
 FILE *ufat_log_open(unsigned char n);
-int _ufat_log_fputchar(unsigned char c,FILE *f);
-unsigned char _ufat_log_fputbuf(unsigned char *buffer,unsigned char size);
+int _ufat_log_fputchar(char c,FILE *f);
+unsigned char _ufat_log_fputbuf(char *buffer,unsigned char size);
 unsigned char ufat_log_close(void);
 void ufat_log_test(unsigned char lognum,unsigned long size,unsigned char ch,unsigned bsize);
 void log_printstatus(void);

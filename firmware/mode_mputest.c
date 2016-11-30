@@ -769,7 +769,7 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 			tt2 = timer_us_get();
 			//printf("%ld %f %f %f %f\n",tt2-tt1,q0,q1,q2,q3);
 			//printf("%f %f %f %f\n",q0,q1,q2,q3);
-			printf("%f %f %f %f %ld\n",q0,q1,q2,q3,tt2-tt1);
+			printf("%f %f %f %f %ld\n",(double)q0,(double)q1,(double)q2,(double)q3,tt2-tt1);
 			
 			mpu_data_rdnext();
 		}
@@ -1110,7 +1110,7 @@ void tff(void)
 	}*/
 	
 	
-	srand(0);
+	/*srand(0);
 	unsigned long rands[256];
 	float randf[256];
 	unsigned int n=256;
@@ -1126,7 +1126,7 @@ void tff(void)
 			rands[i] /= 65536;			// Convert to a .15 number between 0 and 1
 		if(rands[i]==0) rands[i]++;
 		randf[i] = rands[i]/32768.0;	// equivalent in float
-	}
+	}*/
 	/*for(unsigned i=0;i<n;i++)
 		printf("%ld ",rands[i]);
 	printf("\n");
@@ -1167,7 +1167,7 @@ void tff(void)
 	// To benchmark
 	// Invert square root with quake in float v.s. 1.0k/
 	//uint64_t t;
-	unsigned long t;
+	/*unsigned long t;
 	float tf;
 	_Accum tk;
 	unsigned long t1,t2;
@@ -1179,7 +1179,7 @@ void tff(void)
 		tf += sqrt(rf);
 	}
 	t2=timer_us_get();
-	printf("sqrt: %ld (%f)\n",t2-t1,tf);
+	printf("sqrt: %ld (%f)\n",t2-t1,tf);*/
 	/*t=0; tf=0;
 	t1=timer_us_get();
 	for(unsigned i=0;i<n;i++)
@@ -1236,7 +1236,7 @@ void tff(void)
 	t2=timer_us_get();
 	printf("root: %ld (%ld)\n",t2-t1,t);*/
 	
-	printf("\n\n");
+	/*printf("\n\n");
 	
 	t=0; tf=0;
 	t1=timer_us_get();
@@ -1265,7 +1265,7 @@ void tff(void)
 		t += *(unsigned long*)&x;
 	}
 	t2=timer_us_get();
-	printf("invSqrt3: %lu (%f)\n",t2-t1,t/32768.0);
+	printf("invSqrt3: %lu (%f)\n",t2-t1,t/32768.0);*/
 	/*t=0; tf=0;
 	t1=timer_us_get();
 	for(unsigned i=0;i<n;i++)
@@ -1293,7 +1293,7 @@ void tff(void)
 	}
 	t2=timer_us_get();
 	printf("invSqrt4: %lu (%f)\n",t2-t1,t);*/
-	t=0; tf=0;
+	/*t=0; tf=0;
 	t1=timer_us_get();
 	for(unsigned i=0;i<n;i++)
 	{
@@ -1302,7 +1302,7 @@ void tff(void)
 		t += *(unsigned long*)&x;
 	}
 	t2=timer_us_get();
-	printf("invSqrt2: %lu (%f)\n",t2-t1,t/32768.0);
+	printf("invSqrt2: %lu (%f)\n",t2-t1,t/32768.0);*/
 	/*t=0; tf=0;
 	t1=timer_us_get();
 	for(unsigned i=0;i<n;i++)
@@ -1323,7 +1323,7 @@ void tff(void)
 	}
 	t2=timer_us_get();
 	printf("fixmul16: %lu (%lu)\n",t2-t1,t);*/
-	t=0; tf=0; tk=0;
+	/*t=0; tf=0; tk=0;
 	t1=timer_us_get();
 	for(unsigned i=0;i<n;i++)
 	{
@@ -1332,7 +1332,7 @@ void tff(void)
 		tk+=r1*r2;
 	}
 	t2=timer_us_get();
-	printf("accummul: %lu (%lu)\n",t2-t1,tk);
+	printf("accummul: %lu (%lu)\n",t2-t1,tk);*/
 	/*t=0;
 	*/
 	

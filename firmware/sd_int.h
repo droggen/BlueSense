@@ -64,16 +64,16 @@ typedef struct _OCR {
 
 
 // Low-level
-unsigned char _sd_command_rn_retry(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char *response,unsigned short n, unsigned char answermask,unsigned char okanswer);
-unsigned char _sd_command_rn_retry_crc(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4, unsigned char crc,unsigned char *response,unsigned short n, unsigned char answermask,unsigned char okanswer);
+unsigned char _sd_command_rn_retry(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,char *response,unsigned short n, unsigned char answermask,unsigned char okanswer);
+unsigned char _sd_command_rn_retry_crc(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4, unsigned char crc,char *response,unsigned short n, unsigned char answermask,unsigned char okanswer);
 unsigned char _sd_command_r1_retry(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4, unsigned char answermask,unsigned char okanswer,unsigned char *r1);
 unsigned char _sd_command_r1_retry_crc(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4, unsigned char crc, unsigned char answermask,unsigned char okanswer,unsigned char *r1);
 
-unsigned char _sd_command_rn(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,unsigned char *response, unsigned short n);
-unsigned char _sd_command_rn_ns(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,unsigned char *response, unsigned short n);
+unsigned char _sd_command_rn(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,char *response, unsigned short n);
+unsigned char _sd_command_rn_ns(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,char *response, unsigned short n);
 
-unsigned char _sd_readbock_ns(unsigned char *buffer,unsigned short n,unsigned short *checksum);
-unsigned char _sd_command_r1_readblock(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char *r1,unsigned char *block,unsigned short n,unsigned short *checksum);
+unsigned char _sd_readbock_ns(char *buffer,unsigned short n,unsigned short *checksum);
+unsigned char _sd_command_r1_readblock(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,char *r1,char *block,unsigned short n,unsigned short *checksum);
 
 // Commands
 unsigned char _sd_cmd9(CSD *csd,unsigned long *capacity_sector);
@@ -88,7 +88,7 @@ unsigned char _sd_block_close(void);
 unsigned char _sd_block_stop(void);
 unsigned char _sd_block_stop_nowait(void);
 unsigned char _sd_block_stop_dowait(void);
-void _sd_writebuffer(unsigned char *buffer,unsigned short size);
+void _sd_writebuffer(char *buffer,unsigned short size);
 void _sd_writeconst(unsigned char b,unsigned short size);
 
 

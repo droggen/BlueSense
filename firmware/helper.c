@@ -29,17 +29,17 @@ const char crlf[] PROGMEM = "\r\n";
 char *trim(char *string)
 {
 	char *r;
-	for(short i=strlen(string)-1;i>=0;i--)
-   {
-   	if(string[i]==32 || string[i]==0xA || string[i]==0xD)
+	for(size_t i=strlen(string)-1;i>=0;i--)
+	{
+		if(string[i]==32 || string[i]==0xA || string[i]==0xD)
 			string[i]=0;
 		else
 			break;
 	}
 	r = string;
-	for(short i=0;i<strlen(string);i++)
-   {
-   	if(string[i]==32 || string[i]==0xA || string[i]==0xD)
+	for(size_t i=0;i<strlen(string);i++)
+	{
+		if(string[i]==32 || string[i]==0xA || string[i]==0xD)
 			r=string+i+1;
 		else
 			break;
@@ -290,12 +290,13 @@ extern void s32toa(signed long v,char *ptr)
 }
 
 /******************************************************************************
-	function: f16toa
+	function: fract16toa
 *******************************************************************************	
 	Converts a fixed point _Fract number into a 7-bytes ascii string (6 for the number
 	+ 1 null-terminator).	
 ******************************************************************************/
-void f16toa(_Fract a,char *ptr)
+#ifndef __cplusplus
+void fract16toa(_Fract a,char *ptr)
 {
 	// Decide how many digits to print
 	// Number is in .15 format so smallest number is 0.000030517578125; worth printing 5 digits after decimal point
@@ -315,7 +316,32 @@ void f16toa(_Fract a,char *ptr)
 	ptr[0]=c;	
 	ptr[1]='.';	
 }
-
+#endif
+/******************************************************************************
+	function: floattoa
+*******************************************************************************	
+	Converts a float number into a 7-bytes ascii string (6 for the number
+	+ 1 null-terminator).	
+******************************************************************************/
+#ifdef __cplusplus
+void floattoa(float a,char *ptr)
+{
+	float k=a*10000.0;	// 4 digits after decimal point
+	signed short v = k;
+	char c;
+	if(v&0x8000)
+	{
+		c='-';
+		v=-v;
+	}
+	else
+		c=' ';
+	
+	u16toa(v,ptr+1);
+	ptr[0]=c;	
+	ptr[1]='.';	
+}
+#endif
 
 void helper_test(void)
 {
@@ -377,7 +403,7 @@ unsigned char hex2chr(unsigned char v)
 		EOF (-1):	No character in stream
 		other:		Character in stream
 ******************************************************************************/
-int peek(FILE *file)
+/*int peek(FILE *file)
 {
 	// Save the blocking state and set to non-blocking
 	unsigned char blocking = fdev_get_udata(file);
@@ -391,7 +417,7 @@ int peek(FILE *file)
 	serial_setblocking(file,blocking);
 	
 	return c;
-}
+}*/
 
 /******************************************************************************
 	swalloweol
@@ -400,7 +426,7 @@ int peek(FILE *file)
 	or carriage return) is encountered.
 	
 ******************************************************************************/
-void swalloweol(FILE *file)
+/*void swalloweol(FILE *file)
 {
 	unsigned char c;
 	while(1)
@@ -410,7 +436,7 @@ void swalloweol(FILE *file)
 			return;
 		fgetc(file);
 	}
-}
+}*/
 /******************************************************************************
 	checkdigits
 *******************************************************************************	
@@ -654,7 +680,7 @@ char *format1u16(char *strptr,unsigned short a)
 	return strptr;
 }
 /******************************************************************************
-	Function: format4f16
+	Function: format4fract16
 *******************************************************************************
 	Formats 3 _Fract numbers into an ascii string.
 	Numbers are space separated, including a space after the last number, 
@@ -670,7 +696,8 @@ char *format1u16(char *strptr,unsigned short a)
 		q3			-		Fourth number to format
 	
 ******************************************************************************/
-char *format4f16(char *strptr,_Fract q0,_Fract q1,_Fract q2,_Fract q3)
+#ifndef __cplusplus
+char *format4fract16(char *strptr,_Fract q0,_Fract q1,_Fract q2,_Fract q3)
 {
 	f16toa(q0,strptr);
 	strptr+=6;
@@ -690,6 +717,46 @@ char *format4f16(char *strptr,_Fract q0,_Fract q1,_Fract q2,_Fract q3)
 	strptr++;
 	return strptr;
 }
+#endif
+/******************************************************************************
+	Function: format4fract16
+*******************************************************************************
+	Formats 3 _Fract numbers into an ascii string.
+	Numbers are space separated, including a space after the last number, 
+	however the string is not null terminated.
+	
+	The function returns a pointer to the first byte after the end of the string.
+	
+	Parameters:
+		strptr		-		pointer to the buffer that will receive the string
+		q0			-		First number to format
+		q1			-		Second number to format
+		q2			-		Third number to format
+		q3			-		Fourth number to format
+	
+******************************************************************************/
+#ifdef __cplusplus
+char *format4float(char *strptr,float q0,float q1,float q2,float q3)
+{
+	floattoa(q0,strptr);
+	strptr+=6;
+	*strptr=' ';
+	strptr++;
+	floattoa(q1,strptr);
+	strptr+=6;
+	*strptr=' ';
+	strptr++;
+	floattoa(q2,strptr);
+	strptr+=6;
+	*strptr=' ';
+	strptr++;
+	floattoa(q3,strptr);
+	strptr+=6;
+	*strptr=' ';
+	strptr++;
+	return strptr;
+}
+#endif
 
 
 

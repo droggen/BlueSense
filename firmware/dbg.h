@@ -13,7 +13,7 @@
 
 extern volatile unsigned long dbg_tot_tx,dbg_tot_rx;
 
-extern volatile CIRCULARBUFFER _dbg_tx_state,_dbg_rx_state;
+extern CIRCULARBUFFER _dbg_tx_state,_dbg_rx_state;
 
 extern volatile unsigned char dbg_rxlevel;
 
@@ -27,7 +27,7 @@ int dbg_fputchar(char c, FILE*stream);
 int dbg_fputchar_nonblock(char c, FILE*stream);
 int dbg_fgetchar(FILE *stream);
 int dbg_fgetchar_nonblock(FILE *stream);
-unsigned char dbg_putbuf(unsigned char *data,unsigned char n);
+unsigned char dbg_putbuf(char *data,unsigned char n);
 CIRCULARBUFFER *dbg_get_rxbuf(void);
 CIRCULARBUFFER *dbg_get_txbuf(void);
 

@@ -60,7 +60,7 @@ int uart0_getchar(void);
 	Interrupt-driven serial access
 */
 int uart0_fputchar_int(char c, FILE*stream);
-unsigned char uart0_fputbuf_int(unsigned char *data,unsigned char n);
+unsigned char uart0_fputbuf_int(char *data,unsigned char n);
 int uart0_fgetchar_nonblock_int(FILE *stream);
 int uart0_fgetchar_int(FILE *stream);
 

@@ -49,7 +49,7 @@ typedef struct
 
 } PACKET;
 
-void packet_init(PACKET *packet,char *hdr,unsigned char hdrsize);
+void packet_init(PACKET *packet,const char *hdr,unsigned char hdrsize);
 void packet_init_old(PACKET *packet);
 void packet_reset(PACKET *packet);
 void packet_end(PACKET *packet);

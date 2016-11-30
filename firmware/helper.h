@@ -30,14 +30,19 @@ extern unsigned char ht2(unsigned short v,unsigned char *ptr);
 extern unsigned char ht3(unsigned short v,unsigned char *ptr);
 extern unsigned char ht3s(unsigned short v,unsigned char *ptr);
 
-void u16toa(unsigned short v,char *ptr);
+extern "C" void u16toa(unsigned short v,char *ptr);
 void s16toa(signed short v,char *ptr);
-void u32toa(unsigned long v,char *ptr);
+extern "C" void u32toa(unsigned long v,char *ptr);
 void s32toa(signed long v,char *ptr);
-void f16toa(_Fract a,char *ptr);
+#ifdef __cplusplus
+void floattoa(float a,char *ptr);
+#endif
+#ifndef __cplusplus
+void fract16toa(_Fract a,char *ptr);
+#endif
 
-int peek(FILE *file);
-void swalloweol(FILE *file);
+//int peek(FILE *file);
+//void swalloweol(FILE *file);
 unsigned char checkdigits(const char *str,unsigned char n);
 unsigned char ParseComma(const char *str,unsigned char n,...);
 unsigned char ParseCommaGetInt(const char *str,int n,...);
@@ -47,7 +52,12 @@ unsigned char TimeAddSeconds(unsigned short hour, unsigned short min, unsigned s
 char *format3s16(char *strptr,signed short x,signed short y,signed short z);
 char *format1u32(char *strptr,unsigned long a);
 char *format1u16(char *strptr,unsigned short a);
-char *format4f16(char *strptr,_Fract q0,_Fract q1,_Fract q2,_Fract q3);
+#ifdef __cplusplus
+char *format4float(char *strptr,float q0,float q1,float q2,float q3);
+#endif
+#ifndef __cplusplus
+char *format4fract16(char *strptr,float q0,float q1,float q2,float q3);
+#endif
 
 
 

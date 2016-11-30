@@ -62,7 +62,7 @@ const COMMANDPARSER CommandParsersSD[CommandParsersSDNum] =
 	{'!', CommandParserQuit,help_quit}	
 };
 
-unsigned char CommandParserSDBench(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSDBench(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	char *p1;
@@ -96,7 +96,7 @@ unsigned char CommandParserSDBench(unsigned char *buffer,unsigned char size)
 	}
 	return 0;
 }
-unsigned char CommandParserSDFormat(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSDFormat(char *buffer,unsigned char size)
 {
 	unsigned int numlog;
 	if(ParseCommaGetInt((char*)buffer,1,&numlog))
@@ -106,7 +106,7 @@ unsigned char CommandParserSDFormat(unsigned char *buffer,unsigned char size)
 	ufat_format(numlog);
 	return 0;
 }
-unsigned char CommandParserSDLogTest(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSDLogTest(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	unsigned int lognum,ch,sz,bsiz;
@@ -122,7 +122,7 @@ unsigned char CommandParserSDLogTest(unsigned char *buffer,unsigned char size)
 	//printf_P(PSTR("Time: %lu ms. %lu bytes/s\n"),t2-t1,(sz*1000)/(t2-t1));
 	return 0;
 }
-unsigned char CommandParserSDWrite(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSDWrite(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	char *p1,*p2;
@@ -146,7 +146,7 @@ unsigned char CommandParserSDWrite(unsigned char *buffer,unsigned char size)
 	}
 	
 	printf("Writing %02hX at sector %lu\n",data,sector);
-	unsigned char block[512];
+	char block[512];
 	for(unsigned short i=0;i<512;i++)
 		block[i]=data;
 	rv = sd_block_write(sector,block);
@@ -155,7 +155,7 @@ unsigned char CommandParserSDWrite(unsigned char *buffer,unsigned char size)
 	return 0;
 	
 }
-unsigned char CommandParserSDRead(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSDRead(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	char *p1;
@@ -172,7 +172,7 @@ unsigned char CommandParserSDRead(unsigned char *buffer,unsigned char size)
 	}	
 		
 	printf("Read sector %lu\n",sector);
-	unsigned char block[512];
+	char block[512];
 	rv = sd_block_read(sector,block);
 	printf("Read result: %d\n",rv);
 	for(unsigned i=0;i<32;i++)
@@ -195,7 +195,7 @@ unsigned char CommandParserSDRead(unsigned char *buffer,unsigned char size)
 	return 0;
 	
 }
-unsigned char CommandParserSDStream(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSDStream(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	char *p1,*p2,*p3,*p4;
@@ -239,11 +239,11 @@ unsigned char CommandParserSDStream(unsigned char *buffer,unsigned char size)
 	sd_stream_open(sector);
 	while(len)
 	{
-		int effw=bsize;
+		unsigned int effw=bsize;
 		if(len<effw)
 			effw=len;
 		
-		rv = sd_streamcache_write((unsigned char*)block,effw,&curraddr);
+		rv = sd_streamcache_write(block,effw,&curraddr);
 		printf("Write %d. Return: %d. Current address: %lu\n",effw,rv,curraddr);
 		len-=effw;
 	}
@@ -253,14 +253,14 @@ unsigned char CommandParserSDStream(unsigned char *buffer,unsigned char size)
 	return 0;
 	
 }
-unsigned char CommandParserSDVolume(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSDVolume(char *buffer,unsigned char size)
 {	
 	ufat_init();
 	
 	return 0;
 	
 }
-unsigned char CommandParserSDInit(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSDInit(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	CID cid;
@@ -292,7 +292,7 @@ unsigned char CommandParserSDInit(unsigned char *buffer,unsigned char size)
 	return 0;
 }
 
-unsigned char CommandParserSD(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserSD(char *buffer,unsigned char size)
 {
 	CommandChangeMode(APP_MODE_SD);
 	return 0;

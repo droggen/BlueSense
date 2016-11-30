@@ -114,7 +114,11 @@ unsigned char stream_sample_text(FILE *f)
 	if(sample_mode & MPU_MODE_BM_Q)
 	{
 		#if ENABLEQUATERNION==1
-			strptr = format4f16(strptr,q0,q1,q2,q3);
+			#if FIXEDPOINTQUATERNION==1
+				strptr = format4fract16(strptr,q0,q1,q2,q3);
+			#else
+				strptr = format4float(strptr,q0,q1,q2,q3);
+			#endif
 		#else
 			*strptr='0';
 			strptr++;
@@ -189,16 +193,29 @@ unsigned char stream_sample_bin(FILE *f)
 	if(sample_mode & MPU_MODE_BM_Q)
 	{	
 		#if ENABLEQUATERNION==1
-		_Accum k;
-		signed short v;
-		k = q0*10000k; v = k;
-		packet_add16_little(&p,v);
-		k = q1*10000k; v = k;
-		packet_add16_little(&p,v);
-		k = q2*10000k; v = k;
-		packet_add16_little(&p,v);
-		k = q3*10000k; v = k;
-		packet_add16_little(&p,v);	
+			#if FIXEDPOINTQUATERNION==1
+				_Accum k;
+				signed short v;
+				k = q0*10000k; v = k;
+				packet_add16_little(&p,v);
+				k = q1*10000k; v = k;
+				packet_add16_little(&p,v);
+				k = q2*10000k; v = k;
+				packet_add16_little(&p,v);
+				k = q3*10000k; v = k;
+				packet_add16_little(&p,v);	
+			#else
+				float k;
+				signed short v;
+				k = q0*10000.0; v = k;
+				packet_add16_little(&p,v);
+				k = q1*10000.0; v = k;
+				packet_add16_little(&p,v);
+				k = q2*10000.0; v = k;
+				packet_add16_little(&p,v);
+				k = q3*10000.0; v = k;
+				packet_add16_little(&p,v);	
+			#endif
 		#else
 		packet_add16_little(&p,1);
 		packet_add16_little(&p,0);
@@ -262,7 +279,7 @@ void stream_stop(void)
 }
 
 
-unsigned char CommandParserMotion(unsigned char *buffer,unsigned char size)
+unsigned char CommandParserMotion(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	int mode;
@@ -372,9 +389,9 @@ void mode_motionstream(void)
 				ax = mpu_data_ax[mpu_data_rdptr]*atog;
 				ay = mpu_data_ay[mpu_data_rdptr]*atog;
 				az = mpu_data_az[mpu_data_rdptr]*atog;
-				gx = mpu_data_gx[mpu_data_rdptr]*mpu_gtor;
-				gy = mpu_data_gy[mpu_data_rdptr]*mpu_gtor;
-				gz = mpu_data_gz[mpu_data_rdptr]*mpu_gtor;				
+				gx = mpu_data_gx[mpu_data_rdptr]*mpu_gtorps;
+				gy = mpu_data_gy[mpu_data_rdptr]*mpu_gtorps;
+				gz = mpu_data_gz[mpu_data_rdptr]*mpu_gtorps;				
 				
 				// Killing g does not fix bug
 				// Killing a seems to fix bug
@@ -409,9 +426,9 @@ void mode_motionstream(void)
 				ax = mpu_data_ax[mpu_data_rdptr]*atog;
 				ay = mpu_data_ay[mpu_data_rdptr]*atog;
 				az = mpu_data_az[mpu_data_rdptr]*atog;
-				gx = mpu_data_gx[mpu_data_rdptr]*mpu_gtor;
-				gy = mpu_data_gy[mpu_data_rdptr]*mpu_gtor;
-				gz = mpu_data_gz[mpu_data_rdptr]*mpu_gtor;				
+				gx = mpu_data_gx[mpu_data_rdptr]*mpu_gtorps;
+				gy = mpu_data_gy[mpu_data_rdptr]*mpu_gtorps;
+				gz = mpu_data_gz[mpu_data_rdptr]*mpu_gtorps;				
 				// Sensors x (y)-axis of the accelerometer is aligned with the y (x)-axis of the magnetometer;
 				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
 				//unsigned long t1,t2;
