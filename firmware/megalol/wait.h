@@ -40,6 +40,7 @@ typedef struct
 
 // Select which implementation of timer_ms_get to use timer_ms_get_c, timer_ms_get_asm, timer_ms_get_asm_fast
 #define timer_ms_get timer_ms_get_asm_fast
+//#define timer_ms_get timer_ms_get_c
 #define timer_us_get timer_us_get_asm_fast
 
 /*
@@ -52,6 +53,7 @@ extern volatile unsigned long long _timer_lastmicrosec;
 
 void timer_init(unsigned long epoch_sec);
 unsigned long timer_ms_get_c(void);
+unsigned long timer_ms_get_c_new(void);
 unsigned long timer_ms_get_asm(void);
 extern "C" unsigned long timer_ms_get_asm_fast(void);
 unsigned long int timer_us_get_c(void);
@@ -59,8 +61,10 @@ extern "C" unsigned long int timer_us_get_asm_fast(void);
 
 // Call this function from an interrupt routine every herz, if available, e.g. from a RTC
 void _timer_tick_hz(void);
-// Call this function from an interrupt routine every 1/1024 hz (mandatory)
+// Call this function from an interrupt routine every 1/1024 hz (_timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: call one or the other)
 void _timer_tick_1024hz(void);
+// Call this function from an interrupt routine every 1/1000 hz (_timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: call one or the other)
+void _timer_tick_1000hz(void);
 
 
 typedef unsigned long int WAITPERIOD;					// This must be matched to the size of the return value of timer_?s_get

@@ -26,7 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	
 	This library requires some of these functions to be called from a timer interrupt to update the internal logic:
 	
-	_tick_1024hz		-	This function must be called from an interrupt running at 1024Hz
+	_tick_1024hz		-	This function must be called from an interrupt running at 1024Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.
+	_tick_1000hz		-	This function must be called from an interrupt running at 1000Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.
 	_timer_tick_hz		-	Optionally, this may be called once per second if a high-accuracy RTC with second resolution is available.
 		
 	The overall time is composed of the highly accurate second counter (if available), combined with the less 1024Hz timer for millisecond accuracy.
@@ -76,11 +77,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 										This counter should not be higher than 1hr, otherwise the
 										conversion to time will fail. This is not an issue if a
 										1Hz timer is available. 
+	_timer_time_1000: time in 1/1000s; used for a faster version of the code
 ******************************************************************************/
 volatile unsigned long _timer_time_1_in_ms=0;
 volatile unsigned long _timer_time_1024=0;
+volatile unsigned long _timer_time_1000=0;
 volatile unsigned long _timer_lastmillisec=0;
 volatile unsigned long long _timer_lastmicrosec=0;
+
+// State
+unsigned char _timer_time_1024to1000_divider=0;		// This variable is used by _timer_tick_1024hz to generate a 1000Hz update from a 1024Hz clock
 
 // Timer callbacks: fixed-number of callbacks
 unsigned char timer_numcallbacks=0;
@@ -291,8 +297,9 @@ extern unsigned long cpu_time;
 	Returns:
 		Time in milliseconds since the epoch	
 ******************************************************************************/
-unsigned long timer_ms_get_c(void)
+/*unsigned long timer_ms_get_c(void)
 {
+	// Old version doing multiplication by 1000 and shift
 	unsigned long t1,t1024;
 	unsigned long t;
 	
@@ -326,6 +333,34 @@ unsigned long timer_ms_get_c(void)
 	// Update the last returned time
 	_timer_lastmillisec = t;	
 	return t;
+}*/
+unsigned long timer_ms_get_c_new(void)
+{	
+	// New version relying on _timer_time_1000
+	unsigned long t1,t1000;
+	unsigned long t;
+	
+	// Copy current time atomically
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		t1 = _timer_time_1_in_ms;
+		t1000 = _timer_time_1000;
+	}
+	// Compose the elapsed time
+	t = t1 + t1000;
+	
+	// Ensure monoticity of the returned time. 
+	// Correct time if the elapsed time is lower than the last returned time.
+	// This may (but is unlikely) happen if the 1024Hz timer is highly inaccurate.
+	// In that case we return the last returned time.
+	
+	// Ensure monoticity
+	if(t<_timer_lastmillisec)
+		return _timer_lastmillisec;
+	
+	// Update the last returned time
+	_timer_lastmillisec = t;	
+	return t;
 }
 /******************************************************************************
 	timer_us_get
@@ -338,7 +373,7 @@ unsigned long timer_ms_get_c(void)
 ******************************************************************************/
 unsigned long int timer_us_get_c(void)
 {
-	unsigned long t1,t1024;
+/*	unsigned long t1,t1024;
 	unsigned short tcnt;
 	//unsigned long tcntus;
 	unsigned long long t;
@@ -379,8 +414,9 @@ unsigned long int timer_us_get_c(void)
 	
 	// Update the last returned time
 	_timer_lastmicrosec = t;	
-	return t;
+	return t;*/
 }
+
 
 
 /******************************************************************************
@@ -559,6 +595,8 @@ void _timer_tick_hz(void)
 	_timer_time_1_in_ms+=1000;
 	// Reset the 1/1024s timer.
 	_timer_time_1024=0;
+	// Reset the 1/1000s timer.
+	_timer_time_1000=0;
 	
 	// Process the callbacks
 	for(unsigned char i=0;i<timer_numslowcallbacks;i++)
@@ -581,12 +619,20 @@ void _timer_tick_hz(void)
 	
 	This may not be a very accurate clock (the 1 Hz clock aims to compensate for that).
 	
-	This routine also dispatches timer callbacks for downsampled versions of this clock	
-	
+	This routine also dispatches timer callbacks for downsampled versions of this clock.	
 ******************************************************************************/
 void _timer_tick_1024hz(void)
 {
 	_timer_time_1024++;
+	
+	
+	// Do a downsampling from 1024 to 1000 (or 128 to 125) by skipping 3 increments of _timer_time_1000 every 128.
+	_timer_time_1024to1000_divider=(_timer_time_1024to1000_divider+1)&0x7f;		// Count from 0-127
+	if( _timer_time_1024to1000_divider==42 || _timer_time_1024to1000_divider==84 || _timer_time_1024to1000_divider==126)
+		return;	
+	
+	// This part is called at 1000Hz on average.	
+	_timer_time_1000++;
 	
 	// Process the callbacks
 	for(unsigned char i=0;i<timer_numcallbacks;i++)

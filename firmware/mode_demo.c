@@ -20,11 +20,9 @@
 #include "rn41.h"
 #include "mpu.h"
 #include "mpu_test.h"
-#include "test_mmc.h"
 #include "pkt.h"
 #include "wait.h"
 #include "init.h"
-#include "ui.h"
 #include "lcd.h"
 #include "fb.h"
 #include "uiconfig.h"
@@ -45,8 +43,7 @@ const COMMANDPARSER CommandParsersDemo[CommandParsersDemoNum] =
 
 void mode_demo(void)
 {
-	unsigned long int t1,t2;
-	
+		
 	while(1)
 	{
 		lcd_clear565(0);
@@ -141,7 +138,7 @@ char demo_acc(unsigned long int dt)
 	while( (dt==0) || (dt!=0 && (timer_ms_get()-t1<dt) ) )
 	{
 		
-		while(CommandProcess(&CommandParsersDemo,CommandParsersDemoNum));
+		while(CommandProcess(CommandParsersDemo,CommandParsersDemoNum));
 		if(CommandShouldQuit())
 			return 1;		
 		
@@ -253,7 +250,7 @@ char demo_gyr(unsigned long int dt)
 	
 	while( (dt==0) || (dt!=0 && (timer_ms_get()-t1<dt) ) )
 	{
-		while(CommandProcess(&CommandParsersDemo,CommandParsersDemoNum));
+		while(CommandProcess(CommandParsersDemo,CommandParsersDemoNum));
 		if(CommandShouldQuit())
 			return 1;
 		

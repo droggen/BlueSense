@@ -20,11 +20,9 @@
 #include "rn41.h"
 #include "mpu.h"
 #include "mpu_test.h"
-#include "test_mmc.h"
 #include "pkt.h"
 #include "wait.h"
 #include "init.h"
-#include "ui.h"
 #include "lcd.h"
 #include "fb.h"
 #include "uiconfig.h"
@@ -78,7 +76,7 @@ char demo_clock(unsigned long int dt)
 	
 	while( (dt==0) || (dt!=0 && (timer_ms_get()-t1<dt) ) )
 	{
-		while(CommandProcess(&CommandParsersClock,CommandParsersClockNum));
+		while(CommandProcess(CommandParsersClock,CommandParsersClockNum));
 		
 		//_delay_ms(2000);
 		

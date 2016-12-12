@@ -164,7 +164,6 @@ signed short system_offdeltacharge;
 
 
 // Strings
-const char str_loadconf[] PROGMEM = "Load configuration\n";
 
 
 void banner(FILE *f)
@@ -863,6 +862,47 @@ unsigned char bootloaderhook_bluetooth(unsigned char c)
 	return 1;
 }
 
+/*
+ 7-8 ms for 1000 calls -> 8us/call
+*/
+
+void b0func(void)
+{
+	unsigned long t1,t2,tt;
+	
+b0start:
+
+	for(unsigned i=0;i<5;i++)
+	{
+		unsigned long tt1,tt2,tt3;
+		tt1=timer_us_get();
+		tt2=timer_us_get_c();
+		printf("%lu %lu\n",tt1,tt2);
+		_delay_ms(100);		
+	}
+
+	tt=0;
+	t1=timer_us_get();
+	for(unsigned i=0;i<1000;i++)
+	{
+		timer_us_get();
+	}
+	t2=timer_us_get();
+	printf("time with asm: %lu (%lu)\n",t2-t1,tt);
+	
+	tt=0;
+	t1=timer_us_get();
+	for(unsigned i=0;i<1000;i++)
+	{
+		timer_us_get_c();
+	}
+	t2=timer_us_get();
+	printf("time with c: %lu (%lu)\n",t2-t1,tt);
+	
+	
+	goto b0start;
+	
+}
 
 
 /******************************************************************************
@@ -1053,18 +1093,13 @@ int main(void)
 	
 	
 	
+	//b0func();
+	
+	
 
 	
 	// CONFIGURATION
-	/*fputs_P(str_loadconf,file_usb);
-	LoadConfiguration();
-	// Override configuration 
-	config_sensorsr = 27;
-	config_enable_battery=1;
-	config_streaming_format=1;
-	//PrintConfiguration(file_usb);
-	//PrintConfiguration(file_fb);
-	PrintConfiguration(file_pri);*/
+	
 
 	//system_status_ok(4);
 	
