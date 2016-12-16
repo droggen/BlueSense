@@ -72,7 +72,7 @@ void system_led_toggle(unsigned char led)
 	PINC = (led&0b1)<<6;
 }
 #endif
-#if (HWVER==6)
+#if (HWVER==6) || (HWVER==7)
 void system_led_set(unsigned char led)
 {
 	led=(~led)&0b111;
@@ -199,7 +199,7 @@ unsigned char system_isusbconnected(void)
 	return (PIND&0b01000000)?0:1;
 }
 #endif
-#if HWVER==6
+#if (HWVER==6) || (HWVER==7)
 unsigned char system_isusbconnected(void)
 {
 	return (PIND&0b01000000)?1:0;
@@ -324,7 +324,7 @@ void system_off(void)
 	PORTC|=0b10000000;
 }
 #endif
-#if HWVER==6
+#if (HWVER==6) || (HWVER==7)
 void system_off(void)
 {
 	// Clear PC7
@@ -335,14 +335,14 @@ void system_off(void)
 void system_power_low(void)
 {
 	// PWR_STBY=1 (PC3)
-	#if HWVER!=6
+	#if (HWVER!=6) && (HWVER!=7)
 	PORTC|=0b00001000;	
 	#endif
 }
 void system_power_normal(void)
 {
 	// PWR_STBY=0 (PC3)
-	#if HWVER!=6
+	#if (HWVER!=6) && (HWVER!=7)
 	PORTC&=0b11110111;	
 	#endif
 }

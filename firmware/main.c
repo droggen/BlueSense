@@ -83,12 +83,12 @@
 #include "pkt.h"
 #include "wait.h"
 #include "init.h"
-#include "lcd.h"
-#include "fb.h"
+//#include "lcd.h"
+//#include "fb.h"
 #include "uiconfig.h"
 #include "helper.h"
 #include "ufat.h"
-#include "i2c_poll.h"
+//#include "i2c_poll.h"
 #include "i2c_internal.h"
 //#include "streaming.h"
 #include "dbg.h"
@@ -269,7 +269,7 @@ ISR(PCINT3_vect)
 	// Check connection change
 	signed char cur_bt_connected,cur_usb_connected=-1;
 	cur_bt_connected = system_isbtconnected();		
-	#if (HWVER==5) || (HWVER==6)
+	#if (HWVER==5) || (HWVER==6) || (HWVER==7)
 	cur_usb_connected = system_isusbconnected();	
 	#endif	
 	interface_signalchange(cur_bt_connected,cur_usb_connected);
@@ -946,7 +946,7 @@ int main(void)
 		file_usb = fdevopen(uart0_fputchar_int,uart0_fgetchar_int);		
 		file_dbg=fdevopen(dbg_fputchar,0);
 	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 		file_usb = serial_open(10,1);
 	#endif	
 	// Bluetooth communication
@@ -1091,7 +1091,32 @@ int main(void)
 	
 	system_status_ok(3);
 	
-	
+	/*I2C_TRANSACTION tx;
+	i2c_transaction_setup(&tx,DBG_ADDRESS,I2C_WRITE,1,0);
+	while(1)
+	{
+		fprintf(file_usb,"usb\n");
+		fprintf(file_bt,"bt. is ubs conn: %d\n",system_isusbconnected());
+        fprintf(file_bt,"usb level tx: %d rx: %d\n",buffer_level(&_dbg_rx_state),buffer_level(&_dbg_tx_state));
+		ds3232_printreg(file_bt);
+		fprintf(file_bt,"time: %lu\n",timer_ms_get());
+		_delay_ms(500);
+		
+		tx.dodata = 4;
+		strcpy((char*)tx.data,"USB\n");
+		unsigned char r = i2c_transaction_queue(1,1,&tx);
+		if(r)
+		{
+			fprintf(file_bt,"could not queue\n");
+		}	
+		else
+		{
+			fprintf(file_bt,"tx status: %d i2cerror: %d\n",tx.status,tx.i2cerror);
+		}
+		
+		
+	}
+	*/
 	
 	//b0func();
 	

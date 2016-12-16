@@ -30,9 +30,16 @@ extern unsigned char ht2(unsigned short v,unsigned char *ptr);
 extern unsigned char ht3(unsigned short v,unsigned char *ptr);
 extern unsigned char ht3s(unsigned short v,unsigned char *ptr);
 
+#ifdef __cplusplus
 extern "C" void u16toa(unsigned short v,char *ptr);
-void s16toa(signed short v,char *ptr);
 extern "C" void u32toa(unsigned long v,char *ptr);
+#else
+void u16toa(unsigned short v,char *ptr);
+void u32toa(unsigned long v,char *ptr);
+#endif
+
+void s16toa(signed short v,char *ptr);
+
 void s32toa(signed long v,char *ptr);
 #ifdef __cplusplus
 void floattoa(float a,char *ptr);

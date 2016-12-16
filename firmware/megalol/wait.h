@@ -55,9 +55,15 @@ void timer_init(unsigned long epoch_sec);
 unsigned long timer_ms_get_c(void);
 unsigned long timer_ms_get_c_new(void);
 unsigned long timer_ms_get_asm(void);
+#ifdef __cplusplus
 extern "C" unsigned long timer_ms_get_asm_fast(void);
-unsigned long int timer_us_get_c(void);
 extern "C" unsigned long int timer_us_get_asm_fast(void);
+#else
+unsigned long timer_ms_get_asm_fast(void);
+unsigned long int timer_us_get_asm_fast(void);
+#endif
+unsigned long int timer_us_get_c(void);
+
 
 // Call this function from an interrupt routine every herz, if available, e.g. from a RTC
 void _timer_tick_hz(void);

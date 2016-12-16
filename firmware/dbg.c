@@ -177,8 +177,8 @@ unsigned char dbg_callback(unsigned char p)
 {
 	unsigned char r;
 	unsigned short lvl;
-	//static unsigned char ctr=0;
-	//char b[32];
+	static unsigned char ctr=0;
+	char b[32];
 	
 	// If not connected we don't run the callback at all
 	//return 0;
@@ -186,7 +186,7 @@ unsigned char dbg_callback(unsigned char p)
 		return 0;
 		
 	
-	//system_led_toggle(0b1);
+	//system_led_toggle(0b100);
 	//_delay_us(20);
 	/*if( (ctr&0x1f)==0)
 	{
@@ -219,7 +219,9 @@ unsigned char dbg_callback(unsigned char p)
 	
 	// If busy, wait for transaction to finish - can happen with low I2C speed and high callback speed
 	if(dbg_general_busy)
+	{//system_led_toggle(0b100);
 		return 0;
+		}
 	//system_led_toggle(0b10);
 	//fprintf(file_bt,"s %d\n",dbg_general_state);
 	
@@ -376,6 +378,7 @@ unsigned char _dbg_write_callback(I2C_TRANSACTION *t)
 	
 		return 0;
 	}
+	//system_led_toggle(0b100);
 	// Error, possibly buffer full on FTDI (e.g. when USB disconnected) or other
 	//system_blink(4,50,0b01);
 	//uart1_fputbuf_int("wrcb\n",5);

@@ -93,7 +93,7 @@
 #if HWVER==1
 #include "mpu-i2c.h"
 #endif
-#if (HWVER==4) || (HWVER==5) || (HWVER==6)
+#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 #include "mpu-usart0.h"
 #endif
 

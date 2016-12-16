@@ -121,6 +121,9 @@ void mode_idle(void)
 		{
 			fprintf_P(file_dbg,PSTR("Idle mode. PINA: %02X DDRA: %02X PORTA: %02X\n"),PINA,DDRA,PORTA);
 			time_laststatus = timer_ms_get();
+			
+			//fprintf_P(file_usb,PSTR("toto usb\n"));
+			//fprintf_P(file_bt,PSTR("toto bt\n"));
 		}
 	}
 	fprintf_P(file_pri,PSTR("Idle mode end\n"));

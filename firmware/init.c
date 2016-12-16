@@ -69,15 +69,23 @@ void init_ports(void)
 }
 #endif
 
-#if (HWVER==4) || (HWVER==5) || (HWVER==6)
+#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 void init_ports(void)
 {
 	
 	//DDxn, PORTxn, and PINx
 	//DDxn =1 : output
 	
+	
+	#if (HWVER==7)
+	// V7
+	init_ddra = 0b00110000;
+	init_porta = 0b11111111;
+	#else
+	// V1-V6
 	init_ddra = 0b00110000;
 	init_porta = 0b01111111;
+	#endif	
 	DDRA  = init_ddra;
 	PORTA = init_porta;
 	
@@ -94,14 +102,14 @@ void init_ports(void)
 	#if (HWVER==5)
 	PORTC = 0b01010000;		// Default for V5
 	#endif
-	#if (HWVER==6)
-	PORTC = 0b11011000;		// Default for V6
+	#if (HWVER==6) || (HWVER==7)
+	PORTC = 0b11011000;		// Default for V6, V7
 	#endif
 	
 	
 	/////////////////////////////////
-	//DDRC  = 0b11001011;		// Test i2c, set as output
-	//PORTC = 0b11010011;		// test i2c
+	//DDRC  = 0b11001011;	// Test i2c, set as output
+	//PORTC = 0b11010011;	// test i2c
 	//PORTA &= 0b11011111;	// BT hard reset
 	/////////////////////////////////
 	
@@ -113,9 +121,9 @@ void init_ports(void)
 	DDRD  = 0b00101010;	// V5
 	PORTD = 0b01000011;	// V5 pullup on pwren
 	#endif
-	#if (HWVER==6)
+	#if (HWVER==6) || (HWVER==7) 
 	DDRD  = 0b00101010;	// V6
-	PORTD = 0b00000011;	// V6 
+	PORTD = 0b00000011;	// V6, V7
 	#endif
 	
 	
@@ -137,7 +145,7 @@ void init_portchangeint(void)
 	// PD7 is PCINT31
 	PCMSK3 = 0b10010000;
 	#endif
-	#if (HWVER==5) || (HWVER==6)
+	#if (HWVER==5) || (HWVER==6) || (HWVER==7)
 	// Interrupt on change on PD7 (Bluetooth connect), PD4 (Bluetooth RTS), and PD6 (USB connect)
 	// PD7 is PCINT31
 	PCMSK3 = 0b11010000;
@@ -167,7 +175,7 @@ void init_timers(void)
 	#if HWVER==1
 	OCR1A = 7199;									// Top value: divides by OCR1A+1; 7199 leads to divide by 7200
 	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 	OCR1A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
 	#endif
 }
@@ -198,7 +206,7 @@ void init_module(void)
 	#if HWVER==1
 		uart1_init(3,0);	
 	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 		uart1_init(5,0);	// 115200bps  @ 11.06 Mhz
 		//uart1_init(2,0);	// 230400bps  @ 11.06 Mhz
 	#endif
@@ -207,7 +215,7 @@ void init_module(void)
 		uart0_init(1,0);	
 	#endif
 	
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 		#if BOOTLOADER==0
 			spiusart0_init();
 		#endif

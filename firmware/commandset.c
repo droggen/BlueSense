@@ -288,7 +288,7 @@ unsigned char CommandParserOff(char *buffer,unsigned char size)
 		_delay_ms(1000);		
 	}*/
 	
-	#if HWVER==6
+	#if (HWVER==6) || (HWVER==7)
 	// Read the charge and store it
 	unsigned long charge = ltc2942_getcharge();
 	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE0,(charge>>0)&0xff);
