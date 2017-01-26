@@ -914,12 +914,10 @@ int main(void)
 	// INIT MODULE
 	init_module();
 	
-	
-	// BLINK
+	// LED Test
+	system_led_test();	
 	system_led_set(0b000);
-	system_blink(20,50,0);
-
-	
+		
 	// I2C INITIALISATION	
 	i2c_init();	
 	
@@ -937,6 +935,7 @@ int main(void)
 	system_offdeltacharge=curcharge-oldcharge;
 	ltc2942_init();																// Get 
 	
+		
 	// DEBUG
 	dbg_init();
 	
@@ -958,12 +957,16 @@ int main(void)
 	
 	
 	
-	
 	timer_register_callback(dbg_callback,1);
+	//timer_register_callback(dbg_callback,4);
 	/////////////////////////// PRINT WORKS FROM HERE ///////////////////////////
 	
+	//_delay_ms(500);
+	//system_blink(20,50,0);
 	
-	fprintf(file_pri,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
+	//fprintf(file_pri,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
+	fprintf(file_usb,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
+	
 	
 	
 	
@@ -992,6 +995,26 @@ int main(void)
 	
 	
 	
+	
+	/*while(1)
+	{
+		unsigned char tt=0;
+		if(system_isbtconnected())
+			tt+=2;
+		if(system_isusbconnected())
+			tt+=1;
+		system_led_set(tt);
+	}*/
+	/*//while(1);
+	while(!system_isbtconnected());
+	system_led_set(0b010);
+	while(1)
+	{
+		unsigned long cc = ltc2942_getcharge();
+		fprintf(file_bt,"Hello %ld. tot tx: %ld tot rx: %ld\n",cc,dbg_tot_tx,dbg_tot_rx);
+		fprintf(file_usb,"Hello %ld\n",cc);
+		_delay_ms(100);
+	}*/
 	
 	//stk500();
 	

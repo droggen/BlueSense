@@ -22,6 +22,7 @@ void system_blink_led(unsigned char n,unsigned char timeon,unsigned char timeoff
 void system_status_ok(unsigned char status);
 void system_status_ok2(unsigned char status);
 void system_status_error(unsigned char error,unsigned char forever);
+void system_led_test(void);
 
 unsigned char system_isbtconnected(void);
 unsigned char system_isusbconnected(void);

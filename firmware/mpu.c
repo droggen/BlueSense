@@ -1674,11 +1674,11 @@ void mpu_mag_calibrate(void)
 		
 		if(dirty)
 		{
-			printf("[%d %d %d] - [%d %d %d]\n",_mpu_mag_calib_min[0],_mpu_mag_calib_min[1],_mpu_mag_calib_min[2],_mpu_mag_calib_max[0],_mpu_mag_calib_max[1],_mpu_mag_calib_max[2]);
+			fprintf_P(file_pri,PSTR("[%d %d %d] - [%d %d %d]\n"),_mpu_mag_calib_min[0],_mpu_mag_calib_min[1],_mpu_mag_calib_min[2],_mpu_mag_calib_max[0],_mpu_mag_calib_max[1],_mpu_mag_calib_max[2]);
 		}
 		if(timer_ms_get()-t1>1000)
 		{
-			printf("%d %d %d\n",m[0],m[1],m[2]);
+			fprintf_P(file_pri,PSTR("%d %d %d\n"),m[0],m[1],m[2]);
 			t1=timer_ms_get();
 		}
 	}

@@ -219,9 +219,10 @@ unsigned char dbg_callback(unsigned char p)
 	
 	// If busy, wait for transaction to finish - can happen with low I2C speed and high callback speed
 	if(dbg_general_busy)
-	{//system_led_toggle(0b100);
+	{
+		//system_led_toggle(0b100);
 		return 0;
-		}
+	}
 	//system_led_toggle(0b10);
 	//fprintf(file_bt,"s %d\n",dbg_general_state);
 	

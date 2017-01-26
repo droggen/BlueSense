@@ -102,6 +102,53 @@ void system_led_toggle(unsigned char led)
 	PINB = led&0b10;
 	PINC = ((led&0b1)<<6) | ((led&0b100)<<1);
 }
+void system_led_test(void)
+{
+	for(unsigned char i=0;i<4;i++)
+	{
+		unsigned char v=0b100;
+		for(unsigned char j=0;j<3;j++)
+		{
+			system_led_set(v);
+			v>>=1;
+			_delay_ms(50);
+		}
+		_delay_ms(50);
+		v=1;
+		for(unsigned char j=0;j<3;j++)
+		{
+			
+			system_led_set(v);			
+			v<<=1;
+			_delay_ms(50);
+		}
+		_delay_ms(50);
+	}
+}
+#else
+void system_led_test(void)
+{
+	for(unsigned char i=0;i<4;i++)
+	{
+		unsigned char v=0b10;
+		for(unsigned char j=0;j<2;j++)
+		{
+			system_led_set(v);
+			v>>=1;
+			_delay_ms(50);
+		}
+		_delay_ms(50);
+		v=1;
+		for(unsigned char j=0;j<2;j++)
+		{
+			
+			system_led_set(v);			
+			v<<=1;
+			_delay_ms(50);
+		}
+		_delay_ms(50);
+	}
+}
 #endif
 void system_blink(unsigned char n,unsigned char delay,unsigned char init)
 {
