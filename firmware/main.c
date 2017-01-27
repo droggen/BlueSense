@@ -964,8 +964,8 @@ int main(void)
 	//_delay_ms(500);
 	//system_blink(20,50,0);
 	
-	//fprintf(file_pri,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
-	fprintf(file_usb,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
+	//fprintf_P(file_pri,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
+	fprintf_P(file_usb,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
 	
 	
 	
