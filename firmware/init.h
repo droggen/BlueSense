@@ -6,6 +6,8 @@ extern unsigned char init_porta;
 extern unsigned char init_ddrb;
 extern unsigned char init_portb;
 
+void init_basic(void);
+void init_extended(void);
 
 void init_ports(void);
 void init_timers(void);

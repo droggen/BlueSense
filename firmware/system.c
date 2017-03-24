@@ -180,7 +180,20 @@ void system_status_ok2(unsigned char status)
 {
 	system_blink_led(status,150,150,1);
 }
-
+/******************************************************************************
+	function: system_lifesign
+*******************************************************************************
+	Blinks an LED to indicate aliveness. 
+	
+	Called from a timer callback.
+	
+	The parameter and return value are not used by the callback system.	
+******************************************************************************/
+unsigned char system_lifesign(unsigned char unused)
+{
+	system_led_toggle(0b10);
+	return 0;
+}
 void system_status_error(unsigned char error,unsigned char forever)
 {
 	do

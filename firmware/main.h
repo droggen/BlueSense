@@ -136,11 +136,11 @@ void system_sampletemperature_cb(unsigned char s,signed short t);
 
 
 
+unsigned char bootloaderhook_dbg(unsigned char c);
+unsigned char bootloaderhook_bluetooth(unsigned char c);
 
 
-
-
-
+extern volatile unsigned char bluetoothrts;
 
 
 /**

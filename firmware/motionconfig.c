@@ -41,13 +41,14 @@ const char mc_25[] PROGMEM = "  125Hz Acc low power";
 const char mc_26[] PROGMEM = " 62.5Hz Acc low power";
 const char mc_27[] PROGMEM = "31.25Hz Acc low power";
 const char mc_28[] PROGMEM = "    1Hz Acc low power";
-const char mc_29[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz";
-const char mc_30[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz";
-const char mc_31[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz";
-const char mc_32[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz Quaternions";
-const char mc_33[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz Quaternions";
-const char mc_34[] PROGMEM = "  100Hz Quaternions";
-const char mc_35[] PROGMEM = "  200Hz Quaternions";
+const char mc_29[] PROGMEM = "   50Hz Acc  (BW= 20Hz) Gyro (BW= 20Hz) Mag 8Hz";
+const char mc_30[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz";
+const char mc_31[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz";
+const char mc_32[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz";
+const char mc_33[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz Quaternions";
+const char mc_34[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz Quaternions";
+const char mc_35[] PROGMEM = "  100Hz Quaternions";
+const char mc_36[] PROGMEM = "  200Hz Quaternions";
 
 PGM_P const mc_options[MOTIONCONFIG_NUM] PROGMEM = 
 {
@@ -86,7 +87,8 @@ PGM_P const mc_options[MOTIONCONFIG_NUM] PROGMEM =
 	mc_32,
 	mc_33,
 	mc_34,
-	mc_35
+	mc_35,
+	mc_36
 };
 
 
@@ -165,6 +167,8 @@ const char config_sensorsr_settings[MOTIONCONFIG_NUM][10] = {
 					{ MPU_MODE_LPACC,      0,         0,               0,     0,               0,      0,  MPU_LPODR_31,     0,     0},
 					// 1Hz Acc low power
 					{ MPU_MODE_LPACC,      0,         0,               0,     0,               0,      0,   MPU_LPODR_1,     0,     0},
+					//  50Hz Acc  (BW= 20Hz) Gyro (BW= 20Hz) Mag 8Hz
+					{ MPU_MODE_ACCGYRMAG,  1,         0,  MPU_GYR_LPF_20,     1,  MPU_ACC_LPF_20,     19,             0,     0,     1},
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz
 					{ MPU_MODE_ACCGYRMAG,  1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     1},
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
