@@ -208,6 +208,7 @@ void mode_adc(void)
 	
 	// Set the ADC prescaler; for this hardware: 11.0592MHz/64=172.8KHz, which is in the 50KHz-200KHz range recommended by the AVR datasheet
 	ADCSetPrescaler(ADCCONV_PRESCALER_64);	
+	//ADCSetPrescaler(ADCCONV_PRESCALER_128);	
 	
 
 	/*printf("DDRA: %02X\n",DDRA);

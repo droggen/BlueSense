@@ -464,6 +464,24 @@ int main(void)
 	// Initialise the rest of it
 	init_extended();
 	
+
+	// 
+	/*while(1)
+	{
+		fprintf(file_pri,"Battery: %ld V: %d C: %u lsb Q: %lu uAh T: %d\n",ltc2942_last_updatetime(),ltc2942_last_voltage(),ltc2942_last_chargectr(),ltc2942_last_charge(),ltc2942_last_temperature());
+		
+		fprintf(file_pri,"i: %ld mA P: %ld mW\n",_ltc2942_last_mA,_ltc2942_last_milliwatt);
+		_delay_ms(500);
+		
+		// Benchmark the bettery conversion functions
+		//unsigned long t1,t2;
+		//t1 = timer_ms_get();
+		//for(int i=0;i<1000;i++)
+		//	__ltc2942_trans_read_done(0);
+		//t2 = timer_ms_get();
+		//printf("dt: %ld\n",t2-t1);
+		
+	}*/
 	
 	
 	mode_main();			// This never returns.

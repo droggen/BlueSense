@@ -4,8 +4,9 @@
 #define BATTERY_THRESHOLD_CONNECTED 4500
 
 #if BOOTLOADER==0
-extern volatile unsigned short system_battery;
-extern volatile unsigned long int system_battery_time;
+//extern volatile unsigned short system_battery_voltage;
+//extern volatile unsigned long int system_battery_updatetime;
+//extern volatile unsigned long int system_battery_updatetime;
 extern unsigned char system_enable_lcd;
 #endif
 
@@ -29,9 +30,8 @@ unsigned char system_isbtconnected(void);
 unsigned char system_isusbconnected(void);
 
 #if BOOTLOADER==0
-void system_samplebattery_sample(void);
-unsigned char system_samplebattery_start(unsigned char p);
-void system_samplebattery_end(unsigned short v);
+void system_callback_battery_sample_init(void);
+unsigned char system_callback_battery_sample(unsigned char);
 unsigned short system_getbattery(void);
 unsigned long system_getbatterytime(void);
 void system_off(void);

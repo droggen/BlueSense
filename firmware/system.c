@@ -2,12 +2,16 @@
 #include <avr/io.h>
 #include <util/atomic.h>
 
+
+
 #if BOOTLOADER==0
 #include <util/delay.h>
 #include "wait.h"
 #include "main.h"
 #include "adc.h"
 #include "interface.h"
+#include "megalol/i2c_internal.h"
+#include "ltc2942.h"
 #else
 //extern unsigned long int timer_ms_get(void);
 #include <util/delay.h>
@@ -18,8 +22,8 @@
 
 
 #if BOOTLOADER==0
-volatile unsigned short system_battery=0;
-volatile unsigned long int system_battery_time=0;
+//volatile unsigned short system_battery_voltage=0;
+//volatile unsigned long int system_battery_updatetime=0;
 unsigned char system_enable_lcd=0;
 #endif
 
@@ -268,70 +272,8 @@ unsigned char system_isusbconnected(void)
 
 
 #if BOOTLOADER==0
-/******************************************************************************
-	system_samplebattery
-*******************************************************************************	
-	Trigger an ADC conversion to sample the battery.
-	
-	Due to hardware issues (high input impedence on battery monitor) several 
-	conversions must be carried out to charge the cap if conversions of other 
-	channels were performed just before.
-	
-******************************************************************************/
-unsigned char system_samplebattery_numconv=0;
-#define SYSTEM_SAMPLEBATTERY_NUMCONV 4
-void system_samplebattery_sample(void)
-{
-//	unsigned char c=ADCSingleReadInt(7,1,system_samplebattery_end);
-	//(void)c;
-	//if(c)
-		//fputc('x',file_usb);
-}
-unsigned char system_samplebattery_start(unsigned char p)
-{
-	//fputc('S',file_usb);
-	//fputbuf(file_dbg,"S",1);
-	//fprintf(file_usb,"S%d %02x.",system_samplebattery_numconv,ADCSRA);
-	// Hack to do several conversions 
-	
-	if(system_samplebattery_numconv!=0)
-		return 0;
-	system_samplebattery_sample();
-	return 0;
-}
-void system_samplebattery_end(unsigned short v)
-{
-	//fputc('s',file_usb);
-	//fputbuf(file_dbg,"s",1);
-	system_samplebattery_numconv++;
-	//fprintf(file_usb,"s%d:%d.",system_samplebattery_numconv,v);
-	if(system_samplebattery_numconv>=SYSTEM_SAMPLEBATTERY_NUMCONV)
-	{
-		//fputc('C',file_usb);
-		system_battery = Battery_ADC2mv(v);
-		//system_battery=v;
-		/*char x[32];
-		x[0]=hex2chr((system_battery>>12)&0xf);
-		x[1]=hex2chr((system_battery>>8)&0xf);
-		x[2]=hex2chr((system_battery>>4)&0xf);
-		x[3]=hex2chr((system_battery>>0)&0xf);
-		x[4]='\n';
-		x[5]=0;
-		//fputbuf(file_usb,x,5);
-		fputs(x,file_usb);*/
-		//fprintf(file_usb,"%d %d %02x\n",v,system_battery,ADCSRA);
-		system_battery_time = timer_ms_get();		
-		system_samplebattery_numconv=0;
-		
-		interface_signalchange(-1,system_isusbconnected());
 
-	}	
-	else
-	{
-		//fputc('c',file_usb);
-		system_samplebattery_sample();
-	}
-}
+
 
 /******************************************************************************
 	system_getbattery
@@ -341,12 +283,8 @@ void system_samplebattery_end(unsigned short v)
 ******************************************************************************/
 unsigned short system_getbattery(void)
 {
-	unsigned short t;
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-	{
-		t = system_battery;	
-	}
-	return t;
+	
+	return _ltc2942_last_voltage;
 }
 /******************************************************************************
 	system_getbatterytime
@@ -355,16 +293,16 @@ unsigned short system_getbattery(void)
 	The battery voltage is sampled in the background through a timer callback.
 	
 ******************************************************************************/
-unsigned long system_getbatterytime(void)
+/*unsigned long system_getbatterytime(void)
 {
 	unsigned long t;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		t = system_battery_time;	
+		t = system_battery_updatetime;	
 	}
 	return t;
 }
-
+*/
 #if HWVER==1
 void system_off(void)
 {
@@ -424,5 +362,6 @@ unsigned char *system_getdevicename(void)
 }
 
 #endif
+
 
 

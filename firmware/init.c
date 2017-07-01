@@ -42,7 +42,15 @@ unsigned char init_porta;
 unsigned char init_ddrb;
 unsigned char init_portb;
 
-
+/******************************************************************************
+   function: init_basic
+*******************************************************************************
+	Low-level initialisation
+	
+	
+	Parameters:
+		
+******************************************************************************/
 void init_basic(void)
 {
 	// INIT MODULE
@@ -324,11 +332,12 @@ void init_extended(void)
 
 	system_status_ok(2);
 
-	// Register battery sample callback
-	//timer_register_slowcallback(system_samplebattery,9);
+	// Register the battery sample callback, and initiate an immediate read of the battery 
+	timer_register_slowcallback(ltc2942_backgroundgetstate,9);
+	ltc2942_backgroundgetstate(0);
+	
 	ds3232_readtemp((signed short*)&system_temperature);
 
-	//timer_register_slowcallback(system_samplebattery_start,2);	
 	//timer_register_slowcallback(system_sampletemperature,6);
 	timer_register_slowcallback(system_lifesign,0);
 	
