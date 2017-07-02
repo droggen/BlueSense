@@ -284,7 +284,7 @@ unsigned char system_isusbconnected(void)
 unsigned short system_getbattery(void)
 {
 	
-	return _ltc2942_last_voltage;
+	return ltc2942_last_mV();
 }
 /******************************************************************************
 	system_getbatterytime

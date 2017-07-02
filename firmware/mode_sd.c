@@ -43,7 +43,7 @@ const char help_write[] PROGMEM="W,<sector>,<value>: Fills a sector with the giv
 const char help_stream[] PROGMEM="S,<sector>,<value>,<size>,<bsize>: Writes size bytes data in streaming mode with caching; sends data by blocks of size bsize";
 const char help_read[] PROGMEM="R,<sector>: Reads a sector (sector number in decimal)";
 const char help_volume[] PROGMEM="Initialise volume";
-const char help_format[] PROGMEM="F,<numlogfiles>: Format the card for numlogfiles and initialise the volume";
+const char help_format[] PROGMEM="F,<numlogfiles>: Format the card for numlogfiles and initialise the volume (maximum numlogfiles=14)";
 const char help_logtest[] PROGMEM="L,<lognum>,<sizebytes>,<char>,<bsiz>: Writes to lognum sizebytes character char in bsiz blocks";
 const char help_sdbench[] PROGMEM="B,<benchtype>";
 

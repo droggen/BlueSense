@@ -68,6 +68,7 @@ const COMMANDPARSER CommandParsersIdle[] =
 #if ENABLEMODECOULOMB==1	
 	{'Q', CommandParserCoulomb,help_coulomb},
 #endif
+	{'q', CommandParserBatteryInfo,help_battery},
 	{'X', CommandParserSD,help_sd},
 	{'P', CommandParserPower,help_power},
 	{'S', CommandParserTeststream,help_s},

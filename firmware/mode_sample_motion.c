@@ -44,6 +44,7 @@
 #include "sd.h"
 #include "mode.h"
 #include "MadgwickAHRS.h"
+#include "ltc2942.h"
 
 
 // If quaternions are enabled: conversion factors
@@ -58,6 +59,23 @@ float atog=1.0/16384.0;
 unsigned char enableinfo;
 
 unsigned long stat_samplesendfailed;
+unsigned long stat_totsample;
+unsigned long stat_timemsstart,stat_t_cur,stat_wakeup,stat_time_laststatus;
+
+
+typedef struct {
+	unsigned long t;
+	signed short mW,mA,mV;
+} BATSTAT;
+#define MAXBATSTATPTR 120
+BATSTAT batstat[MAXBATSTATPTR];
+unsigned short batstatptr;
+
+
+
+
+const char help_samplestatus[] PROGMEM="Battery and logging status";
+const char help_batbench[] PROGMEM="Battery benchmark";
 
 const COMMANDPARSER CommandParsersMotionStream[] =
 { 
@@ -68,11 +86,29 @@ const COMMANDPARSER CommandParsersMotionStream[] =
 	{'Z',CommandParserSync,help_z},
 	{'i',CommandParserInfo,help_info},
 	{'N', CommandParserAnnotation,help_annotation},
+	{'q', CommandParserBatteryInfo,help_battery},
+	{'s', CommandParserSampleStatus,help_samplestatus},
+	{'x', CommandParserBatBench,help_batbench},
 	{'!', CommandParserQuit,help_quit}
 };
 const unsigned char CommandParsersMotionStreamNum=sizeof(CommandParsersMotionStream)/sizeof(COMMANDPARSER); 
 
+unsigned char CommandParserSampleStatus(char *buffer,unsigned char size)
+{
+	stream_status(file_pri);
+	return 0;
+}
+void printbatstat(FILE *f)
+{
+	for(unsigned short i=0;i<batstatptr;i++)
+	fprintf_P(f,PSTR("%d %lu %d %d %d\n"),i,batstat[i].t,batstat[i].mV,batstat[i].mA,batstat[i].mW);
+}
 
+unsigned char CommandParserBatBench(char *buffer,unsigned char size)
+{
+	printbatstat(file_pri);
+	return 0;
+}
 
 // Builds the text string
 unsigned char stream_sample_text(FILE *f)
@@ -242,13 +278,62 @@ unsigned char stream_sample(FILE *f)
 	return 0;
 }
 
+/******************************************************************************
+	function: stream_status
+*******************************************************************************	
+	Sends to a specified file information about the current streaming/logging state,
+	including battery informationa and log status.
+	
+	In binary streaming mode an information packet with header DII is created.
+	The packet definition string is: DII;is-s-siiiiic;f
 
+	In text streaming mode an easy to parse string is sent prefixed by '#'.
+	
+	
+	
+	Paramters:
+		f		-	File to which to send the status
 
-
-/*void stream_status(FILE *file)
+	Returns:
+		Nothing
+*******************************************************************************/
+void stream_status(FILE *f)
 {
-	fprintf_P(file,PSTR("Battery: %ld mV\n"),system_getbattery());	
-}*/
+	unsigned long wps = stat_wakeup*1000l/(stat_t_cur-stat_time_laststatus);
+	if(mode_stream_format_bin==0)
+	{
+		// Information text
+		char str[128];
+		sprintf_P(str,PSTR("#t=%lu ms; %s"),stat_t_cur-stat_timemsstart,ltc2942_last_strstatus());
+		fputbuf(f,str,strlen(str));
+		sprintf_P(str,PSTR("; wps=%lu; spl=%lu spl; err=%lu spl; log=%lu KB; logmax=%lu KB; logfull=%lu %%\n"),wps,stat_totsample,stat_samplesendfailed,ufat_log_getsize()>>10,ufat_log_getmaxsize()>>10,ufat_log_getsize()/(ufat_log_getmaxsize()/100l));
+		fputbuf(f,str,strlen(str));
+	}
+	else
+	{
+		// Information packet
+		PACKET p;
+		packet_init(&p,"DII",3);
+		packet_add32_little(&p,stat_t_cur-stat_timemsstart);		
+		packet_add16_little(&p,ltc2942_last_mV());
+		packet_add16_little(&p,ltc2942_last_mA());
+		packet_add16_little(&p,ltc2942_last_mW());
+		packet_add32_little(&p,wps);
+		packet_add32_little(&p,stat_totsample);
+		packet_add32_little(&p,stat_samplesendfailed);
+		packet_add32_little(&p,ufat_log_getsize()>>10);
+		packet_add32_little(&p,ufat_log_getmaxsize()>>10);
+		packet_add8(&p,ufat_log_getsize()/(ufat_log_getmaxsize()/100l));
+		packet_end(&p);
+		packet_addchecksum_fletcher16_little(&p);
+		int s = packet_size(&p);
+		fputbuf(f,(char*)p.data,s);
+	}
+}
+
+
+
+
 
 void stream_start(void)
 {
@@ -308,10 +393,11 @@ unsigned char CommandParserMotion(char *buffer,unsigned char size)
 ******************************************************************************/
 void mode_motionstream(void)
 {
-	unsigned long wakeup=0;
-	unsigned long int t_cur,time_laststatus,stat_timemsstart,t_end;
+	
+	unsigned long int time_lastblink,t_end;
+	unsigned long int time_lastmemlog;
 	unsigned char putbufrv;
-	unsigned long stat_totsample=0;
+	
 	
 	
 	system_led_set(0b01);
@@ -320,43 +406,75 @@ void mode_motionstream(void)
 	//lcd_writestring("Streaming",28,0,2,0x0000,0xffff);	
 
 	set_sleep_mode(SLEEP_MODE_IDLE); 
+	sleep_enable();
 
 	mode_sample_file_log=0;
 
 
 	stream_start();
 	
-	stat_timemsstart = timer_ms_get();
+	stat_totsample=0;
+	stat_samplesendfailed=0;	
+	stat_wakeup=0;	
+	stat_t_cur = time_lastmemlog = time_lastblink = stat_time_laststatus = stat_timemsstart = timer_ms_get();
+	batstatptr=0;
 	
-	stat_samplesendfailed=0;
+	// Store the data
+	batstat[batstatptr].t = stat_t_cur-stat_timemsstart;
+	batstat[batstatptr].mV = ltc2942_last_mV();
+	batstat[batstatptr].mA = ltc2942_last_mA();
+	batstat[batstatptr].mW = ltc2942_last_mW();
+	batstatptr++;
 	
-	
-	
-	time_laststatus = stat_timemsstart = timer_ms_get();
 	while(1)
 	{
+		//sleep_cpu();
+		stat_wakeup++;
+		
+		// Process user commands
 		while(CommandProcess(CommandParsersMotionStream,CommandParsersMotionStreamNum));		
 		if(CommandShouldQuit())
 			break;
-		_delay_ms(1);
+		// Busy loop to 
+		//_delay_ms(1);
 		
 		
+		
+		stat_t_cur=timer_ms_get();
+		// Blink
+		if(stat_t_cur-time_lastblink>1000)
+		{		
+			system_led_toggle(0b100);
+			time_lastblink=stat_t_cur;
+		}		
 		// Display info if enabled
 		if(enableinfo)
 		{
-			// TOFIX
-			// Time in us wraps around every 1.19 hours
-			if(timer_ms_get()-time_laststatus>10000)
+			if(stat_t_cur-stat_time_laststatus>10000)
+			//if(stat_t_cur-stat_time_laststatus>2000)
 			{
-				char str[128];
-				sprintf_P(str,PSTR("Motion mode. Samples: %lu in %lu ms. Sample error: %lu. Log size: %lu\n"),stat_totsample,timer_ms_get()-stat_timemsstart,stat_samplesendfailed,ufat_log_getsize());
-				fputbuf(file_pri,str,strlen(str));
-				fputbuf(file_dbg,str,strlen(str));
-				time_laststatus+=10000;
+				stream_status(file_pri);
+				stat_time_laststatus=stat_t_cur;
+				stat_wakeup=0;
 			}
 		}
 		
-		
+		// Memory logs for battery benchmarks
+		if(stat_t_cur-time_lastmemlog>150000l)
+		//if(stat_t_cur-time_lastmemlog>30000l)
+		{		
+			// Store the data
+			printf("Storing bat log at %d\n",batstatptr);
+			if(batstatptr<MAXBATSTATPTR)
+			{
+				batstat[batstatptr].t = stat_t_cur-stat_timemsstart;
+				batstat[batstatptr].mV = ltc2942_last_mV();
+				batstat[batstatptr].mA = ltc2942_last_mA();
+				batstat[batstatptr].mW = ltc2942_last_mW();
+				batstatptr++;
+			}
+			time_lastmemlog=stat_t_cur;
+		}
 		
 		// Stream
 		unsigned char l = mpu_data_level();
@@ -462,65 +580,56 @@ void mode_motionstream(void)
 				{
 					mode_sample_logend();
 					fprintf_P(file_pri,PSTR("Motion mode: log file full\n"));
+					break;
 				}
 			}
 			stat_totsample++;
 			
 			
 			mpu_data_rdnext();
-			//_delay_ms(5);
 		}
 		
 		
 		
 		
-		
-		wakeup++;
-		
-		
-		//ctr++;
-		
-		
-		if((t_cur=timer_ms_get())-time_laststatus>1000)
-		{		
-			//fprintf_P(file_pri,PSTR("Streaming since %lums\n"),timer_ms_get()-stat_timemsstart);
-			
-			system_led_toggle(0b100);
-			
-			//fprintf_P(file_fb,PSTR("wakeups: %u\n"),ctr);
-			
-			// Display status info
-			
-			//stream_losses_short(file_fb);
-			//stream_status(file_fb);
-		
-		
-			//printf("Bat: %d\n",system_getbattery());
-		
-		
-			// Do CPU benchmark		
-			/*perf = main_perfbench();
-			sprintf(s,"CPU free: %lu\n",perf*100l/system_perf);
-			fputs(s,file_fb);		*/
-			
-			time_laststatus = timer_ms_get();
-			
-			//ctr=0;
+		// Stop if batter too low
+		if(ltc2942_last_mV()<3350)
+		//if(ltc2942_last_mV()<4160)
+		{
+			mode_sample_logend();
+			fprintf_P(file_pri,PSTR("Low battery, interrupting\n"));
+			break;
 		}
 	}
 	
-	stream_stop();
-	
+	stream_stop();	
 	t_end=timer_ms_get();
 	
 	// End the logging, if logging was ongoing
 	mode_sample_logend();
 	
+	// Store batstat in a logfile
+	mode_sample_file_log = ufat_log_open(ufat_log_getnumlogs()-1);
+	if(!mode_sample_file_log)
+	{
+		fprintf_P(file_pri,PSTR("Error opening batstatlog\n"));
+	}
+	else
+	{
+		log_printstatus();
+		fprintf(mode_sample_file_log,"Battery log:\n");
+		printbatstat(mode_sample_file_log);
+		fprintf(mode_sample_file_log,"Battery log end\n");
+		mode_sample_file_log=0;
+		ufat_log_close();
+	}
+
+	
 
 	printf_P(PSTR("Streaming stopped. Total streaming time: %lu ms\n"),t_end-stat_timemsstart);
 	printf_P(PSTR("Put buffer errors: %lu\n"),stat_samplesendfailed);
 	
-	printf_P(PSTR("wakeups: %u\n"),wakeup);
+	printf_P(PSTR("stat_wakeups: %u\n"),stat_wakeup);
 	mpu_printstat(file_pri);
 	
 

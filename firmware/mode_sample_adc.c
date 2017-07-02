@@ -226,6 +226,7 @@ void mode_adc(void)
 	
 	set_sleep_mode(SLEEP_MODE_IDLE); 
 	
+	
 	// Packet init
 	packet_init(&packet,"DXX",3);
 	

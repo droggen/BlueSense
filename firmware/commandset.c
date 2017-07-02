@@ -55,7 +55,8 @@ const char help_power[] PROGMEM ="P,<low>: with low=1 the power supply enters lo
 const char help_identify[] PROGMEM ="Identify device by blinking LEDs";
 const char help_annotation[] PROGMEM ="N,<number>: sets the current annotation";
 const char help_bootscript[] PROGMEM ="b[,run;a boot;script] Prints the current bootscript or sets a new one; multiple commands are delimited by a ;";
-const char help_info[] PROGMEM ="i,<ien> Enables additional info when ien=1";
+const char help_info[] PROGMEM ="i,<ien> Prints battery and logging information when streaming/logging when ien=1";
+const char help_battery[] PROGMEM="Battery info";
 
 
 unsigned CurrentAnnotation=0;
@@ -488,6 +489,13 @@ unsigned char CommandParserBootScript(char *buffer,unsigned char size)
 		//ConfigSaveScript((char*)buffer,size+1);
 		ConfigSaveScript((char*)buffer,size);
 	}
+	return 0;
+}
+unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size)
+{
+	fprintf(file_pri,"#%s\n",ltc2942_last_strstatus());
+	
+
 	return 0;
 }
 

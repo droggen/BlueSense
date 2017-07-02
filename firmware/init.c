@@ -334,6 +334,7 @@ void init_extended(void)
 
 	// Register the battery sample callback, and initiate an immediate read of the battery 
 	timer_register_slowcallback(ltc2942_backgroundgetstate,9);
+	//timer_register_slowcallback(ltc2942_backgroundgetstate,2);
 	ltc2942_backgroundgetstate(0);
 	
 	ds3232_readtemp((signed short*)&system_temperature);

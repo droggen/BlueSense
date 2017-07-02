@@ -47,7 +47,7 @@
 // Log file used by the modes mode_adc and mode_motionstream
 FILE *mode_sample_file_log;				
 
-const char help_samplelog[] PROGMEM="L[,<lognum>]: Stops streaming and start logging to 'lognum' (0 by default); if logging is already in progress stops logging and resumes streaming";
+const char help_samplelog[] PROGMEM="L[,<lognum>]: without parameter logging is stopped, otherwise logging starts on lognum";
 
 
 /******************************************************************************
@@ -81,23 +81,36 @@ unsigned char CommandParserSampleLog(char *buffer,unsigned char size)
 	// Check whether L only was passed, or L,lognum
 	if(size==0)
 	{
-		// L-only was passed: assume lognum=0;
-		lognum=0;
+		// L-only was passed: stop logging if logging ongoing
+		if(mode_sample_file_log==0)
+		{
+			fprintf_P(file_pri,PSTR("No ongoing logging\n"));
+		}
+		else
+		{
+			fprintf_P(file_pri,PSTR("Stopping logging\n"));
+			mode_sample_logend();		
+			
+		}
+		return 0;
+	}
+	
+	// L,lognum was passed: parse
+	unsigned char rv;
+	rv = ParseCommaGetInt((char*)buffer,1,&lognum);
+	if(rv)
+		return 2;
+	
+	if(mode_sample_file_log!=0)
+	{
+		fprintf_P(file_pri,PSTR("Already logging; stop logging before restarting\n"));
+		return 0;
 	}
 	else
 	{
-		// L,lognum was passed: parse
-		unsigned char rv;
-		rv = ParseCommaGetInt((char*)buffer,1,&lognum);
-		if(rv)
-			return 2;
-	}
-	
-	if(mode_sample_file_log==0)
-	{
 		// Not logging therefore start logging
 		fprintf_P(file_pri,PSTR("Starting log on %u\n"),lognum);
-		
+	
 		mode_sample_file_log = ufat_log_open(lognum);
 		if(!mode_sample_file_log)
 		{
@@ -105,11 +118,6 @@ unsigned char CommandParserSampleLog(char *buffer,unsigned char size)
 			return 1;
 		}
 		log_printstatus();
-	}
-	else
-	{
-		// Logging therefore stop logging
-		mode_sample_logend();
 	}
 	
 	return 0;
