@@ -57,8 +57,9 @@
 	* ltc2942_getavgpower: 			Computes the average power consumption in mW
 
 	The key background functions are:
-	* ltc2942_backgroundgetstate:	Initiates a background read of the LTC2942 charge, voltage and temperature registers
-									This function can be called for a timer interrupt to perform transparent background read of the battery status
+	
+	* ltc2942_backgroundgetstate:	Initiates a background read of the LTC2942 charge, voltage and temperature registers.
+									This function can be called from a timer interrupt to perform transparent background read of the battery status
 	* ltc2942_last_charge:			Returns the charge counter in uAh.
 	* ltc2942_last_chargectr:		Returns the 16-bit accumulated charge counter.
 	* ltc2942_last_mV:				Returns the voltage on the battery lead in millivolts.

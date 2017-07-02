@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("for",["Function"],[["format1u16",,[[,,,,0,"File:helper.c:format1u16"]]],["format1u32",,[[,,,,0,"File:helper.c:format1u32"]]],["format3s16",,[[,,,,0,"File:helper.c:format3s16"]]],["format4f16",,[[,,,,0,"File:helper.c:format4f16"]]]]);
+NDSearch.OnPrefixDataLoaded("for",["Function"],[["format1u16",,[[,,,,0,"File:helper.c:format1u16"]]],["format1u32",,[[,,,,0,"File:helper.c:format1u32"]]],["format3s16",,[[,,,,0,"File:helper.c:format3s16"]]],["format4fract16",,[[,,,,0,"File:helper.c:format4fract16"]]]]);

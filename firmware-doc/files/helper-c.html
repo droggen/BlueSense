@@ -29,10 +29,16 @@
  <div class="CBody"><p>Converts a signed 32-bit number into a 12 byte ascii string (11 for the number and sign + 1 null-terminator).</p></div>
 </div>
 
-<a name="f16toa"></a><a name="Topic194"></a><div class="CTopic TFunction LC">
- <div class="CTitle">f16toa</div>
- <div id="NDPrototype194" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">void</span> f16toa(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">a,</td></tr><tr><td class="PType first"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">ptr</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+<a name="fract16toa"></a><a name="Topic182"></a><div class="CTopic TFunction LC">
+ <div class="CTitle">fract16toa</div>
+ <div id="NDPrototype182" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters">#ifndef __cplusplus <span class="SHKeyword">void</span> fract16toa(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">a,</td></tr><tr><td class="PType first"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">ptr</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Converts a fixed point _Fract number into a 7-bytes ascii string (6 for the number + 1 null-terminator).</p></div>
+</div>
+
+<a name="floattoa"></a><a name="Topic185"></a><div class="CTopic TFunction LC">
+ <div class="CTitle">floattoa</div>
+ <div id="NDPrototype185" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters">#ifdef __cplusplus <span class="SHKeyword">void</span> floattoa(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PType first"><span class="SHKeyword">float</span>&nbsp;</td><td></td><td class="PName last">a,</td></tr><tr><td class="PType first"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">ptr</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div class="CBody"><p>Converts a float number into a 7-bytes ascii string (6 for the number + 1 null-terminator).</p></div>
 </div>
 
 <a name="ParseComma"></a><a name="Topic195"></a><div class="CTopic TFunction LC">
@@ -71,10 +77,15 @@
  <div class="CBody"><p>Formats 1 unsigned 16-bit number into an ascii string.&nbsp; The string includes a space after the number, however the string is not null terminated.</p><p>The function returns a pointer to the first byte after the end of the string.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">strptr<div class="CDLParameterType"><span class="SHKeyword">char</span>*</div></td><td class="CDLDefinition"><p>pointer to the buffer that will receive the string</p></td></tr><tr><td class="CDLEntry">a<div class="CDLParameterType"><span class="SHKeyword">unsigned</span> <span class="SHKeyword">short</span></div></td><td class="CDLDefinition"><p>Number to format</p></td></tr></table></div>
 </div>
 
-<a name="format4f16"></a><a name="Topic201"></a><div class="CTopic TFunction LC last">
- <div class="CTitle">format4f16</div>
- <div id="NDPrototype201" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">char</span> *format4f16(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PType first"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">strptr,</td></tr><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">q0,</td></tr><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">q1,</td></tr><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">q2,</td></tr><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">q3</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+<a name="format4fract16"></a><a name="Topic187"></a><div class="CTopic TFunction LC">
+ <div class="CTitle">format4fract16</div>
+ <div id="NDPrototype187" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters">#ifndef __cplusplus <span class="SHKeyword">char</span> *format4fract16(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PType first"><span class="SHKeyword">char</span>&nbsp;</td><td class="PNamePrefix">*</td><td class="PName last">strptr,</td></tr><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">q0,</td></tr><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">q1,</td></tr><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">q2,</td></tr><tr><td class="PType first">_Fract&nbsp;</td><td></td><td class="PName last">q3</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Formats 3 _Fract numbers into an ascii string.&nbsp; Numbers are space separated, including a space after the last number, however the string is not null terminated.</p><p>The function returns a pointer to the first byte after the end of the string.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">strptr<div class="CDLParameterType"><span class="SHKeyword">char</span>*</div></td><td class="CDLDefinition"><p>pointer to the buffer that will receive the string</p></td></tr><tr><td class="CDLEntry">q0<div class="CDLParameterType">_Fract</div></td><td class="CDLDefinition"><p>First number to format</p></td></tr><tr><td class="CDLEntry">q1<div class="CDLParameterType">_Fract</div></td><td class="CDLDefinition"><p>Second number to format</p></td></tr><tr><td class="CDLEntry">q2<div class="CDLParameterType">_Fract</div></td><td class="CDLDefinition"><p>Third number to format</p></td></tr><tr><td class="CDLEntry">q3<div class="CDLParameterType">_Fract</div></td><td class="CDLDefinition"><p>Fourth number to format</p></td></tr></table></div>
+</div>
+
+<a name="format4fract16(2)"></a><a name="Topic189"></a><div class="CTopic TFunction LC last">
+ <div class="CTitle">format4fract16</div>
+ <div class="CBody"><p>Formats 3 _Fract numbers into an ascii string.&nbsp; Numbers are space separated, including a space after the last number, however the string is not null terminated.</p><p>The function returns a pointer to the first byte after the end of the string.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">strptr</td><td class="CDLDefinition"><p>pointer to the buffer that will receive the string</p></td></tr><tr><td class="CDLEntry">q0</td><td class="CDLDefinition"><p>First number to format</p></td></tr><tr><td class="CDLEntry">q1</td><td class="CDLDefinition"><p>Second number to format</p></td></tr><tr><td class="CDLEntry">q2</td><td class="CDLDefinition"><p>Third number to format</p></td></tr><tr><td class="CDLEntry">q3</td><td class="CDLDefinition"><p>Fourth number to format</p></td></tr></table></div>
 </div>
 
 </body></html>
