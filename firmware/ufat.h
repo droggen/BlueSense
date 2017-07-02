@@ -134,5 +134,6 @@ void ufat_log_test(unsigned char lognum,unsigned long size,unsigned char ch,unsi
 void log_printstatus(void);
 unsigned long ufat_log_getmaxsize(void);
 unsigned long ufat_log_getsize(void);
+unsigned char ufat_log_getnumlogs(void);
 
 #endif

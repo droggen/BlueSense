@@ -72,6 +72,7 @@
 	* ufat_log_test:					Test writing data to a log file
 	* ufat_log_getmaxsize: 				Returns the maximum size of files in the given filesystem.
 	* ufat_log_getsize: 				Returns the size of the currently open file.
+	* ufat_log_getnumlogs:				Returns the number of logs available
 	
 
 
@@ -671,6 +672,29 @@ unsigned long ufat_log_getsize(void)
 	}
 	return _log_current_size;
 }
+/******************************************************************************
+	function: ufat_log_getnumlogs
+*******************************************************************************	
+	Returns the number of logs available.
+	
+	If the filesystem is not to be initialised and a log file to be
+	open to return a valid result.
+
+	Returns:
+		Number of logs available, or 0 if the filesystem is not available.
+******************************************************************************/
+unsigned char ufat_log_getnumlogs(void)
+{
+	if(_fsinfo.fs_available==0)
+	{
+		#ifdef UFATDBG
+			printf("fs not available\n");
+		#endif
+		return 0;
+	}
+	return _fsinfo.lognum;
+}
+
 /************************************************************************************************************************************************************
 *************************************************************************************************************************************************************
 INTERNAL FUNCTIONS   INTERNAL FUNCTIONS   INTERNAL FUNCTIONS   INTERNAL FUNCTIONS   INTERNAL FUNCTIONS   INTERNAL FUNCTIONS   INTERNAL FUNCTIONS   INTERNAL 
@@ -1548,6 +1572,7 @@ void log_printstatus(void)
 }
 
 
+ 
  
  
  
