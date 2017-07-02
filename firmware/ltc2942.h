@@ -20,9 +20,9 @@
 extern volatile unsigned long int _ltc2942_last_updatetime;
 extern volatile unsigned short _ltc2942_last_chargectr;			// Background read: charge counter (raw)
 extern volatile unsigned long _ltc2942_last_charge;				// Background read: charge (uAh)
-extern volatile unsigned short _ltc2942_last_voltage;			// Background read: voltage 
-extern volatile signed long _ltc2942_last_mA;					// Background read: average current in mA between two reads
-extern volatile signed long _ltc2942_last_milliwatt;			// Background read: average power in mW between two reads
+extern volatile unsigned short _ltc2942_last_mV;			// Background read: voltage 
+extern volatile signed short _ltc2942_last_mA;					// Background read: average current in mA between two reads
+extern volatile signed short _ltc2942_last_mW;			// Background read: average power in mW between two reads
 extern volatile short _ltc2942_last_temperature;				// Background read: temperature
 extern I2C_TRANSACTION __ltc2942_trans_read;	
 
@@ -38,13 +38,16 @@ unsigned char ltc2942_getprescaler(void);
 //unsigned char ltc2942_setcontrol(unsigned char adc,unsigned char prescaler);
 void ltc2942_printreg(FILE *file);
 //signed long ltc2942_deltaQ(unsigned short q1,unsigned short q2);
-signed long ltc2942_getavgpower(unsigned long c1,unsigned long c2,unsigned short voltage,unsigned long ms);
+signed short ltc2942_getavgpower(unsigned long c1,unsigned long c2,unsigned short voltage,unsigned long ms);
 unsigned char ltc2942_backgroundgetstate(unsigned char);
 unsigned long ltc2942_last_updatetime(void);
 unsigned short ltc2942_last_chargectr(void);
 unsigned long ltc2942_last_charge(void);
-unsigned short ltc2942_last_voltage(void);
+unsigned short ltc2942_last_mV(void);
 short ltc2942_last_temperature(void);
+signed short ltc2942_last_mW(void);
+signed short ltc2942_last_mA(void);
+char *ltc2942_last_strstatus(void);
 
 unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t);
 

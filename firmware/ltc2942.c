@@ -61,9 +61,11 @@
 									This function can be called for a timer interrupt to perform transparent background read of the battery status
 	* ltc2942_last_charge:			Returns the charge counter in uAh.
 	* ltc2942_last_chargectr:		Returns the 16-bit accumulated charge counter.
-	* ltc2942_last_voltage:			Returns the voltage on the battery lead in millivolts.
+	* ltc2942_last_mV:				Returns the voltage on the battery lead in millivolts.
+	* ltc2942_last_mA:				Returns the average current between two background reads in mA.
+	* ltc2942_last_mW:				Returns the average power between two background reads in mW.
 	* ltc2942_last_temperature:		Returns the LTC2942 temperature in decidegrees (1 unit=0.1°celsius).
-
+	* ltc2942_last_strstatus		Returns a status string describing the battery mV, mA and mW.
 	
 	*Usage in interrupts*
 	
@@ -82,11 +84,12 @@ I2C_TRANSACTION __ltc2942_trans_setctr;					// I2C transaction to set counter to
 volatile unsigned long int _ltc2942_last_updatetime=0;	// Background read: time of read
 volatile unsigned long _ltc2942_last_charge=0;			// Background read: charge (uAh)
 volatile unsigned short _ltc2942_last_chargectr=0;		// Background read: charge counter (raw)
-volatile unsigned short _ltc2942_last_voltage=0;		// Background read: voltage 
-volatile signed long _ltc2942_last_milliwatt=0;			// Background read: average power in mW between two reads
-volatile signed long _ltc2942_last_mA=0;				// Background read: average current in mA between two reads
+volatile unsigned short _ltc2942_last_mV=0;				// Background read: voltage 
+volatile signed short _ltc2942_last_mW=0;				// Background read: average power in mW between two reads
+volatile signed short _ltc2942_last_mA=0;				// Background read: average current in mA between two reads
 volatile short _ltc2942_last_temperature;				// Background read: temperature
-unsigned char _ltc2942_previousreadexists=0;
+unsigned char _ltc2942_previousreadexists=0;			// Flag used to indicate whether a previous background read was performed; used to compute mA and mW when two reads are available.
+char _ltc2924_batterytext[42];							// Holds a text description of the battery status.
 
 
 /******************************************************************************
@@ -418,7 +421,7 @@ void ltc2942_printreg(FILE *file)
 	Returns:
 		dq			-	Average power in mW
 *******************************************************************************/
-signed long ltc2942_getavgpower(unsigned long c1,unsigned long c2,unsigned short voltage,unsigned long ms)
+signed short ltc2942_getavgpower(unsigned long c1,unsigned long c2,unsigned short voltage,unsigned long ms)
 {
 	signed long dq = c2-c1;	// delta uAh
 
@@ -428,7 +431,7 @@ signed long ltc2942_getavgpower(unsigned long c1,unsigned long c2,unsigned short
 	den = dq*voltage;						// delta energy nWh
 	pwr = den*36/10/((signed long)ms);		// power in mW
 	
-	return pwr;
+	return (signed short)pwr;
 }
 
 
@@ -475,6 +478,7 @@ unsigned long ltc2942_last_updatetime(void)
 	{
 		return _ltc2942_last_updatetime;
 	}
+	return 0;
 }
 /******************************************************************************
 	function: ltc2942_last_charge
@@ -495,6 +499,7 @@ unsigned long ltc2942_last_charge(void)
 	{
 		return _ltc2942_last_charge;
 	}
+	return 0;
 }
 /******************************************************************************
 	function: ltc2942_last_chargectr
@@ -511,9 +516,10 @@ unsigned short ltc2942_last_chargectr(void)
 	{
 		return _ltc2942_last_chargectr;
 	}
+	return 0;
 }
 /******************************************************************************
-	function: ltc2942_last_voltage
+	function: ltc2942_last_mV
 *******************************************************************************	
 	Returns the voltage on the battery lead in millivolts obtained during the last 
 	background read.
@@ -521,12 +527,13 @@ unsigned short ltc2942_last_chargectr(void)
 	Returns:
 		Voltage 	-	Voltage in millivolts
 *******************************************************************************/
-unsigned short ltc2942_last_voltage(void)
+unsigned short ltc2942_last_mV(void)
 {
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		return _ltc2942_last_voltage;
+		return _ltc2942_last_mV;
 	}
+	return 0;
 }
 /******************************************************************************
 	function: ltc2942_last_temperature
@@ -543,8 +550,40 @@ short ltc2942_last_temperature(void)
 	{
 		return _ltc2942_last_temperature;
 	}
+	return 0;
 }
+/******************************************************************************
+	function: ltc2942_last_mW
+*******************************************************************************	
+	Returns the power used between two subsequent background reads in mW.
 
+	Returns:
+		Power	-	Power in mW
+*******************************************************************************/
+signed short ltc2942_last_mW(void)
+{
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		return _ltc2942_last_mW;
+	}
+	return 0;
+}
+/******************************************************************************
+	function: ltc2942_last_mA
+*******************************************************************************	
+	Returns the power used between two subsequent background reads in mW.
+
+	Returns:
+		Power	-	Power in mW
+*******************************************************************************/
+signed short ltc2942_last_mA(void)
+{
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		return _ltc2942_last_mA;
+	}
+	return 0;
+}
 
 /******************************************************************************
 	__ltc2942_trans_read_done
@@ -577,7 +616,7 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 	voltage*=6000;
 	voltage>>=16;			// WARNING: should divide by 65535, but approximate by 65536
 	//voltage/=65535;	
-	_ltc2942_last_voltage=voltage;
+	_ltc2942_last_mV=voltage;
 	
 	// Charge counter
 	_ltc2942_last_chargectr = __ltc2942_trans_read.data[0];
@@ -607,9 +646,10 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 		// Convert into current and power since last read. Negative: discharge
 		signed long deltams = _ltc2942_last_updatetime-lasttime;
 		signed long deltauAh = _ltc2942_last_charge-lastcharge;
-		
-		_ltc2942_last_mA = deltauAh * 3600l / deltams;		// mA	
-		_ltc2942_last_milliwatt = ltc2942_getavgpower(lastcharge,_ltc2942_last_charge,_ltc2942_last_voltage,deltams);
+		signed long mA;
+		mA = deltauAh * 3600l / deltams;		// mA	
+		_ltc2942_last_mA = (signed short)mA;
+		_ltc2942_last_mW = ltc2942_getavgpower(lastcharge,_ltc2942_last_charge,_ltc2942_last_mV,deltams);
 	}
 
 	_ltc2942_previousreadexists=1;	// Indicate we have made a previous measurement of charge
@@ -630,3 +670,22 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 	
 	return 0;
 }
+
+/******************************************************************************
+	function: ltc2942_last_strstatus
+*******************************************************************************	
+	Returns a status string describing the battery mV, mA and mW.
+	
+	Maximum string buffer length: "V=-65535 mV; I=-65535 mA; P=-65535 mW"
+	or 38 bytes + 1 null. 42 bytes.
+
+	Returns:
+		Power	-	Power in mW
+*******************************************************************************/
+char *ltc2942_last_strstatus(void)
+{
+	sprintf(_ltc2924_batterytext,"V=%d mV; I=%d mA; P=%d mW",ltc2942_last_mV(),ltc2942_last_mA(),ltc2942_last_mW());
+	return _ltc2924_batterytext;
+}
+
+
