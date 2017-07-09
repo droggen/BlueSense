@@ -16,8 +16,61 @@
 #include "main.h"
 #include "helper.h"
 
+/*
+	file: ds3232
+	
+	DS3232 RTC functions
+	
+	The key functions are:
+	
+		* ds3232_init:		Initialisation of the DS3232
+		* ?:	??
+		
+	*DS3232 specifics*
+	
+	The DS3232 second counter is incremented at the same time as the falling edge of INT#/SQW pin.
+	
+	Upon writing the time with ds3232_writetime the INT#/SQW ping goes low (if it is already low it remains low), and
+	the one second square wave starts from the moment of the time write.
+	
+	*Usage in interrupts*
+	
+	??
+	
+*/
+
+
+/******************************************************************************
+	function: ds3232_init
+*******************************************************************************	
+	Initialisation of the DS3232 with the following:
+	- 1 Hz square wave on INTC#/SWQ pin when powered on; disabled (hiZ) when powered off (VBat only)
+	- 32 KHz pin disabled when powered on and powered off
+	
+	Parameters:
+								
+	Returns:
+
+******************************************************************************/
+void ds3232_init(void)
+{
+	unsigned char r __attribute__((unused));
+	fprintf_P(file_pri,PSTR("DS3232 init... "));
+	//fprintf(file_pri,"Before write control\n");
+	//_delay_ms(500);
+	r = ds3232_write_control(0b00011000);			// Enable oscillator, disable battery backed 1Hz SQW, enable normal square wave 1Hz
+	//printf("write control: %02Xh\n",r);
+	//fprintf(file_pri,"Before write status\n");
+	//_delay_ms(500);
+	r = ds3232_write_status(0b00000000);			// Clear stopped flag, clear alarm flag, disable battery-backed 32KHz, disable normal 32KHz
+	//printf("write status: %02Xh\n",r);
+	fprintf_P(file_pri,PSTR("done\n"));
+}
+
 
 /*
+
+
 	Returns the time from DS3232 at the instant the second register changes.
 	This can be used to initialise local timers.
 	
@@ -27,12 +80,11 @@
 */
 unsigned char ds3232_readtime_sync(unsigned char *time)
 {
-	unsigned address = 104;
 	unsigned char r;
 	unsigned char val1[7];
 	
 	// Perform initial read.
-	r = i2c_readregs(address,0,7,val1);
+	r = i2c_readregs(DS3232_ADDRESS,0,7,val1);
 	//printf("%d\n",r);
 	if(r!=0x00)
 		return r;
@@ -42,7 +94,7 @@ unsigned char ds3232_readtime_sync(unsigned char *time)
 	// Continuous read until second change
 	do
 	{
-		r = i2c_readregs(address,0,7,time);
+		r = i2c_readregs(DS3232_ADDRESS,0,7,time);
 		//printf("%d\n",r);
 		if(r!=0x00)
 			return r;
@@ -67,7 +119,6 @@ unsigned char ds3232_readtime_sync(unsigned char *time)
 extern unsigned long rtc_time_sec;
 unsigned char ds3232_readtime_sqwsync(unsigned char *time)
 {
-	unsigned address = 104;
 	unsigned char r;
 	
 	unsigned long st;
@@ -77,7 +128,7 @@ unsigned char ds3232_readtime_sqwsync(unsigned char *time)
 	// Loop until time changes
 	while(rtc_time_sec==st);
 	// Read the time	
-	r = i2c_readregs(address,0,7,time);
+	r = i2c_readregs(DS3232_ADDRESS,0,7,time);
 	return r;
 }
 
@@ -92,11 +143,10 @@ unsigned char ds3232_readtime_sqwsync(unsigned char *time)
 ******************************************************************************/
 unsigned char ds3232_readtime(unsigned char *time)
 {
-	unsigned address = 104;
 	unsigned char r;
 	
 	// Perform read.
-	r = i2c_readregs(address,0,7,time);
+	r = i2c_readregs(DS3232_ADDRESS,0,7,time);
 	if(r!=0)
 	{
 		memset(time,0,7);
@@ -144,11 +194,10 @@ unsigned char ds3232_readtime_conv(unsigned char *hour,unsigned char *min,unsign
 ******************************************************************************/
 unsigned char ds3232_readtime_int(unsigned char *time)
 {
-	unsigned address = 104;
 	unsigned char r;
 	
 	// Perform read.
-	r = i2c_readregs_int(address,0,7,time);
+	r = i2c_readregs_int(DS3232_ADDRESS,0,7,time);
 	if(r!=0)
 	{
 		memset(time,0,7);
@@ -190,13 +239,12 @@ unsigned char ds3232_readtime_conv_int(unsigned char *hour,unsigned char *min,un
 ******************************************************************************/
 unsigned char ds3232_readdate_conv(unsigned char *date,unsigned char *month,unsigned char *year)
 {
-	unsigned char address = 104;
 	unsigned char r;
 	unsigned char data[4];
 	//unsigned char day;
 	
 	// Perform read.
-	r = i2c_readregs(address,3,4,data);
+	r = i2c_readregs(DS3232_ADDRESS,3,4,data);
 	if(r!=0)
 	{
 		*date=*month=*year=0;
@@ -224,13 +272,12 @@ unsigned char ds3232_readdate_conv(unsigned char *date,unsigned char *month,unsi
 ******************************************************************************/
 unsigned char ds3232_readdate_conv_int(unsigned char *date,unsigned char *month,unsigned char *year)
 {
-	unsigned char address = 104;
 	unsigned char r;
 	unsigned char data[4];
 	//unsigned char day;
 	
 	// Perform read.
-	r = i2c_readregs_int(address,3,4,data);
+	r = i2c_readregs_int(DS3232_ADDRESS,3,4,data);
 	if(r!=0)
 	{
 		*date=*month=*year=0;
@@ -445,42 +492,6 @@ void ds3232_printreg(FILE *file)
 		0:			Success
 		other:	Error
 ******************************************************************************/
-/*unsigned char ds3232_writetime(unsigned char hour,unsigned char min,unsigned char sec)
-{
-	unsigned char r;
-	unsigned char v;
-	
-	// Date
-	v = ((sec/10)<<4) + (sec%10);
-	//printf("date: %02Xh\n",v);
-	r = i2c_writereg(DS3232_ADDRESS,0,v);
-	if(r!=0) return r;
-	// month
-	v = ((min/10)<<4) + (min%10);
-	//printf("month: %02Xh\n",v);
-	r = i2c_writereg(DS3232_ADDRESS,1,v);
-	if(r!=0) return r;
-	// year
-	v = ((hour/10)<<4) + (hour%10);
-	//printf("year: %02Xh\n",v);
-	r = i2c_writereg(DS3232_ADDRESS,2,v);
-	if(r!=0) return r;
-	return 0;
-}*/
-/******************************************************************************
-	ds3232_writetime_int
-*******************************************************************************
-	Writes the time to the RTC. 
-	Range of values:
-		sec € [0;59]
-		min € [0;59]
-		hour € [0;23]
-	
-	Return value:
-		0:			Success
-		other:	Error
-******************************************************************************/
-//unsigned char ds3232_writetime_int(unsigned char hour,unsigned char min,unsigned char sec)
 unsigned char ds3232_writetime(unsigned char hour,unsigned char min,unsigned char sec)
 {
 	unsigned char v[3];
@@ -560,20 +571,6 @@ unsigned char ds3232_writedate_int(unsigned char day,unsigned char date,unsigned
 }
 
 
-void rtc_init(void)
-{
-	unsigned char r __attribute__((unused));
-	fprintf_P(file_pri,PSTR("RTC init... "));
-	//fprintf(file_pri,"Before write control\n");
-	//_delay_ms(500);
-	r = ds3232_write_control(0b00011000);			// Enable oscillator, disable battery backed 1Hz SQW, enable normal square wave 1Hz
-	//printf("write control: %02Xh\n",r);
-	//fprintf(file_pri,"Before write status\n");
-	//_delay_ms(500);
-	r = ds3232_write_status(0b00000000);			// Clear stopped flag, clear alarm flag, disable battery-backed 32KHz, disable normal 32KHz
-	//printf("write status: %02Xh\n",r);
-	fprintf_P(file_pri,PSTR("done\n"));
-}
 
 void rtc_off(void)
 {

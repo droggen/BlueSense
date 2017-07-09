@@ -17,6 +17,7 @@
 #define DS3232_ADDRESS 104
 
 
+void ds3232_init(void);
 unsigned char ds3232_bcd2dec(unsigned char bcd);
 unsigned char ds3232_readtime_sync(unsigned char *time);
 unsigned char ds3232_readtime_sqwsync(unsigned char *time);
@@ -30,10 +31,9 @@ unsigned char ds3232_write_status(unsigned char val);
 unsigned char ds3232_writedate(unsigned char day,unsigned char date,unsigned char month,unsigned char year);
 unsigned char ds3232_writedate_int(unsigned char day,unsigned char date,unsigned char month,unsigned char year);
 unsigned char ds3232_writetime(unsigned char hour,unsigned char min,unsigned char sec);
-unsigned char ds3232_writetime_int(unsigned char hour,unsigned char min,unsigned char sec);
 void ds3232_printreg(FILE *file);
 
-void rtc_init(void);
+
 void rtc_off(void);
 void rtc_alarm_in(unsigned short insec);
 

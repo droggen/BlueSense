@@ -62,6 +62,18 @@ TODO-FIXED:	bug in motion acquisition buffering: when the MPU interrupt callback
 		the user app may be currently accessing that oldest sample. Need to have a new interrupt-blocking function which transfers data from the interrupt buffer to user code.
 		
 TODO:	bug in the mode_sample_motion quaternion (which may have no effect): acceleration is converted into mg using a fixed conversion factor, which is not reflecting the settings of the accelerometer range
+
+TODO:	Time synchronisation including epoch
+TODO:	Verify time synchronisation including epoch
+TODO:	PC program to synchronise clocks
+TODO:	Verify sample rate regularity with high sample rate modes (200Hz-1KHz)
+TODO:	Readout of files (never practical due to slow transfer)
+TODO:	PC program to converto to quaternions
+TODO:	Magnetic field: check effect of quantisation and sample rate (8/100) on quaternions
+TODO:	Improve idle bluetooth power efficiency w/ inquiry and scan pages (SI,SJ)
+TODO:	Bluetooth check: deep sleep (SW with 0x8000+sleep). (sniff itself not desirable)
+TODO:	Check RN41 I/O ports best settings 
+TODO:	Check stability of magnetic field calibration
 */
 /*
 	Power:
@@ -234,6 +246,10 @@ ISR(TIMER2_COMPA_vect)
 // Pin change RTC
 ISR(PCINT0_vect)
 {
+
+	PORTC=(PORTC&0b11110111)|(((~PINA)&0b01000000)>>3);
+
+	
 	//dbg_fputchar_nonblock('1',0);
 	// Check pin state; second counter incremented on falling edge
 	if(!(PINA&0b01000000))

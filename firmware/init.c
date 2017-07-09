@@ -240,7 +240,7 @@ void init_extended(void)
 	//fprintf(file_bt,"Before RTC init\n");
 	//fprintf(file_pri,"Before RTC init\n");
 	//_delay_ms(500);
-	rtc_init();	
+	ds3232_init();	
 	//_delay_ms(500);
 	//fprintf(file_fb,"After RTC init\n");
 	//fprintf(file_bt,"After RTC init\n");
