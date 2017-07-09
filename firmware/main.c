@@ -55,7 +55,50 @@
 
 	
 */
+/*
+TODO: ds3232_writetime / commandset.CommandParserSync: must check whether setting the second clock of the RTC is reset by writing to the registers, otherwise must wait for a rising/falling edge of rtc clock to set the time
 
+TODO-FIXED:	bug in motion acquisition buffering: when the MPU interrupt callback triggers the strategy is to discard the oldest sample when the motion buffer is full with a call to rdnext. However
+		the user app may be currently accessing that oldest sample. Need to have a new interrupt-blocking function which transfers data from the interrupt buffer to user code.
+		
+TODO:	bug in the mode_sample_motion quaternion (which may have no effect): acceleration is converted into mg using a fixed conversion factor, which is not reflecting the settings of the accelerometer range
+*/
+/*
+	Power:
+		1. Idle, BTconn: 124/115mW
+		2. Idle, BTnoconn: 61/57mW
+		Idle, BTnoconn, quiet nondisc nonconn (Q): 42/39
+		Idle, BTnoconn, quiet nondisc conn (Q,2): 49
+		Idle, BTnoconn, SI,0012, SJ,0012 : 43/42	(discovery difficult) 43
+		Idle, BTnoconn, SI,0019, SJ,0019 : 44/43	(discovery ok)	(Seems to be an ideal setting in idle: -15mW compared to default)
+		Idle, BTnoconn, SI,0020, SJ,0020 : 44/43	(conn ok)
+		Idle, BTnoconn, SI,0100, SJ,0100 : 61/59 	(default)
+		Idle, BTnoconn, SI,0800, SJ,0800 : 177/167	(max window; power decreases after connection!)
+		Idle, BTconn, SI,0012, SJ,0012 : 121/118
+		Idle, BTnoconn, SI,0020, SJ,0020 : 118/115 (conn ok)
+		Idle, BTnoconn, S@,1000:			61/58
+		Idle, BTnoconn, SI,0019, SJ,0019, S|,0401:	x (connection difficult)
+		Idle, BTnoconn, SI,0050, SJ,0050, S|,0401:	x (connection difficult)
+		Idle, BTnoconn, SI,0100, SJ,0100, S|,0401:	49 (conn ok with moderate delay)
+		Idle, BTnoconn, SI,0019, SJ,0019, S|,0301:	42/40
+		Idle, BTnoconn, SI,0019, SJ,0019, S|,0201:	42 (conn ok)
+		Idle, BTnoconn, SI,0019, SJ,0019, S|,0101:	43/42 (conn ok)
+		Idle, BTnoconn, SW,9900:					(4 sec deep sleep, connection doesn't work) |
+		Idle, BTnoconn, SW,8C80:					(2 sec deep sleep, connection doesn't work)	|	Not clear if needs a reset or not, or a sniff enabled dongle
+		Idle, BTnoconn, SW,8640:					64/58 (1 sec deep sleep, conn ok)			|
+
+		Idle, BTnoconn, S|,0101: 59
+		Idle, BTnoconn, S|,0201: 55/51
+		Idle, BTnoconn, S|,0801: 48/42						(long connection time, ~30 sec)
+		S1. Idle w/sleep, BTnoconn, S|,0801: 23/21			(long connection time, ~30 sec)
+		S2. Idle w/sleep, BTconn, S|,0801: 107 (should be identical to S4)
+		S3. Idle w/ sleep, BTnoconn, 39/36
+		S4. Idle w/ sleep, BTconn, 109/102
+		
+		
+		TODO: S%,1000 (used on power up) or S@,1000 (used instantaneously)
+		
+*/
 
 
 #include "cpu.h"
@@ -266,7 +309,7 @@ unsigned long main_perfbench(void)
 {
 	unsigned long int t_last,t_cur;
 	unsigned long int ctr,cps;
-	const unsigned long int mintime=2000;
+	const unsigned long int mintime=1000;
 		
 	ctr=0;
 	t_last=timer_ms_get();
@@ -277,6 +320,7 @@ unsigned long main_perfbench(void)
 	cps = ctr*1000/(t_cur-t_last);
 	return cps;
 }
+
 
 
 /*void test_timer1(void)

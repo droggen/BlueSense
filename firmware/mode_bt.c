@@ -75,6 +75,7 @@ void mode_bt(void)
 	int c;
 	
 	fprintf_P(file_usb,PSTR("bt mode\n"));
+	//fprintf_P(file_pri,PSTR("bt mode\n"));
 	help();	
 	
 	while(shouldrun)
@@ -84,6 +85,7 @@ void mode_bt(void)
 			//break;
 			
 		if((c=fgetc(file_usb))!=-1)
+		//if((c=fgetc(file_pri))!=-1)
 		{
 			cmddecodestart:
 			if( (c=='1' || c=='2'|| c=='4' || c=='5' || c=='R' || c=='r' || c=='D' || c=='d' || c=='X' || c=='x' || c=='?') || cmdn)
@@ -108,18 +110,22 @@ void mode_bt(void)
 							{
 								case '1':
 									fprintf_P(file_usb,PSTR("<Setting serial to 115.2kbps>\n"));
+									//fprintf_P(file_pri,PSTR("<Setting serial to 115.2kbps>\n"));
 									uart1_init(5,0);	// 115200bps  @ 11.06 Mhz		
 									break;
 								case '2':
 									fprintf_P(file_usb,PSTR("<Setting serial to 230.4kbps>\n"));
+									//fprintf_P(file_pri,PSTR("<Setting serial to 230.4kbps>\n"));
 									uart1_init(2,0);	// 230400bps  @ 11.06 Mhz
 									break;
 								case '4':
 									fprintf_P(file_usb,PSTR("<Setting serial to 460.8kbps>\n"));
+									//fprintf_P(file_pri,PSTR("<Setting serial to 460.8kbps>\n"));
 									uart1_init(2,1);	// 460800bps  @ 11.06 Mhz
 									break;
 								case '5':
 									fprintf_P(file_usb,PSTR("<Setting serial to 57.6kbps>\n"));
+									//fprintf_P(file_pri,PSTR("<Setting serial to 57.6kbps>\n"));
 									uart1_init(11,0);	// 57600bps @ 11.06 Mhz		
 									break;
 								case 'R':
@@ -130,11 +136,13 @@ void mode_bt(void)
 								case 'X':
 								case 'x':
 									fprintf_P(file_usb,PSTR("<Exit>\n"));
+									//fprintf_P(file_pri,PSTR("<Exit>\n"));
 									shouldrun=0;
 									break;
 								case 'd':
 								case 'D':
 									fprintf_P(file_usb,PSTR("<DOR: %lu>\n"),Serial1DOR);
+									//fprintf_P(file_pri,PSTR("<DOR: %lu>\n"),Serial1DOR);
 									break;
 								case '?':
 								default:
@@ -157,7 +165,9 @@ void mode_bt(void)
 			}
 			else
 			{
+				//fprintf(file_usb,"send %02x\n",c);
 				fputc(c,file_bt);
+				_delay_ms(10);
 			}
 		}
 		//else
@@ -166,8 +176,10 @@ void mode_bt(void)
 		{
 			fputc(c,file_usb);
 		}
+		//fprintf(file_usb,"%d\n",buffer_level(&SerialData1Rx));
 		
-		_delay_ms(1);
+		//_delay_ms(5);
+		//_delay_ms(1);
 
 	}
 	fprintf_P(file_pri,PSTR("bt end\n"));

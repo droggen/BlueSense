@@ -32,6 +32,7 @@ extern const char help_annotation[];
 extern const char help_bootscript[];
 extern const char help_info[];
 extern const char help_battery[];
+extern const char help_powertest[];
 
 extern const COMMANDPARSER CommandParsersDefault[];
 extern const unsigned char CommandParsersDefaultNum;
@@ -53,6 +54,7 @@ unsigned char CommandParserSwap(char *buffer,unsigned char size);
 unsigned char CommandParserOff(char *buffer,unsigned char size);
 unsigned char CommandParserStreamFormat(char *buffer,unsigned char size);
 unsigned char CommandParserPower(char *buffer,unsigned char size);
+unsigned char CommandParserPowerTest(char *buffer,unsigned char size);
 unsigned char CommandParserSync(char *buffer,unsigned char size);
 unsigned char CommandParserTestSync(char *buffer,unsigned char size);
 unsigned char CommandParserIdentify(char *buffer,unsigned char size);
@@ -61,6 +63,7 @@ unsigned char CommandParserMPUTest(char *buffer,unsigned char size);
 unsigned char CommandParserBootScript(char *buffer,unsigned char size);
 unsigned char CommandParserInfo(char *buffer,unsigned char size);
 unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size);
+
 
 
 

@@ -67,11 +67,11 @@ typedef struct {
 	unsigned long t;
 	signed short mW,mA,mV;
 } BATSTAT;
-#define MAXBATSTATPTR 120
+#define MAXBATSTATPTR 150
 BATSTAT batstat[MAXBATSTATPTR];
 unsigned short batstatptr;
 
-
+MPUMOTIONDATA mpumotiondata;
 
 
 const char help_samplestatus[] PROGMEM="Battery and logging status";
@@ -119,12 +119,12 @@ unsigned char stream_sample_text(FILE *f)
 	// Format packet counter
 	if(mode_stream_format_pktctr)
 	{
-		strptr=format1u16(strptr,mpu_data_packetctr[mpu_data_rdptr]);
+		strptr=format1u16(strptr,mpumotiondata.packetctr);
 	}
 	// Format timestamp
 	if(mode_stream_format_ts)
 	{
-		strptr = format1u32(strptr,mpu_data_time[mpu_data_rdptr]);
+		strptr = format1u32(strptr,mpumotiondata.time);
 	}
 	// Format battery
 	if(mode_stream_format_bat)
@@ -138,13 +138,13 @@ unsigned char stream_sample_text(FILE *f)
 	}
 	// Formats acceleration if selected
 	if(sample_mode & MPU_MODE_BM_A)
-		strptr = format3s16(strptr,mpu_data_ax[mpu_data_rdptr],mpu_data_ay[mpu_data_rdptr],mpu_data_az[mpu_data_rdptr]);
+		strptr = format3s16(strptr,mpumotiondata.ax,mpumotiondata.ay,mpumotiondata.az);
 	// Formats gyro if selected
 	if(sample_mode & MPU_MODE_BM_G)
-		strptr = format3s16(strptr,mpu_data_gx[mpu_data_rdptr],mpu_data_gy[mpu_data_rdptr],mpu_data_gz[mpu_data_rdptr]);
+		strptr = format3s16(strptr,mpumotiondata.gx,mpumotiondata.gy,mpumotiondata.gz);
 	// Formats magnetic if selected
 	if(sample_mode & MPU_MODE_BM_M)
-		strptr = format3s16(strptr,mpu_data_mx[mpu_data_rdptr],mpu_data_my[mpu_data_rdptr],mpu_data_mz[mpu_data_rdptr]);
+		strptr = format3s16(strptr,mpumotiondata.mx,mpumotiondata.my,mpumotiondata.mz);
 	// Formats quaternions if selected
 	
 	if(sample_mode & MPU_MODE_BM_Q)
@@ -190,13 +190,13 @@ unsigned char stream_sample_bin(FILE *f)
 	// Format packet counter
 	if(mode_stream_format_pktctr)
 	{
-		packet_add16_little(&p,mpu_data_packetctr[mpu_data_rdptr]);
+		packet_add16_little(&p,mpumotiondata.packetctr);
 	}
 	// Format timestamp
 	if(mode_stream_format_ts)
 	{
-		packet_add16_little(&p,mpu_data_time[mpu_data_rdptr]&0xffff);
-		packet_add16_little(&p,(mpu_data_time[mpu_data_rdptr]>>16)&0xffff);
+		packet_add16_little(&p,mpumotiondata.time&0xffff);
+		packet_add16_little(&p,(mpumotiondata.time>>16)&0xffff);
 	}
 	// Format battery
 	if(mode_stream_format_bat)
@@ -207,23 +207,23 @@ unsigned char stream_sample_bin(FILE *f)
 	// Formats acceleration if selected
 	if(sample_mode & MPU_MODE_BM_A)
 	{
-		packet_add16_little(&p,mpu_data_ax[mpu_data_rdptr]);
-		packet_add16_little(&p,mpu_data_ay[mpu_data_rdptr]);
-		packet_add16_little(&p,mpu_data_az[mpu_data_rdptr]);
+		packet_add16_little(&p,mpumotiondata.ax);
+		packet_add16_little(&p,mpumotiondata.ay);
+		packet_add16_little(&p,mpumotiondata.az);
 	}
 	// Formats gyro if selected
 	if(sample_mode & MPU_MODE_BM_G)
 	{
-		packet_add16_little(&p,mpu_data_gx[mpu_data_rdptr]);
-		packet_add16_little(&p,mpu_data_gy[mpu_data_rdptr]);
-		packet_add16_little(&p,mpu_data_gz[mpu_data_rdptr]);
+		packet_add16_little(&p,mpumotiondata.gx);
+		packet_add16_little(&p,mpumotiondata.gy);
+		packet_add16_little(&p,mpumotiondata.gz);
 	}
 	// Formats magnetic if selected
 	if(sample_mode & MPU_MODE_BM_M)
 	{
-		packet_add16_little(&p,mpu_data_mx[mpu_data_rdptr]);
-		packet_add16_little(&p,mpu_data_my[mpu_data_rdptr]);
-		packet_add16_little(&p,mpu_data_mz[mpu_data_rdptr]);
+		packet_add16_little(&p,mpumotiondata.mx);
+		packet_add16_little(&p,mpumotiondata.my);
+		packet_add16_little(&p,mpumotiondata.mz);
 	}
 	// Formats quaternions if selected
 	if(sample_mode & MPU_MODE_BM_Q)
@@ -428,7 +428,7 @@ void mode_motionstream(void)
 	
 	while(1)
 	{
-		//sleep_cpu();
+		sleep_cpu();
 		stat_wakeup++;
 		
 		// Process user commands
@@ -478,10 +478,13 @@ void mode_motionstream(void)
 		
 		// Stream
 		unsigned char l = mpu_data_level();
-		
-	
 		for(unsigned char i=0;i<l;i++)
 		{
+			// Get the data from the auto read buffer; if no data available break
+			if(mpu_data_getnext_raw(mpumotiondata))
+				break;
+			
+		
 			// Compute the quaternions if in a quaternion mode
 			#if ENABLEQUATERNION==1
 			if(sample_mode==MPU_MODE_ACCGYRMAGQ || sample_mode==MPU_MODE_Q)
@@ -504,12 +507,12 @@ void mode_motionstream(void)
 				//ay=tay;
 				//az=taz;
 				
-				ax = mpu_data_ax[mpu_data_rdptr]*atog;
-				ay = mpu_data_ay[mpu_data_rdptr]*atog;
-				az = mpu_data_az[mpu_data_rdptr]*atog;
-				gx = mpu_data_gx[mpu_data_rdptr]*mpu_gtorps;
-				gy = mpu_data_gy[mpu_data_rdptr]*mpu_gtorps;
-				gz = mpu_data_gz[mpu_data_rdptr]*mpu_gtorps;				
+				ax = mpumotiondata.ax*atog;
+				ay = mpumotiondata.ay*atog;
+				az = mpumotiondata.az*atog;
+				gx = mpumotiondata.gx*mpu_gtorps;
+				gy = mpumotiondata.gy*mpu_gtorps;
+				gz = mpumotiondata.gz*mpu_gtorps;				
 				
 				// Killing g does not fix bug
 				// Killing a seems to fix bug
@@ -531,9 +534,9 @@ void mode_motionstream(void)
 				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
 				//unsigned long t1,t2;
 				//t1=timer_us_get();
-				MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	-mpu_data_my[mpu_data_rdptr],
-														-mpu_data_mx[mpu_data_rdptr],
-														mpu_data_mz[mpu_data_rdptr]);
+				MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
+														-mpumotiondata.mx,
+														mpumotiondata.mz);
 				//t2=timer_us_get();
 				//printf("%lu\n",t2-t1);
 				//MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	0,
@@ -541,19 +544,19 @@ void mode_motionstream(void)
 				//										0);
 				#else
 				float ax,ay,az,gx,gy,gz;
-				ax = mpu_data_ax[mpu_data_rdptr]*atog;
-				ay = mpu_data_ay[mpu_data_rdptr]*atog;
-				az = mpu_data_az[mpu_data_rdptr]*atog;
-				gx = mpu_data_gx[mpu_data_rdptr]*mpu_gtorps;
-				gy = mpu_data_gy[mpu_data_rdptr]*mpu_gtorps;
-				gz = mpu_data_gz[mpu_data_rdptr]*mpu_gtorps;				
+				ax = mpumotiondata.ax*atog;
+				ay = mpumotiondata.ay*atog;
+				az = mpumotiondata.az*atog;
+				gx = mpumotiondata.gx*mpu_gtorps;
+				gy = mpumotiondata.gy*mpu_gtorps;
+				gz = mpumotiondata.gz*mpu_gtorps;				
 				// Sensors x (y)-axis of the accelerometer is aligned with the y (x)-axis of the magnetometer;
 				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
 				//unsigned long t1,t2;
 				//t1=timer_us_get();
-				MadgwickAHRSupdate_float(gx,gy,gz,ax,ay,az,	-mpu_data_my[mpu_data_rdptr],
-														-mpu_data_mx[mpu_data_rdptr],
-														mpu_data_mz[mpu_data_rdptr]);
+				MadgwickAHRSupdate_float(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
+														-mpumotiondata.mx,
+														mpumotiondata.mz);
 				//t2=timer_us_get();
 				//printf("%lu\n",t2-t1);
 				#endif
@@ -584,9 +587,6 @@ void mode_motionstream(void)
 				}
 			}
 			stat_totsample++;
-			
-			
-			mpu_data_rdnext();
 		}
 		
 		
@@ -635,6 +635,8 @@ void mode_motionstream(void)
 
 	
 }
+
+
 
 
 

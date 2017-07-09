@@ -37,9 +37,13 @@
 	In automatic read mode, the following functions and variables are used to access the data in the buffer:
 	
 	* mpu_data_level:			Function indicating how many samples are in the buffer
-	* mpu_data_rdnext:			Function incrementing the read pointer to access the next sample in the buffer
-	* Buffers: 					mpu_data_ax[],mpu_data_ay[],mpu_data_az[], mpu_data_gx[],mpu_data_gy[],mpu_data_gz[], mpu_data_mx[],mpu_data_my[],mpu_data_mz[],mpu_data_ms[], mpu_data_temp[], mpu_data_time[]
-	* Current sample:			mpu_data_rdptr
+	* mpu_data_getnext_raw:		Returns the next data in the buffer (when automatic read is active).
+	* [_mpu_data_rdnext:		Function incrementing the read pointer to access the next sample in the buffer:	
+								do not use anymore in application code, use mpu_data_getnext_raw]
+	* [Buffers: 				mpu_data_ax[],mpu_data_ay[],mpu_data_az[], mpu_data_gx[],mpu_data_gy[],mpu_data_gz[], mpu_data_mx[],mpu_data_my[],mpu_data_mz[],mpu_data_ms[], mpu_data_temp[], mpu_data_time[]:
+								do not use anymore in application code, use mpu_data_getnext_raw]
+	* [Current sample:			mpu_data_rdptr
+								do not use anymore in application code, use mpu_data_getnext_raw]
 	
 	For example, the acceleration x is accessed with mpu_data_ax[mpu_data_rdptr]. In order to access the next sample, call mpu_data_rdnext() and access the sample with mpu_data_ax[mpu_data_rdptr].
 
@@ -121,6 +125,7 @@ volatile unsigned char mpu_data_ms[MPU_MOTIONBUFFERSIZE];
 volatile unsigned short mpu_data_packetctr[MPU_MOTIONBUFFERSIZE];
 volatile unsigned short __mpu_data_packetctr_current;
 volatile unsigned char mpu_data_rdptr,mpu_data_wrptr;
+volatile MPUMOTIONDATA _mpumotiondata_test;
 
 // Magnetometer Axis Sensitivity Adjustment
 unsigned char _mpu_mag_asa[3];
@@ -179,6 +184,8 @@ void mpu_isr(void)
 		{
 			__mpu_data_packetctr_current=(unsigned short)mpu_cnt_sample_tot;
 			// Initiate readout: 3xA+3*G+1*T+3*M+Ms = 21 bytes
+			// Registers start at 59d (ACCEL_XOUT_H) until 79 (EXT_SENS_DATA_06). 
+			// The EXT_SENS_DATA_xx is populated from the magnetometer
 			unsigned char r = mpu_readregs_int_cb(0,59,21,__mpu_read_cb);
 			if(r)
 			{
@@ -242,9 +249,11 @@ void __mpu_read_cb(void)
 	}*/
 	
 	// Discard oldest data and store new one
+	// BUG: the current user code makes direct access to the interrupt buffers; this is OK for the "immediately return if the buffer is full"
+	// however not in this "discard oldest data"
 	if(mpu_data_isfull())
 	{
-		mpu_data_rdnext();
+		_mpu_data_rdnext();
 		mpu_cnt_sample_errfull++;
 		mpu_cnt_sample_succcess--;
 	}
@@ -292,7 +301,7 @@ void __mpu_read_cb(void)
 	mpu_data_temp[mpu_data_wrptr]=temp;
 	mpu_data_time[mpu_data_wrptr]=timer_ms_get();	
 	mpu_data_packetctr[mpu_data_wrptr]=__mpu_data_packetctr_current;
-	mpu_data_wrnext();
+	_mpu_data_wrnext();
 	
 	// Statistics
 	mpu_cnt_sample_succcess++;
@@ -318,29 +327,82 @@ unsigned char mpu_data_isfull(void)
 /******************************************************************************
 	function: mpu_data_level
 *******************************************************************************	
-	Returns how many samples are in the buffer
+	Returns how many samples are in the buffer, when automatic read is active.
 *******************************************************************************/
 unsigned char mpu_data_level(void)
 {
-	return (mpu_data_wrptr-mpu_data_rdptr)&(MPU_MOTIONBUFFERSIZE-1);
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		return (mpu_data_wrptr-mpu_data_rdptr)&(MPU_MOTIONBUFFERSIZE-1);
+	}
+	return 0;	// To avoid compiler warning
 }
 /******************************************************************************
-	mpu_data_wrnext
+	function: mpu_data_getnext_raw
+*******************************************************************************	
+	Returns the next data in the buffer, when automatic read is active and data
+	is available.	
+	This function returns raw reads, without applying the calibration to take into 
+	account the accelerometer and gyroscope scale.
+	
+	This function removes the data from the automatic read buffer and the next call 
+	to this function will return the next available data.
+	
+	If no data is available, the function returns an error.
+	
+	Returns:
+		0	-	Success
+		1	-	Error (no data available in the buffer)
+*******************************************************************************/
+unsigned char mpu_data_getnext_raw(MPUMOTIONDATA &data)
+{
+	//return (mpu_data_wrptr-mpu_data_rdptr)&(MPU_MOTIONBUFFERSIZE-1);
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		// Check if buffer is empty
+		if(mpu_data_wrptr==mpu_data_rdptr)
+			return 1;
+		// Copy the data
+		
+		data.ax = mpu_data_ax[mpu_data_rdptr];
+		data.ay = mpu_data_ay[mpu_data_rdptr];
+		data.az = mpu_data_az[mpu_data_rdptr];
+		data.gx = mpu_data_gx[mpu_data_rdptr];
+		data.gy = mpu_data_gy[mpu_data_rdptr];
+		data.gz = mpu_data_gz[mpu_data_rdptr];
+		data.mx = mpu_data_mx[mpu_data_rdptr];
+		data.my = mpu_data_my[mpu_data_rdptr];
+		data.mz = mpu_data_mz[mpu_data_rdptr];
+		data.ms = mpu_data_ms[mpu_data_rdptr];
+		data.temp=mpu_data_temp[mpu_data_rdptr];
+		data.time=mpu_data_time[mpu_data_rdptr];
+		data.packetctr=mpu_data_packetctr[mpu_data_rdptr];		
+		//memcpy((void*)&data,(void*)&_mpumotiondata_test,sizeof(MPUMOTIONDATA));
+		// Increment the read pointer
+		_mpu_data_rdnext();
+		return 0;
+	}
+	return 1;	// To avoid compiler warning
+}
+
+
+/******************************************************************************
+	_mpu_data_wrnext
 *******************************************************************************	
 	Advances the write pointer. Do not call if the buffer is full.
 *******************************************************************************/
-void mpu_data_wrnext(void)
+void _mpu_data_wrnext(void)
 {
 	mpu_data_wrptr = (mpu_data_wrptr+1)&(MPU_MOTIONBUFFERSIZE-1);
 }
 /******************************************************************************
-	function: mpu_data_rdnext
+	function: _mpu_data_rdnext
 *******************************************************************************	
 	Advances the read pointer to access the next sample in the data buffer
 	at index mpu_data_rdptr. 
 	Do not call if the buffer is empty.
 *******************************************************************************/
-void mpu_data_rdnext(void)
+void _mpu_data_rdnext(void)
 {
 	mpu_data_rdptr = (mpu_data_rdptr+1)&(MPU_MOTIONBUFFERSIZE-1);
 }
@@ -470,11 +532,11 @@ void mpu_mode_accgyro(unsigned char gdlpe,unsigned char gdlpoffhbw,unsigned char
 	- Accelerometer: off
 	
 	gdlpe:			1 to enable gyroscope DLP.
-							if enabled, gdlpbw specifies the bandwidth.
-	gdlpoffhbw: when DLP off, 1 to set high bandwidth (8800Hz) or 0 to set low bandwidth (3600Hz)
-	gdlpbw:     when DLP on, set the DLP low pass filter. 
-              Possible values: MPU_GYR_LPF_250, 184, 92, 41, 20, 10, 5, 3600
-	divider:    divide the output of the DLP filter block by 1/(1+divider)
+					if enabled, gdlpbw specifies the bandwidth.
+	gdlpoffhbw: 	when DLP off, 1 to set high bandwidth (8800Hz) or 0 to set low bandwidth (3600Hz)
+	gdlpbw:     	when DLP on, set the DLP low pass filter. 
+					Possible values: MPU_GYR_LPF_250, 184, 92, 41, 20, 10, 5, 3600
+	divider:    	divide the output of the DLP filter block by 1/(1+divider)
 	
 	The output data rate is as follows:
 	           32KHz when gdlpe=0
@@ -588,7 +650,7 @@ void mpu_mode_off(void)
 	// Enable the motion processor for magnetometer communication
 	_mpu_defaultdlpon();
 	// Shut down magnetometer sampling
-	_mpu_mag_mode(0);
+	_mpu_mag_mode(0,0);
 	
 	mpu_writereg(MPU_R_PWR_MGMT_2,0b00111111);							// Disable accel + gyro
 	mpu_writereg(MPU_R_ACCELCONFIG2,0b00001000);						// Disable accel DLP
@@ -1452,7 +1514,7 @@ void _mpu_mag_interfaceenable(unsigned char en)
 	else
 	{
 		// Deactivates periodic slave access		
-		mpu_writereg(MPU_R_I2C_MST_CTRL,0b00000000);		// Clear MULT_MST_EN, clear WAIT_FOR_ES. TODO: check if needed.
+		mpu_writereg(MPU_R_I2C_MST_CTRL,0b00000000);		// Clear MULT_MST_EN, clear WAIT_FOR_ES. I2C 348KHz. TODO: check if needed.
 		unsigned char usr = mpu_readreg(MPU_R_USR_CTRL);
 		mpu_writereg(MPU_R_USR_CTRL,usr&0b11011111);		// Clears I2C_MST_EN		
 	}
@@ -1462,7 +1524,8 @@ void _mpu_mag_interfaceenable(unsigned char en)
 /******************************************************************************
 	function: _mpu_mag_mode
 *******************************************************************************	
-	Enables or disable the conversion of the magnetometer sensors.
+	Enables or disable the conversion of the magnetometer sensors and.
+	enables the shadowing of the magnetometer registers.
 
 	This function must only be called if the communication interface is 
 	enabled (mpu_mag_interfaceenable) and if the motion processor is active.
@@ -1471,10 +1534,11 @@ void _mpu_mag_interfaceenable(unsigned char en)
 	Note: do not use in user code.
 		
 	Parameters:
-		en	-	0: sleep mode. 1: 8Hz conversion. 2: 100Hz conversion.
+		en		-	0: sleep mode. 1: 8Hz conversion. 2: 100Hz conversion.
+		magdiv	-	Shadowing frequency divider; shadows register at ODR/(1+magdiv)
 	
 *******************************************************************************/
-void _mpu_mag_mode(unsigned char mode)
+void _mpu_mag_mode(unsigned char mode,unsigned char magdiv)
 {
 	// Always enable the interface, even if the mode is to sleep, as 
 	// this could be called while the magnetometer is already sleeping
@@ -1487,13 +1551,13 @@ void _mpu_mag_mode(unsigned char mode)
 			_mpu_mag_interfaceenable(0);			// Stop I2C interface
 			break;
 		case 1:
-			mpu_mag_writereg(0x0a,0b00010010);		// Continuous mode 1, 16 bit
-			_mpu_mag_regshadow(1,0,3,7);			// Start shadowing
+			mpu_mag_writereg(0x0a,0b00010010);		// Continuous mode 1 (8Hz conversion), 16 bit
+			_mpu_mag_regshadow(1,magdiv,3,7);		// Start shadowing, dly=31
 			break;
 		case 2:
 		default:
-			mpu_mag_writereg(0x0a,0b00010110);		// Continuous mode 2, 16 bit
-			_mpu_mag_regshadow(1,0,3,7);			// Start shadowing
+			mpu_mag_writereg(0x0a,0b00010110);		// Continuous mode 2 (100Hz conversion), 16 bit
+			_mpu_mag_regshadow(1,magdiv,3,7);		// Start shadowing, dly=9
 			break;
 	}
 }
@@ -1519,9 +1583,18 @@ void _mpu_mag_mode(unsigned char mode)
 	
 	This only works when the MPU is not in low-power acceleration mode.
 	
+	*Magnetometer read rate*
+	
 	The magnetometer is read at the output data rate ODR/(1+dly), where dly is 
-	configurable.
-
+	configurable. This is independent of the magnetometer ADC which is 8Hz or 100 Hz.
+	
+	When the MPU is in some modes with high internal ODR (e.g. 8KHz with the 
+	gyro bandwidth is 250Hz) then the dly parameter should be set to higher values,
+	otherwise the internal I2C interface to the magnetometer will block the acquisition
+	of the gyro and acceleration data, leading to an effective sample rate lower than desired.
+	
+	Note that the ODR is the sample rate (1KHz) divided by the acc/gyro sample rate divider (except
+	in the gyro 250BW mode, where the ODR is 8KHz).
 	
 	Parameters:
 		enable		-	Enable (1) or disable (0) register shadowing
@@ -1652,10 +1725,11 @@ void mpu_mag_calibrate(void)
 			break;
 		timer_waitperiod_ms(10,&p);
 		
+		// BUG: this should use the new mpu_data_getnext_raw functions
 		m[0] = mpu_data_mx[mpu_data_rdptr];
 		m[1] = mpu_data_my[mpu_data_rdptr];
 		m[2] = mpu_data_mz[mpu_data_rdptr];
-		mpu_data_rdnext();
+		_mpu_data_rdnext();
 		
 		unsigned char dirty=0;
 		for(unsigned char i=0;i<3;i++)
@@ -1958,7 +2032,7 @@ void mpu_printstat(FILE *file)
 	fprintf_P(file,PSTR(" MPU interrupts: %lu\n"),mpu_cnt_int);
 	fprintf_P(file,PSTR(" Samples: %lu\n"),mpu_cnt_sample_tot);
 	fprintf_P(file,PSTR(" Samples success: %lu\n"),mpu_cnt_sample_succcess);
-	fprintf_P(file,PSTR(" Errors: busy=%lu buffer=%lu\n"),mpu_cnt_sample_errbusy,mpu_cnt_sample_errfull);
+	fprintf_P(file,PSTR(" Errors: MPU I/O busy=%lu buffer=%lu\n"),mpu_cnt_sample_errbusy,mpu_cnt_sample_errfull);
 	fprintf_P(file,PSTR(" Buffer level: %u\n"),mpu_data_level());
 }
 

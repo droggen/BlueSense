@@ -77,6 +77,7 @@
 	
 */
 
+
 unsigned char __ltc2942_prescaler=0;					// This variable mirrors the prescaler P set with ltc2942_setprescaler
 unsigned char __ltc2942_prescalerM=1;					// This variable mirrors the prescaler M set with ltc2942_setprescaler (M=2^P)
 I2C_TRANSACTION __ltc2942_trans_selreg;					// I2C transaction to select register for background read
@@ -91,6 +92,7 @@ volatile signed short _ltc2942_last_mA=0;				// Background read: average current
 volatile short _ltc2942_last_temperature;				// Background read: temperature
 unsigned char _ltc2942_previousreadexists=0;			// Flag used to indicate whether a previous background read was performed; used to compute mA and mW when two reads are available.
 char _ltc2924_batterytext[42];							// Holds a text description of the battery status.
+volatile signed short _ltc2942_last_mWs[LTC2942NUMLASTMW];		// Holds the last LTC2942NUMLASTMW mW
 
 
 /******************************************************************************
@@ -125,6 +127,8 @@ void ltc2942_init(void)
 	__ltc2942_trans_setctr.data[1] = 0x80;
 	__ltc2942_trans_setctr.data[2] = 0x00;
 	_ltc2942_previousreadexists=0;
+	for(unsigned char i=0;i<LTC2942NUMLASTMW;i++)
+		_ltc2942_last_mWs[i]=0;
 }
 
 /******************************************************************************
@@ -651,6 +655,11 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 		mA = deltauAh * 3600l / deltams;		// mA	
 		_ltc2942_last_mA = (signed short)mA;
 		_ltc2942_last_mW = ltc2942_getavgpower(lastcharge,_ltc2942_last_charge,_ltc2942_last_mV,deltams);
+		
+		//
+		for(unsigned char i=0;i<LTC2942NUMLASTMW-1;i++)
+			_ltc2942_last_mWs[i]=_ltc2942_last_mWs[i+1];
+		_ltc2942_last_mWs[LTC2942NUMLASTMW-1]=_ltc2942_last_mW;
 	}
 
 	_ltc2942_previousreadexists=1;	// Indicate we have made a previous measurement of charge
@@ -688,5 +697,20 @@ char *ltc2942_last_strstatus(void)
 	sprintf(_ltc2924_batterytext,"V=%d mV; I=%d mA; P=%d mW",ltc2942_last_mV(),ltc2942_last_mA(),ltc2942_last_mW());
 	return _ltc2924_batterytext;
 }
+
+
+signed short ltc2942_last_mWs(unsigned char idx)
+{
+	if(idx<LTC2942NUMLASTMW)
+	{
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+		{
+			return _ltc2942_last_mWs[idx];
+		}
+	}
+	return 0;
+}
+
+
 
 

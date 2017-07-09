@@ -347,8 +347,8 @@ unsigned char CommandParserMPUTest_MagnMode(char *buffer,unsigned char size)
 		return 2;
 	}
 	if(mode>2) mode=2;
-	fprintf_P(file_pri,PSTR("Magn mode: %d... "),mode);
-	_mpu_mag_mode(mode);
+	fprintf_P(file_pri,PSTR("Magn mode: %d... (div=0)"),mode);
+	_mpu_mag_mode(mode,0);
 	fprintf_P(file_pri,PSTR("done\n"));	
 
 	return 0;
@@ -597,6 +597,7 @@ unsigned char CommandParserMPUTest_Auto(char *buffer,unsigned char size)
 	unsigned char rv;
 	int mode;
 	WAITPERIOD p=0;
+	MPUMOTIONDATA mpumotiondata;
 	
 	rv = ParseCommaGetInt((char*)buffer,1,&mode);
 	if(rv)
@@ -620,11 +621,13 @@ unsigned char CommandParserMPUTest_Auto(char *buffer,unsigned char size)
 			
 		for(unsigned char i=0;i<mpu_data_level();i++)
 		{
-			fprintf_P(file_pri,PSTR("%02u %ld: %d %d %d  *  "),i,mpu_data_time[mpu_data_rdptr],mpu_data_ax[mpu_data_rdptr],mpu_data_ay[mpu_data_rdptr],mpu_data_az[mpu_data_rdptr]);
-			fprintf_P(file_pri,PSTR("%d %d %d  *  "),mpu_data_gx[mpu_data_rdptr],mpu_data_gy[mpu_data_rdptr],mpu_data_gz[mpu_data_rdptr]);
-			fprintf_P(file_pri,PSTR("%d %d %d  (%d)  *  "),mpu_data_mx[mpu_data_rdptr],mpu_data_my[mpu_data_rdptr],mpu_data_mz[mpu_data_rdptr],mpu_data_ms[mpu_data_rdptr]);
-			fprintf_P(file_pri,PSTR("%d\n"),mpu_data_temp[mpu_data_rdptr]);
-			mpu_data_rdnext();
+			// Get the data from the auto read buffer; if no data available break
+			if(mpu_data_getnext_raw(mpumotiondata))
+				break;
+			fprintf_P(file_pri,PSTR("%02u %ld: %d %d %d  *  "),i,mpumotiondata.time,mpumotiondata.ax,mpumotiondata.ay,mpumotiondata.az);
+			fprintf_P(file_pri,PSTR("%d %d %d  *  "),mpumotiondata.gx,mpumotiondata.gy,mpumotiondata.gz);
+			fprintf_P(file_pri,PSTR("%d %d %d  (%d)  *  "),mpumotiondata.mx,mpumotiondata.my,mpumotiondata.mz,mpumotiondata.ms);
+			fprintf_P(file_pri,PSTR("%d\n"),mpumotiondata.temp);
 		}
 	}
 	mpu_config_motionmode(MPU_MODE_OFF,0);
@@ -632,10 +635,37 @@ unsigned char CommandParserMPUTest_Auto(char *buffer,unsigned char size)
 	return 0;
 }
 /******************************************************************************
-	CommandParserMPUTest_Bench
+	function: CommandParserMPUTest_Bench
 *******************************************************************************
+	Benchmark all the motion modes and indicates CPU overhead and sample loss.
 	
 ******************************************************************************/
+unsigned long perfbench_withreadout(void)
+{
+	unsigned long int t_last,t_cur;
+	unsigned long int ctr,cps;
+	const unsigned long int mintime=1000;
+	MPUMOTIONDATA mpumotiondata;
+		
+	ctr=0;
+	t_last=timer_ms_get();
+	while((t_cur=timer_ms_get())-t_last<mintime)
+	{
+		ctr++;
+		
+		// Simulate reading out the data from the buffers
+		unsigned char l = mpu_data_level();
+		for(unsigned char i=0;i<l;i++)
+		{
+			// Get the data from the auto read buffer; if no data available break
+			if(mpu_data_getnext_raw(mpumotiondata))
+				break;
+		}		
+	}
+	cps = ctr*1000/(t_cur-t_last);
+	return cps;
+}
+
 unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 {
 	long int perf,refperf;
@@ -645,10 +675,12 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 	fprintf_P(file_pri,PSTR("Reference performance: %lu\n"),refperf);
 	for(unsigned char mode=MPU_MODE_OFF;mode<MOTIONCONFIG_NUM;mode++)
 	{
-		fprintf_P(file_pri,PSTR("Benchmarking mode %d\n"),mode);
+		char buf[96];
+		mpu_getmodename(mode,buf);
+		fprintf_P(file_pri,PSTR("Benchmarking mode %d: %s\n"),mode,buf);
 		mpu_config_motionmode(mode,1);
 		
-		perf = main_perfbench();
+		perf = perfbench_withreadout();		
 		
 		mpu_config_motionmode(MPU_MODE_OFF,0);
 		mpu_printstat(file_pri);
@@ -656,8 +688,8 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 		long load = 100-(perf*100/refperf);
 		if(load<0)
 			load=0;
-		
-		fprintf_P(file_pri,PSTR("Mode %d: perf: %lu (instead of %lu). CPU load %lu %%\n"),mode,perf,refperf,load);
+	
+		fprintf_P(file_pri,PSTR("Mode %d: %s: perf: %lu (instead of %lu). CPU load %lu %%\n"),mode,buf,perf,refperf,load);
 	}
 	
 
@@ -675,6 +707,7 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 	//unsigned long t1,t2;
 	float ax,ay,az,gx,gy,gz,mx,my,mz;
 	mx=my=mz=0;
+	MPUMOTIONDATA mpumotiondata;
 	
 	unsigned char rv;
 	int mode;
@@ -730,21 +763,25 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 		// Get the data if available
 		if(mpu_data_level())
 		{
+			// Get the data from the auto read buffer; if no data available break
+			if(mpu_data_getnext_raw(mpumotiondata))
+				break;
+				
 			unsigned long tt1,tt2;
 			tt1 = timer_us_get();
 			/*ax = (float)mpu_data_ax[mpu_data_rdptr]/16384.;
 			ay = (float)mpu_data_ay[mpu_data_rdptr]/16384.;
 			az = (float)mpu_data_az[mpu_data_rdptr]/16384.;*/
-			ax = (float)mpu_data_ax[mpu_data_rdptr]*atog;
-			ay = (float)mpu_data_ay[mpu_data_rdptr]*atog;
-			az = (float)mpu_data_az[mpu_data_rdptr]*atog;
-			gx = (float)mpu_data_gx[mpu_data_rdptr]*gtor;
-			gy = (float)mpu_data_gy[mpu_data_rdptr]*gtor;
-			gz = (float)mpu_data_gz[mpu_data_rdptr]*gtor;
+			ax = (float)mpumotiondata.ax*atog;
+			ay = (float)mpumotiondata.ay*atog;
+			az = (float)mpumotiondata.az*atog;
+			gx = (float)mpumotiondata.gx*gtor;
+			gy = (float)mpumotiondata.gy*gtor;
+			gz = (float)mpumotiondata.gz*gtor;
 			
-			mx = (float)mpu_data_mx[mpu_data_rdptr];
-			my = (float)mpu_data_my[mpu_data_rdptr];
-			mz = (float)mpu_data_mz[mpu_data_rdptr];
+			mx = (float)mpumotiondata.mx;
+			my = (float)mpumotiondata.my;
+			mz = (float)mpumotiondata.mz;
 			//mx=my=mz=0;
 			
 			if(!(mode&0b100))
@@ -771,7 +808,6 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 			//printf("%f %f %f %f\n",q0,q1,q2,q3);
 			printf("%f %f %f %f %ld\n",(double)q0,(double)q1,(double)q2,(double)q3,tt2-tt1);
 			
-			mpu_data_rdnext();
 		}
 		
 		

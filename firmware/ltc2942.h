@@ -16,6 +16,7 @@
 #include "i2c.h"
 
 #define LTC2942_ADDRESS 0x64
+#define LTC2942NUMLASTMW 10
 
 extern volatile unsigned long int _ltc2942_last_updatetime;
 extern volatile unsigned short _ltc2942_last_chargectr;			// Background read: charge counter (raw)
@@ -48,6 +49,7 @@ short ltc2942_last_temperature(void);
 signed short ltc2942_last_mW(void);
 signed short ltc2942_last_mA(void);
 char *ltc2942_last_strstatus(void);
+signed short ltc2942_last_mWs(unsigned char idx);
 
 unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t);
 

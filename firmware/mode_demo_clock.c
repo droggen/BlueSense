@@ -66,7 +66,7 @@ char demo_clock(unsigned long int dt)
 	unsigned long int t1;
 	unsigned long wu=0;
 	unsigned char hour,min,sec=0,lastsec=0;
-	unsigned short temp;
+	//unsigned short temp;
 	
 	lcd_clear565(0);
 	

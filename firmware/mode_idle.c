@@ -71,6 +71,7 @@ const COMMANDPARSER CommandParsersIdle[] =
 	{'q', CommandParserBatteryInfo,help_battery},
 	{'X', CommandParserSD,help_sd},
 	{'P', CommandParserPower,help_power},
+	{'p', CommandParserPowerTest,help_powertest},
 	{'S', CommandParserTeststream,help_s},
 	{'b', CommandParserBootScript,help_bootscript},
 	{'?', CommandParserIdentify,help_identify}
@@ -107,9 +108,13 @@ void mode_idle(void)
 	fprintf_P(file_pri,PSTR("Entering idle mode\n"));
 	
 	
+	set_sleep_mode(SLEEP_MODE_IDLE); 
+	sleep_enable();
+	
 	time_laststatus=stat_timemsstart = timer_ms_get();
 	while(1)
 	{
+		//sleep_cpu();
 	//	fprintf_P(file_pri,PSTR("Some ADC stuff: %d. period: %d. mask: %02X. pri: %p dbg: %p\n"),ctr,mode_adc_period,mode_adc_mask,file_pri,file_dbg);
 
 		while(CommandProcess(CommandParsersIdle,CommandParsersIdleNum));		

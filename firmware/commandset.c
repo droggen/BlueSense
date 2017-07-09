@@ -57,6 +57,7 @@ const char help_annotation[] PROGMEM ="N,<number>: sets the current annotation";
 const char help_bootscript[] PROGMEM ="b[,run;a boot;script] Prints the current bootscript or sets a new one; multiple commands are delimited by a ;";
 const char help_info[] PROGMEM ="i,<ien> Prints battery and logging information when streaming/logging when ien=1";
 const char help_battery[] PROGMEM="Battery info";
+const char help_powertest[] PROGMEM="Power tests";
 
 
 unsigned CurrentAnnotation=0;
@@ -372,6 +373,144 @@ unsigned char CommandParserPower(char *buffer,unsigned char size)
 	
 	return 0;
 }
+/*
+	Some power tests
+	
+	Available sleep modes:
+	SLEEP_MODE_IDLE				// 20mW reduction
+	SLEEP_MODE_PWR_DOWN			// Cannot wake up
+	SLEEP_MODE_PWR_SAVE			// Cannot wake up
+	SLEEP_MODE_STANDBY			// Cannot wake up
+	SLEEP_MODE_EXT_STANDBY		// Cannot wake up
+	
+	
+*/
+unsigned char CommandParserPowerTest(char *buffer,unsigned char size)
+{
+	unsigned long t1,tlast,tcur,stat_loop;
+	fprintf_P(file_pri,PSTR("Power tests\n"));
+	
+	// Unregister lifesign
+	timer_unregister_slowcallback(system_lifesign);
+	// Turn off all LEDs
+	system_led_set(0b000);
+
+	/*fprintf_P(file_pri,PSTR("Busy loop, LED off\n"));	
+	t1=tlast=timer_ms_get();
+	stat_loop=0;
+	while(1)
+	{
+		tcur=timer_ms_get();
+		if(tcur-t1>20000)
+			break;
+		stat_loop++;
+		if(tcur-tlast>=10000)
+		{
+			fprintf_P(file_pri,PSTR("%lu loops. %s\n"),stat_loop,ltc2942_last_strstatus());
+			tlast=tcur;
+			stat_loop=0;
+		}
+	}
+	
+	system_led_set(0b111);
+
+	fprintf_P(file_pri,PSTR("Busy loop, LED on\n"));	
+	t1=tlast=timer_ms_get();
+	stat_loop=0;
+	while(1)
+	{
+		tcur=timer_ms_get();
+		if(tcur-t1>20000)
+			break;
+		stat_loop++;
+		if(tcur-tlast>=10000)
+		{
+			fprintf_P(file_pri,PSTR("%lu loops. %s\n"),stat_loop,ltc2942_last_strstatus());
+			tlast=tcur;
+			stat_loop=0;
+		}
+	}*/
+	
+	/*system_led_set(0b000);
+	
+	fprintf_P(file_pri,PSTR("Busy loop with idle sleep, LED off\n"));
+	set_sleep_mode(SLEEP_MODE_IDLE); 		// 20mW reduction
+
+	sleep_enable();
+	t1=tlast=timer_ms_get();
+	stat_loop=0;
+	while(1)
+	{
+		sleep_cpu();
+		tcur=timer_ms_get();
+		if(tcur-t1>30000)
+			break;
+		stat_loop++;
+		if(tcur-tlast>=10000)
+		{
+			fprintf_P(file_pri,PSTR("%lu loops. %s\n"),stat_loop,ltc2942_last_strstatus());
+			tlast=tcur;
+			stat_loop=0;
+		}
+	}*/
+
+
+	/*fprintf_P(file_pri,PSTR("Busy loop with idle sleep, LED off, analog off\n"));
+	set_sleep_mode(SLEEP_MODE_IDLE); 		// 20mW reduction
+	ACSR=0x10;		// Clear analog compare interrupt (by setting ACI/bit4 to 1) and clear interrupt enable (setting ACIE/bit3 to 0)
+	ACSR=0x80;		// Disable analog compare	(setting ACD/bit7 to 1)
+	fprintf_P(file_pri,PSTR("ACSR: %02X\n"),ACSR);
+
+	sleep_enable();
+	t1=tlast=timer_ms_get();
+	stat_loop=0;
+	while(1)
+	{
+		sleep_cpu();
+		tcur=timer_ms_get();
+		if(tcur-t1>30000)
+			break;
+		stat_loop++;
+		if(tcur-tlast>=10000)
+		{
+			fprintf_P(file_pri,PSTR("%lu loops. %s\n"),stat_loop,ltc2942_last_strstatus());
+			tlast=tcur;
+			stat_loop=0;
+		}
+	}*/
+
+	fprintf_P(file_pri,PSTR("Busy loop with idle sleep, LED off, analog off\n"));
+	set_sleep_mode(SLEEP_MODE_IDLE); 		// 20mW reduction
+	fprintf_P(file_pri,PSTR("ASSR: %02X\n"),ASSR);
+	fprintf_P(file_pri,PSTR("PRR0: %02X\n"),PRR0);
+	PRR0 = 0b01100001;
+	fprintf_P(file_pri,PSTR("PRR0: %02X\n"),PRR0);
+	
+
+	sleep_enable();
+	t1=tlast=timer_ms_get();
+	stat_loop=0;
+	while(1)
+	{
+		sleep_cpu();
+		tcur=timer_ms_get();
+		if(tcur-t1>30000)
+			break;
+		stat_loop++;
+		if(tcur-tlast>=10000)
+		{
+			fprintf_P(file_pri,PSTR("%lu loops. %s\n"),stat_loop,ltc2942_last_strstatus());
+			tlast=tcur;
+			stat_loop=0;
+		}
+	}
+	
+	fprintf_P(file_pri,PSTR("Power tests done\n"));
+	
+	timer_register_slowcallback(system_lifesign,0);
+	
+	return 0;
+}
 
 unsigned char CommandParserSync(char *buffer,unsigned char size)
 {
@@ -403,6 +542,7 @@ unsigned char CommandParserSync(char *buffer,unsigned char size)
 		
 		// Execute
 		rv = ds3232_writetime(h,m,s);
+        timer_init(h*60*24+m*60+s);
 	}	
 	timer_init(0);
 	fprintf_P(file_pri,PSTR("Time sync'd\n"));
@@ -494,7 +634,9 @@ unsigned char CommandParserBootScript(char *buffer,unsigned char size)
 unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size)
 {
 	fprintf(file_pri,"#%s\n",ltc2942_last_strstatus());
-	
+	for(unsigned char i=0;i<LTC2942NUMLASTMW;i++)
+		fprintf(file_pri,"%d ",ltc2942_last_mWs(i));
+	fprintf(file_pri,"\n");
 
 	return 0;
 }

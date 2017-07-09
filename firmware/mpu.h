@@ -138,6 +138,18 @@ extern unsigned char __mpu_sample_softdivider_ctr,__mpu_sample_softdivider_divid
 
 void mpu_isr(void);
 
+// Structure for data (meant to replace data buffers)
+typedef struct {
+	signed short ax,ay,az;
+	signed short gx,gy,gz;
+	signed short mx,my,mz;
+	unsigned char ms;
+	signed short temp;
+	unsigned long int time;
+	unsigned short packetctr;
+} MPUMOTIONDATA;
+
+
 // Data buffers
 #define MPU_MOTIONBUFFERSIZE 32
 extern volatile signed short mpu_data_ax[],mpu_data_ay[],mpu_data_az[],mpu_data_gx[],mpu_data_gy[],mpu_data_gz[],mpu_data_mx[],mpu_data_my[],mpu_data_mz[],mpu_data_temp[];
@@ -146,6 +158,9 @@ extern volatile unsigned char mpu_data_ms[];
 extern volatile unsigned short mpu_data_packetctr[];
 extern volatile unsigned short __mpu_data_packetctr_current;
 extern volatile unsigned char mpu_data_rdptr,mpu_data_wrptr;
+
+extern volatile MPUMOTIONDATA _mpumotiondata_test;
+
 
 // Magnetometer Axis Sensitivity Adjustment
 extern unsigned char _mpu_mag_asa[3];
@@ -168,8 +183,9 @@ void __mpu_read_cb(void);
 unsigned char mpu_data_isfull(void);
 //unsigned char mpu_data_isempty(void);
 unsigned char mpu_data_level(void);
-void mpu_data_wrnext(void);
-void mpu_data_rdnext(void);
+unsigned char mpu_data_getnext_raw(MPUMOTIONDATA &data);
+void _mpu_data_wrnext(void);
+void _mpu_data_rdnext(void);
 
 
 
@@ -229,7 +245,7 @@ void _mpu_wakefromsleep(void);
 void mpu_printfifo(FILE *file);
 
 void _mpu_mag_interfaceenable(unsigned char en);
-void _mpu_mag_mode(unsigned char mode);
+void _mpu_mag_mode(unsigned char mode,unsigned char magdiv);
 unsigned char mpu_mag_readreg(unsigned char reg);
 void mpu_mag_writereg(unsigned char reg,unsigned char val);
 void _mpu_mag_regshadow(unsigned char enable,unsigned char dly,unsigned char regstart,unsigned char numreg);

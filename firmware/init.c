@@ -322,15 +322,13 @@ void init_extended(void)
 	
 	system_status_ok(3);
 	
-	// Estimate baseline performance
-	printf_P(PSTR("Estimating baseline performance... "));		
-	//fprintf_P(file_bt,PSTR("Estimating baseline performance... "));		
+	// Estimate baseline performance (optional)
+	//fprintf_P(file_pri,PSTR("Estimating baseline performance... "));		
 	//system_perf = main_perfbench();
-	printf_P(PSTR("%ld\n"),system_perf);
-	//fprintf_P(file_bt,PSTR("%ld\n"),system_perf);
+	//fprintf_P(file_pri,PSTR("%ld\n"),system_perf);
 
 
-	system_status_ok(2);
+	//system_status_ok(2);
 
 	// Register the battery sample callback, and initiate an immediate read of the battery 
 	timer_register_slowcallback(ltc2942_backgroundgetstate,9);
