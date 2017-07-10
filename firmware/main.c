@@ -74,6 +74,7 @@ TODO:	Improve idle bluetooth power efficiency w/ inquiry and scan pages (SI,SJ)
 TODO:	Bluetooth check: deep sleep (SW with 0x8000+sleep). (sniff itself not desirable)
 TODO:	Check RN41 I/O ports best settings 
 TODO:	Check stability of magnetic field calibration
+TODO:	Reactivate the bootloader....
 */
 /*
 	Power:
@@ -247,7 +248,7 @@ ISR(TIMER2_COMPA_vect)
 ISR(PCINT0_vect)
 {
 
-	PORTC=(PORTC&0b11110111)|(((~PINA)&0b01000000)>>3);
+	//PORTC=(PORTC&0b11110111)|(((~PINA)&0b01000000)>>3);
 
 	
 	//dbg_fputchar_nonblock('1',0);

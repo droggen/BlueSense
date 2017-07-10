@@ -572,7 +572,7 @@ unsigned char ds3232_writedate_int(unsigned char day,unsigned char date,unsigned
 
 
 
-void rtc_off(void)
+void ds3232_off(void)
 {
 	unsigned char r;
 	unsigned char v[4];
@@ -632,7 +632,7 @@ void rtc_off(void)
 	//printf("write status: %02Xh\n",r);
 	//fprintf(file_fb,"RTC done\n");
 }
-void rtc_alarm_at(unsigned char date, unsigned char month, unsigned char year,unsigned char hour,unsigned char min,unsigned char sec)
+void ds3232_alarm_at(unsigned char date, unsigned char month, unsigned char year,unsigned char hour,unsigned char min,unsigned char sec)
 {
 	unsigned char v[4];
 	unsigned char r __attribute__((unused));
@@ -653,7 +653,7 @@ void rtc_alarm_at(unsigned char date, unsigned char month, unsigned char year,un
 	
 	ds3232_printreg(file_pri);
 }
-void rtc_alarm_in(unsigned short insec)
+void ds3232_alarm_in(unsigned short insec)
 {
 	unsigned char r __attribute__((unused));
 	unsigned char hour,min,sec;
@@ -677,6 +677,6 @@ void rtc_alarm_in(unsigned short insec)
 	if(day)
 		fprintf_P(file_pri,PSTR("Cannot set alarm on different day\n"));
 	else
-		rtc_alarm_at(date,month,year,hour2,min2,sec2);
+		ds3232_alarm_at(date,month,year,hour2,min2,sec2);
 }
 

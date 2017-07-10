@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	This library requires some of these functions to be called from a timer interrupt to update the internal logic:
 	
 	_tick_1024hz		-	This function must be called from an interrupt running at 1024Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.
-	_tick_1000hz		-	This function must be called from an interrupt running at 1000Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.
+	[_tick_1000hz		-	This function must be called from an interrupt running at 1000Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.]
 	_timer_tick_hz		-	Optionally, this may be called once per second if a high-accuracy RTC with second resolution is available.
 		
 	The overall time is composed of the highly accurate second counter (if available), combined with the less 1024Hz timer for millisecond accuracy.
@@ -45,7 +45,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	The key functions are:
 	
 	* timer_init:						Initialise the timer subsystem with a given epoch.
-	* timer_ms_get:						Return the time in millisecond since the epoch.
+	* timer_ms_get:						Return the time in millisecond since the epoch; time is composed of the 1Hz high accuracy clock (if available) and the internal 1000Hz or 1024Hz clock.
+	* timer_ms_get_intclk:				Return the time in millisecond since the epoch; time is composed only of the internal 1000Hz or 1024Hz clock.
 	* timer_us_get: 					Return the time in microsecond since the epoch.
 	* timer_register_callback:			Register a callback that will be called at 1024Hz/(divider+1) Hz
 	* timer_register_slowcallback:		Register a callback that will be called at 1Hz/(divider+1) Hz
@@ -82,6 +83,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 volatile unsigned long _timer_time_1_in_ms=0;
 volatile unsigned long _timer_time_1024=0;
 volatile unsigned long _timer_time_1000=0;
+volatile unsigned long _timer_time_1000_abs=0;
 volatile unsigned long _timer_lastmillisec=0;
 volatile unsigned long long _timer_lastmicrosec=0;
 
@@ -101,13 +103,14 @@ TIMER_CALLBACK timer_slowcallbacks[TIMER_NUMCALLBACKS];
 *******************************************************************************
 	Initialise the timer subsystem with a given epoch.
 	
-	The epoch is optional: set it to zero if the system does not have a battery-backed
-	RTC.
+	The epoch is optional: set it to zero if the system does not have a 
+	battery-backed RTC.
 
 	Parameters:
-		epoch_sec 		-		Time in second from an arbitrary "zero time". 
-								If the system has an absolute time reference (e.g. a battery backed RTC) use 
-								the RTC time as the epoch, otherwise set to zero.	
+		epoch_sec 	-	Time in second from an arbitrary "zero time". 
+						If the system has an absolute time reference (e.g. a 
+						battery backed RTC) use the RTC time as the epoch, 
+						otherwise set to zero.	
 ******************************************************************************/
 void timer_init(unsigned long epoch_sec)
 {
@@ -117,6 +120,8 @@ void timer_init(unsigned long epoch_sec)
 		// Initialise the state variables
 		_timer_time_1_in_ms=epoch_sec*1000;
 		_timer_time_1024=0;
+		_timer_time_1000=0;
+		_timer_time_1000_abs=0;
 		_timer_lastmillisec=0;
 		_timer_lastmicrosec=0;
 		
@@ -334,6 +339,35 @@ extern unsigned long cpu_time;
 	_timer_lastmillisec = t;	
 	return t;
 }*/
+/******************************************************************************
+	function: timer_ms_get_intclk
+*******************************************************************************
+	Return the time in millisecond since the epoch using only the internal clock.
+	
+	Unlike timer_ms_get, which uses both the internal clock and an external 
+	high-accuracy 1Hz clock, timer_ms_get_intclk only uses the internal clock.
+	
+	Use this function for debugging purposes if the 1Hz clock is provided but
+	unreliable (e.g. if a RTC time is changed).
+	
+	The maximum time since the epoch is about 48.5 days.
+	The return value is guaranteed to be monotonic until the time counter wraps
+	around after 48 days.
+	
+	Returns:
+		Time in milliseconds since the epoch	
+******************************************************************************/
+unsigned long timer_ms_get_intclk(void)
+{	
+	unsigned long t1000;
+	
+	// Copy current time atomically
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		t1000 = _timer_time_1000_abs;
+	}
+	return t1000;
+}
 unsigned long timer_ms_get_c_new(void)
 {	
 	// New version relying on _timer_time_1000
@@ -415,6 +449,7 @@ unsigned long int timer_us_get_c(void)
 	// Update the last returned time
 	_timer_lastmicrosec = t;	
 	return t;*/
+	return 0;
 }
 
 
@@ -633,6 +668,7 @@ void _timer_tick_1024hz(void)
 	
 	// This part is called at 1000Hz on average.	
 	_timer_time_1000++;
+	_timer_time_1000_abs++;
 	
 	// Process the callbacks
 	for(unsigned char i=0;i<timer_numcallbacks;i++)

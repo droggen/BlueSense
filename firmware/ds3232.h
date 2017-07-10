@@ -34,8 +34,8 @@ unsigned char ds3232_writetime(unsigned char hour,unsigned char min,unsigned cha
 void ds3232_printreg(FILE *file);
 
 
-void rtc_off(void);
-void rtc_alarm_in(unsigned short insec);
+void ds3232_off(void);
+void ds3232_alarm_in(unsigned short insec);
 
 unsigned char ds3232_readtemp(signed short *temp);
 unsigned char ds3232_readtemp_int_cb(void (*cb)(unsigned char,signed short));

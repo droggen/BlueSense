@@ -248,6 +248,13 @@ void init_extended(void)
 	ds3232_printreg(file_pri);
 	//ds3232_printreg(file_fb);
 	
+	// Initialise current time from RTC
+	if(1)
+		system_settimefromrtc();
+	else
+		timer_init(0);
+	
+	
 	//_delay_ms(500);
 	
 	//system_status_ok(5);

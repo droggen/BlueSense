@@ -48,6 +48,8 @@ typedef struct
 */
 extern volatile unsigned long _timer_time_1_in_ms;							// We count time from the 1Hz clock in milliseconds to speedup timer_ms_get. 32-bit: max 49 days
 extern volatile unsigned long _timer_time_1024;
+extern volatile unsigned long _timer_time_1000;
+extern volatile unsigned long _timer_time_1000_abs;
 extern volatile unsigned long _timer_lastmillisec;							// 32-bit: max 49 days
 extern volatile unsigned long long _timer_lastmicrosec;
 
@@ -63,7 +65,7 @@ unsigned long timer_ms_get_asm_fast(void);
 unsigned long int timer_us_get_asm_fast(void);
 #endif
 unsigned long int timer_us_get_c(void);
-
+unsigned long timer_ms_get_intclk(void);
 
 // Call this function from an interrupt routine every herz, if available, e.g. from a RTC
 void _timer_tick_hz(void);

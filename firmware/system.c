@@ -12,6 +12,7 @@
 #include "interface.h"
 #include "megalol/i2c_internal.h"
 #include "ltc2942.h"
+#include "ds3232.h"
 #else
 //extern unsigned long int timer_ms_get(void);
 #include <util/delay.h>
@@ -362,6 +363,100 @@ unsigned char *system_getdevicename(void)
 }
 
 #endif
+
+/******************************************************************************
+	function: system_getrtcint
+*******************************************************************************	
+	Returns the status of the DS3232 INT#/SQW.
+	
+	This pin is active low. The DS3232 seconds counter is incremented at the
+	same time as high to low transitions.
+	
+	This pin is connected to PA6 in all hardware versions.
+	
+	Parameters:
+
+	Returns:
+		Status of the INT#/SQW pin (1 or 0)
+******************************************************************************/
+unsigned char system_getrtcint(void)
+{
+	return (PINA>>6)&1;
+}
+/******************************************************************************
+	function: system_settimefromrtc
+*******************************************************************************	
+	Sets the system time returned by timer_ms_get from the RTC.
+	
+	The epoch is midnight of the current day. This function will 
+	set the current time, as returned by timer_ms_get, to indicate the number 
+	of milliseconds elapsed from midnight.
+	
+	Note that timer_us_get is not updated as it has a maximum span of about 1hr.
+	
+	As the second counter is incremented on the falling edge of the RTC interrupt pin, 
+	the logic for the update is as follows:
+	- Wait for the rising edge of the RTC interrupt pin (this gives 500ms to setup the update)
+	- Read the current time from the RTC
+	- Set the epoch using timer_init(epoch)
+	- Wait for the falling edge and verify reading the RTC and the ms.
+	
+	Parameters:
+
+	Returns:
+
+******************************************************************************/
+void system_settimefromrtc(void)
+{
+	unsigned char h,m,s;		// hour, minutes, seconds
+	unsigned char pc,pn;		// pc: current pin state, pn: new pin state
+	unsigned long t1;
+	
+	fprintf_P(file_pri,PSTR("Setting time from RTC... "));
+	
+	// Wait for the rising edge of the RTC int. 
+	// This gives 500ms to setup the time before the seconds update, which occurs on the falling edge
+	pc=system_getrtcint();
+	while( !( ((pn=system_getrtcint())!=pc) && pn==1) )		// Loop until pn!=pc and pn==1 (quit loop when pn!=pc and pn==1)
+		pc=pn;
+	
+	// From here 500ms to set-up the current time into the timer_ms_get variables
+	ds3232_readtime_conv(&h,&m,&s);
+	unsigned long ts = h*3600l+m*60l+s;
+	timer_init(ts);
+	
+	// Wait for the falling edge of the RTC int, and verify
+	pc=system_getrtcint();
+	while( !( ((pn=system_getrtcint())!=pc) && pn==0) )		// Loop until pn!=pc and pn==0
+		pc=pn;
+	// Verify
+	t1 = timer_ms_get();
+	ds3232_readtime_conv(&h,&m,&s);
+	fprintf_P(file_pri,PSTR("done: %02d:%02d:%02d = %lu ms\n"),h,m,s,t1);
+
+	//	Wait rising edge
+	/*printf("Wait raising edge\n");
+	pc=system_getrtcint();
+	while( !( ((pn=system_getrtcint())!=pc) && pn==1) )		// Loop until pn!=pc and pn==1 (quit loop when pn!=pc and pn==1)
+		pc=pn;
+
+	t1 = timer_ms_get();
+	ds3232_readtime_conv(&h,&m,&s);
+	printf("Current time: %02d:%02d:%02d INT#/SQW: %d. ms: %lu\n",h,m,s,system_getrtcint(),t1);
+
+	// Wait for the falling edge, and verify
+	printf("Wait falling edge\n");
+	pc=system_getrtcint();
+	while( !( ((pn=system_getrtcint())!=pc) && pn==0) )		// Loop until pn!=pc and pn==0
+		pc=pn;
+	// Verify
+	t1 = timer_ms_get();
+	ds3232_readtime_conv(&h,&m,&s);
+	printf("Current time: %02d:%02d:%02d INT#/SQW: %d. ms: %lu\n",h,m,s,system_getrtcint(),t1);
+	*/
+
+	
+}
 
 
 

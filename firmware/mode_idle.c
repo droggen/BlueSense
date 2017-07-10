@@ -47,10 +47,12 @@
 const COMMANDPARSER CommandParsersIdle[] =
 { 
 	{'Z',CommandParserSync,help_z},
+	{'z',CommandParserSyncFromRTC,help_zsyncfromrtc},
 	{'Y',CommandParserTestSync,help_y},
 	{'R',CommandParserBT,help_r},
 	{'L',CommandParserLCD,help_l},
 	{'T', CommandParserTime,help_t},
+	{'t', CommandParserTime_Test,help_ttest},
 	{'D', CommandParserDate,help_d},
 	{'H', CommandParserHelp,help_h},
 	{'A', CommandParserADC,help_a},

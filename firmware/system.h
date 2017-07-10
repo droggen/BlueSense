@@ -42,4 +42,7 @@ void system_adcpu_on(void);
 unsigned char *system_getdevicename(void);
 #endif
 
+unsigned char system_getrtcint(void);
+void system_settimefromrtc(void);
+
 #endif

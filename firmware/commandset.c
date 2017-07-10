@@ -10,6 +10,7 @@
 #include <util/atomic.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "main.h"
 #include "helper.h"
@@ -30,6 +31,7 @@
 // Command help
 
 const char help_z[] PROGMEM ="Z[,<hh><mm><ss>]: Resets the absolute time counter to zero, and optionally sets the RTC time";
+const char help_zsyncfromrtc[] PROGMEM ="z sync system time from RTC time";
 const char help_y[] PROGMEM ="Test sync";
 const char help_demo[] PROGMEM ="Demo mode";
 const char help_c[] PROGMEM ="Clock mode";
@@ -39,6 +41,7 @@ const char help_r[] PROGMEM ="RN-41 terminal";
 const char help_b[] PROGMEM ="B,<if>: Benchmark IO. if=0 for USB, 1 for BT";
 const char help_l[] PROGMEM ="L,<en>: en=1 to enable LCD, 0 to disable";
 const char help_t[] PROGMEM ="T[,<hh><mm><ss>] Query or set time";
+const char help_ttest[] PROGMEM ="Time-related tests";
 const char help_d[] PROGMEM ="D[,<dd><mm><yy>] Query or set date";
 const char help_quit[] PROGMEM ="Exit current mode";
 const char help_h[] PROGMEM ="Help";
@@ -170,6 +173,184 @@ unsigned char CommandParserDate(char *buffer,unsigned char size)
 		return 0;
 	return 1;
 }
+
+unsigned char CommandParserTime_Test(char *buffer,unsigned char size)
+{
+	/*unsigned char h,m,s;
+	if(size==0)
+	{
+		// Query time
+		ds3232_readtime_conv_int(&h,&m,&s);	
+		fprintf_P(file_pri,PSTR("%02d:%02d:%02d\n"),h,m,s);
+		return 0;	
+	}
+	// Set time
+	if(size!=7 || buffer[0]!=',')
+		return 2;
+	
+	buffer++;	// Skip comma
+
+		
+	// Check the digits are in range
+	if(checkdigits(buffer,6))
+		return 2;
+		
+	
+	h = (buffer[0]-'0')*10+(buffer[1]-'0');
+	m = (buffer[2]-'0')*10+(buffer[3]-'0');
+	s = (buffer[4]-'0')*10+(buffer[5]-'0');
+	
+	fprintf_P(file_dbg,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
+	
+	if(h>23 || m>59 || s>59)
+	{
+		return 2;
+	}
+	
+	// Execute
+	unsigned char rv = ds3232_writetime(h,m,s);
+	if(rv==0)
+		return 0;
+	return 1;*/
+	
+	// Demonstrate the second transition at the falling edge of the NT#/SQW signal.
+	unsigned char h,m,s;
+	unsigned long t1,t2,t3;
+	t1=timer_ms_get_intclk();
+	while(timer_ms_get_intclk()-t1<3000)
+	{
+		ds3232_readtime_conv(&h,&m,&s);
+		printf("%02d:%02d:%02d %d\n",h,m,s,(PINA>>6)&1);
+		_delay_ms(100);
+	}
+	printf("\n");
+	while(1)
+	{
+		unsigned char p1,p2;
+		// Wait for falling edge
+		p1=(PINA>>6)&1;
+		while(1)
+		{
+			p2=(PINA>>6)&1;
+			if(p1!=p2 && p2==0)
+				break;
+			p1=p2;
+		}
+		_delay_ms(750);
+		ds3232_writetime(10,11,12);
+	}
+	
+	// Wait for 
+	for(unsigned char i=0;i<3;i++)
+	{
+		unsigned char p1,p2;
+		
+		// Wait for falling edge
+		p1=(PINA>>6)&1;
+		while(1)
+		{
+			p2=(PINA>>6)&1;
+			if(p1!=p2 && p2==0)
+				break;
+			p1=p2;
+		}
+		t1 = timer_ms_get_intclk();
+		// Wait for another falling edge
+		p1=(PINA>>6)&1;
+		while(1)
+		{
+			p2=(PINA>>6)&1;
+			if(p1!=p2 && p2==0)
+				break;
+			p1=p2;
+		}
+		t2 = timer_ms_get_intclk();
+		printf("dt1: %ld\n",t2-t1);
+		ds3232_readtime_conv(&h,&m,&s);
+		printf("%02d:%02d:%02d %d\n",h,m,s,(PINA>>6)&1);
+		// Wait 300ms
+		_delay_ms(50);
+		printf("dt2: %ld\n",timer_ms_get_intclk()-t1);
+		ds3232_readtime_conv(&h,&m,&s);
+		printf("dt2b: %ld\n",timer_ms_get_intclk()-t1);
+		printf("+%02d:%02d:%02d %d\n",h,m,s,(PINA>>6)&1);
+		// Set the time
+		printf("dt2c: %ld\n",timer_ms_get_intclk()-t1);
+		unsigned long tt1,tt2;
+		tt1=timer_ms_get_intclk();
+		printf("b%d",(PINA>>6)&1);
+		ds3232_writetime(10,11,12);
+		printf("a%d\n",(PINA>>6)&1);
+		tt2=timer_ms_get_intclk();
+		printf("dt2d: %ld tt: %ld\n",timer_ms_get_intclk()-t1,tt2-tt1);
+		ds3232_readtime_conv(&h,&m,&s);
+		printf("dt2e: %ld\n",timer_ms_get_intclk()-t1);
+		printf("*%02d:%02d:%02d %d\n",h,m,s,(PINA>>6)&1);
+		
+		printf("dt3: %ld\n",timer_ms_get_intclk()-t1);
+		
+		// Wait for another falling edge
+		p1=(PINA>>6)&1;
+		while(1)
+		{
+			p2=(PINA>>6)&1;
+			if(p1!=p2 && p2==0)
+				break;
+			p1=p2;
+		}
+		t3 = timer_ms_get_intclk();
+		printf("dt4: %ld\n",t3-t1);
+		ds3232_readtime_conv(&h,&m,&s);
+		printf("%02d:%02d:%02d %d\n",h,m,s,(PINA>>6)&1);
+		
+		_delay_ms(2500);
+	}
+	/*unsigned long ctr=0;
+	while(1)
+	{
+		ctr++;
+		_delay_ms(77);
+		unsigned char rv;
+		if( (ctr&0xF) ==0)
+			rv=ds3232_writetime(10,11,12);
+		unsigned long tt1=timer_ms_get();
+		unsigned long tt1s,tt2s,tt11000,tt21000;
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+		{
+			tt1s = _timer_time_1_in_ms;
+			tt11000 = _timer_time_1000;
+		}
+		printf("%ld %ld.%ld (%d)\n",tt1,tt1s,tt11000,rv);
+		rv=0x55;
+	}*/
+	/*for(int i=0;i<100;i++)
+	{
+		_delay_ms(rand()%1000);
+		unsigned long tt1=timer_ms_get_intclk();
+		unsigned long tt1s,tt2s,tt11000,tt21000;
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+		{
+			tt1s = _timer_time_1_in_ms;
+			tt11000 = _timer_time_1000;
+		}
+		
+		unsigned char p1 = (PINA>>6)&1;
+		ds3232_writetime(10,11,12);
+		unsigned char p2 = (PINA>>6)&1;
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+		{
+			tt2s = _timer_time_1_in_ms;
+			tt21000 = _timer_time_1000;
+		}
+		unsigned long tt2=timer_ms_get_intclk();
+		printf("dt: %ld (%ld %ld) %ld.%ld -> %ld.%ld %d->%d\n",tt2-tt1,tt1,tt2,tt1s,tt11000,tt2s,tt21000,p1,p2);
+	}*/
+	
+	
+	
+	return 0;
+}
+
 // Always success
 unsigned char CommandParserQuit(char *buffer,unsigned char size)
 {
@@ -302,7 +483,7 @@ unsigned char CommandParserOff(char *buffer,unsigned char size)
 	ds3232_printreg(file_pri);
 	//rtc_off();
 	
-	rtc_alarm_in(sec);
+	ds3232_alarm_in(sec);
 	
 	
 	ds3232_printreg(file_pri);
@@ -548,6 +729,11 @@ unsigned char CommandParserSync(char *buffer,unsigned char size)
 	fprintf_P(file_pri,PSTR("Time sync'd\n"));
 	if(rv!=0)
 		return 1;
+	return 0;
+}
+unsigned char CommandParserSyncFromRTC(char  *buffer,unsigned char size)
+{
+	system_settimefromrtc();
 	return 0;
 }
 unsigned char CommandParserTestSync(char *buffer,unsigned char size)
