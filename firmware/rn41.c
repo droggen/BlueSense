@@ -13,17 +13,29 @@
 #include "rn41.h"
 #include "serial.h"
 
-#define RN41DEBUG 1
+#define RN41DEBUG 0
 
 
 /*
 	file: rn41
 
+	RN41 Bluetooth module functions
+	
+	The key functions are:
+	
+	* rn41_Setup:		Initialise the RN41
+
+	
+
 	Notes about RN41:
-		Changing a setting (i.e. ST for the configuration timeout) requires a reset either with "R,1" or with the reset button
-		Setting the speed to 230.4 and higher leads to data overrun. Decreasing dbg callback frequency decrease the occurrence, but it still happens. Issue if receiving data (such as bootloader). Not if streaming out.
-		F,1 to enable fast mode is only a valid command during connection, otherwise ERR
-		ST with 0, 253, 254, 255 work as advertised. With another timeout the module still enters command mode
+		Changing a setting (i.e. ST for the configuration timeout) requires a reset either with "R,1" or with the reset pin.
+		
+		Setting the speed to 230.4 and higher leads to data overrun. Decreasing dbg callback frequency decrease the occurrence, but it still happens. 
+		This is an issue if receiving data (such as bootloader), but not if streaming out.
+		
+		F,1 to enable fast mode is only a valid command during connection, otherwise ERR.
+		
+		ST with 0, 253, 254, 255 work as advertised. With another timeout the module still enters command mode.
 		
 		Prefer to use S-,<name> to set the name of the device as it is serialisation friendly
 		
@@ -49,6 +61,95 @@
 			
 		Speeds higher than 115k2 lead to data overrun on reception in the AVR; issue: AVR not fast enough to read data and move to a buffer.
 		Recommended: 230k4; although reception of data must be handled by a slow sender on PC side
+*/
+/*
+	The main contributing factors to power during idle (no connection) are:
+	- Inquiry window (for discovery)
+	- Page scan window (for connection)
+	
+	Decreasing the duration of the inquiry and page scan window lowers power significantly (other settings are set to defaults):	 
+	- Inq&Page=0x100 (default): 	59mW
+	- Inq&Page=0x20: 				44mW (-15mW)
+	
+	The sniff window (SW command) can decrease power during connection. 
+	It only works if the dongle also supports sniff.
+	During connection the radio will wake up at sniff intervals to see 
+	if data must be exchanged.
+	The RN41 documentation is unclear on this point, but experiment show that the radio stays 
+	on (power equivalent to no sniff) for some time (experimentally determined to be about 20 seconds)
+	before turning off again and sniffing.	
+	The effect of sniffing are as follows:
+	- There is an initial latency of up to the sniff window until the radio wakes up and stays on to exchange data
+	- After the last data exchange the radio stays on for about 20 seconds; during this period there is no added latency
+	- After the about 20second on period the radio goes back to sniffing, which leads again to an initial latency of up to the sniff window.
+	A downside of sniffing is that it increases the likelihood of detecting "disconnections" (triggering a brief interface change), however 
+	this is not well understood and could be a bug elsewhere in the firmware.
+	
+	During connection (other settings are set to defaults):
+	- Sniff=0x0000 (default):		135/125mW while connected
+	- Sniff=0x0640:					46mW while connected, without traffic (sniff every 1 second)
+	
+	
+	Deep sleep, enabled by setting MSB of the sleep window (SW command) should make the RN41 go into deep sleep. 
+	No change in behaviour or power usage has been observed setting the MSB of SW. The behaviour is identical 
+	as to when setting the sniff window only.
+
+	Low power connect mode (S| command) allows to set an ON/OFF ratio. 
+	Two versions of the manual describe the function differently.
+	Experimentally the syntax is: S|,ooOO with oo the OFF time in hex seconds and OO the ON time in hex seconds
+	
+	Power while waiting for a connection (other parameters to default values):
+	S|,0000 (disabled)					60mW 	Baseline
+	S|,0001 (off 0s, on 1s)				85mW 	While the setting does not make sense it is suprising to see higher power
+	S|,0101 (off 1s, on 1s)				61mW 	Same as baseline
+	S|,0301 (off 3s, on 1s)				52mW 	(-8mW)
+	S|,0701 (off 7s, on 1s)				47/45mW (-13mW)
+	S|,0F01 (off 15s, on 1s)			46/40mW (-15mW)
+	
+	Combinations of S| and SW (others to default):
+	S|,0301 (off 3s, on 1s) + SW,8000	51mW	Deep sleep (MSB of SW) does not seem to activate
+	S|,0301 (off 3s, on 1s) + SW,8640	51mW	Deep sleep (MSB of SW) does not seem to activate; however the sniff is enabled during connection
+	
+	Combinations of S| and SI, SJ (others to default):
+	S|,0301 (off 3s, on 1s) + SI,0020 + SJ,0020		43mW
+	SI,0020 + SJ,0020								45mW			
+	
+	
+
+	Power:
+		1. Idle, BTconn: 124/115mW
+		2. Idle, BTnoconn: 61/57mW
+		Idle, BTnoconn, quiet nondisc nonconn (Q): 42/39
+		Idle, BTnoconn, quiet nondisc conn (Q,2): 49
+		Idle, BTnoconn, SI,0012, SJ,0012 : 43/42	(discovery difficult) 43
+		Idle, BTnoconn, SI,0019, SJ,0019 : 44/43	(discovery ok)	(Seems to be an ideal setting in idle: -15mW compared to default)
+		Idle, BTnoconn, SI,0020, SJ,0020 : 44/43	(conn ok)
+		Idle, BTnoconn, SI,0100, SJ,0100 : 61/59 	(default)
+		Idle, BTnoconn, SI,0800, SJ,0800 : 177/167	(max window; power decreases after connection!)
+		Idle, BTconn, SI,0012, SJ,0012 : 121/118
+		Idle, BTnoconn, SI,0020, SJ,0020 : 118/115 (conn ok)
+		Idle, BTnoconn, S@,1000:			61/58
+		Idle, BTnoconn, SI,0019, SJ,0019, S|,0401:	x (connection difficult)
+		Idle, BTnoconn, SI,0050, SJ,0050, S|,0401:	x (connection difficult)
+		Idle, BTnoconn, SI,0100, SJ,0100, S|,0401:	49 (conn ok with moderate delay)
+		Idle, BTnoconn, SI,0019, SJ,0019, S|,0301:	42/40
+		Idle, BTnoconn, SI,0019, SJ,0019, S|,0201:	42 (conn ok)
+		Idle, BTnoconn, SI,0019, SJ,0019, S|,0101:	43/42 (conn ok)
+		Idle, BTnoconn, SW,9900:					(4 sec deep sleep, connection doesn't work) |
+		Idle, BTnoconn, SW,8C80:					(2 sec deep sleep, connection doesn't work)	|	Not clear if needs a reset or not, or a sniff enabled dongle
+		Idle, BTnoconn, SW,8640:					64/58 (1 sec deep sleep, conn ok)			|
+
+		Idle, BTnoconn, S|,0101: 59
+		Idle, BTnoconn, S|,0201: 55/51
+		Idle, BTnoconn, S|,0801: 48/42						(long connection time, ~30 sec)
+		S1. Idle w/sleep, BTnoconn, S|,0801: 23/21			(long connection time, ~30 sec)
+		S2. Idle w/sleep, BTconn, S|,0801: 107 (should be identical to S4)
+		S3. Idle w/ sleep, BTnoconn, 39/36
+		S4. Idle w/ sleep, BTconn, 109/102
+		
+		
+		TODO: S%,1000 (used on power up) or S@,1000 (used instantaneously)
+		
 */
 
 /*
@@ -118,13 +219,15 @@ void rn41_Reset(FILE *fileinfo)
 	//fprintf_P(fileinfo,PSTR("BT hard reset: set to 0\n"));
 	//fprintf_P(fileinfo,PSTR("PIND: %02X\n"),PIND);
 	//_delay_ms(5000);
-	_delay_ms(200);
+	//_delay_ms(200);
+	_delay_ms(50);
 	//fprintf_P(fileinfo,PSTR("PIND: %02X\n"),PIND);
 	//fprintf_P(fileinfo,PSTR("BT hard reset: set to 1\n"));
 	PORTA |= 0b00100000;
 	//fprintf_P(fileinfo,PSTR("PIND: %02X\n"),PIND);
 	//fprintf_P(fileinfo,PSTR("rst4\n"));
 	//_delay_ms(5000);
+	//_delay_ms(200);
 	_delay_ms(200);
 	#if RN41DEBUG==1
 		fprintf_P(fileinfo,PSTR("BT hard reset done\n"));
@@ -200,6 +303,57 @@ unsigned char rn41_SetDeviceClass(FILE *fileinfo,FILE *filebt,unsigned short c)
 	rn41_CmdResp(fileinfo,filebt,buffer);
 	return 0;
 }
+unsigned char rn41_SetI(FILE *fileinfo,FILE *filebt,unsigned short c)
+{
+	char buffer[64];
+	sprintf(buffer,"SI,%04X\n",c);
+	rn41_CmdResp(fileinfo,filebt,buffer);
+	return 0;
+}
+/******************************************************************************
+	function: rn41_SetJ
+*******************************************************************************	
+	Sets the page scan window.
+	
+	The page scan window command sets the amount of time the device spends enabling
+	page scanning (connectability).
+	The page scan interval is 0x800.
+	
+	Minimum value: 0x0012
+	Default value: 0x0100
+	Maximum value: 0x0800
+	Disabled: 0x0000 (non connectable)
+	
+	Parameters:
+		fileinfo	-	UI file 
+		filebt		-	File on which the RN41 is available
+		c			-	Page scan window
+	
+	Return:	
+		0		-		Always
+******************************************************************************/
+unsigned char rn41_SetJ(FILE *fileinfo,FILE *filebt,unsigned short c)
+{
+	char buffer[64];
+	sprintf(buffer,"SJ,%04X\n",c);
+	rn41_CmdResp(fileinfo,filebt,buffer);
+	return 0;
+}
+
+unsigned char rn41_SetSniff(FILE *fileinfo,FILE *filebt,unsigned short sniff)
+{
+	char buffer[64];
+	sprintf(buffer,"SW,%04X\n",sniff);
+	rn41_CmdResp(fileinfo,filebt,buffer);
+	return 0;
+}
+unsigned char rn41_SetLowpower(FILE *fileinfo,FILE *filebt,unsigned short lowpower)
+{
+	char buffer[64];
+	sprintf(buffer,"S|,%04X\n",lowpower);
+	rn41_CmdResp(fileinfo,filebt,buffer);
+	return 0;
+}
 unsigned char rn41_GetBasic(FILE *fileinfo,FILE *filebt)
 {
 	rn41_CmdRespn(fileinfo,filebt,"D\n",9);
@@ -246,12 +400,32 @@ unsigned char rn41_GetBasicParam(FILE *filebt,char *mac,char *name,char *baud,ch
 	
 	return 0;
 }
+
 unsigned char rn41_GetExtended(FILE *fileinfo,FILE *filebt)
 {
 	rn41_CmdRespn(fileinfo,filebt,"E\n",11);
 	return 0;
 }
-unsigned char rn41_GetExtendedParam(FILE *filebt,unsigned short *srvclass,unsigned short *devclass,unsigned char *cfgtimer)
+
+/******************************************************************************
+	function: rn41_GetExtendedParam
+*******************************************************************************	
+	Reads the extended parameters of the RN41
+	
+	Parameters:
+		filebt		-	File descriptor to communicate with the RN41
+		srvclass	-	Pointer to variable holding the service class
+		devclass	-	Pointer to variable holding the device class
+		cfgtimer	-	Pointer to variable holding the configuration timeout parameter
+		inqw		-	Pointer to variable holding the inquiry window length
+		pagw		-	Pointer to variable holding the paging window length
+	
+	Return:	
+		0		-		Always
+		This function returns the RN41 parameters through the srvclass,
+		devclass, cfgtimer, inqw, pagw variables.
+******************************************************************************/
+unsigned char rn41_GetExtendedParam(FILE *filebt,unsigned short *srvclass,unsigned short *devclass,unsigned char *cfgtimer,unsigned short *inqw,unsigned short *pagw)
 {
 	char buffer[256];
 	char *p;
@@ -269,7 +443,13 @@ unsigned char rn41_GetExtendedParam(FILE *filebt,unsigned short *srvclass,unsign
 	p = strchr(buffer,'=');
 	*devclass = strtoul(p+1,0,16);
 	fgets(buffer,256,filebt);				// InqWindw
+	buffer[strlen(buffer)-2] = 0;
+	p = strchr(buffer,'=');
+	*inqw = strtoul(p+1,0,16);
 	fgets(buffer,256,filebt);				// PagWindw
+	buffer[strlen(buffer)-2] = 0;
+	p = strchr(buffer,'=');
+	*pagw = strtoul(p+1,0,16);
 	fgets(buffer,256,filebt);				// CfgTimer
 	buffer[strlen(buffer)-2] = 0;
 	p = strchr(buffer,'=');
@@ -282,6 +462,33 @@ unsigned char rn41_GetExtendedParam(FILE *filebt,unsigned short *srvclass,unsign
 	return 0;	
 }
 
+unsigned char rn41_GetOtherParam(FILE *filebt,unsigned short *sniff,unsigned short *lp)
+{
+	char buffer[256];
+	char *p;
+	
+	fputs("O\n",filebt);
+
+	fgets(buffer,256,filebt);				// Settings
+	fgets(buffer,256,filebt);				// Profil
+	fgets(buffer,256,filebt);				// CfgChar
+	fgets(buffer,256,filebt);				// SniffEna
+	buffer[strlen(buffer)-2] = 0;
+	p = strchr(buffer,'=');
+	*sniff = strtoul(p+1,0,16);
+	fgets(buffer,256,filebt);				// LowPower
+	buffer[strlen(buffer)-2] = 0;
+	p = strchr(buffer,'=');
+	*lp = strtoul(p+1,0,16);
+	fgets(buffer,256,filebt);				// TX Power
+	fgets(buffer,256,filebt);				// IOPorts
+	fgets(buffer,256,filebt);				// IOValues
+	fgets(buffer,256,filebt);				// Sleeptmr
+	fgets(buffer,256,filebt);				// DebugMod
+	fgets(buffer,256,filebt);				// RoleSwch
+	
+	return 0;
+}
 
 
 void rn41_PrintBasicParam(FILE *file,char *mac,char *name,char *baud,char mode,char auth,char *pin)
@@ -294,18 +501,39 @@ void rn41_PrintBasicParam(FILE *file,char *mac,char *name,char *baud,char mode,c
 	fprintf_P(file,PSTR("\tauth: %d\n"),auth);
 	fprintf_P(file,PSTR("\tpin: %s\n"),pin);
 }
-void rn41_PrintExtParam(FILE *file,unsigned short srvclass,unsigned short devclass, unsigned char cfgtimer)
+void rn41_PrintExtParam(FILE *file,unsigned short srvclass,unsigned short devclass, unsigned char cfgtimer,unsigned short inqw,unsigned short pagw)
 {
 	fprintf_P(file,PSTR("Extended parameters:\n"));
 	fprintf_P(file,PSTR("\tsrvclass: %04X\n"),srvclass);
 	fprintf_P(file,PSTR("\tdevclass: %04X\n"),devclass);
 	fprintf_P(file,PSTR("\tcfgtimer: %d\n"),cfgtimer);
+	fprintf_P(file,PSTR("\tinqwin: %04X\n"),inqw);
+	fprintf_P(file,PSTR("\tpagwin: %04X\n"),pagw);
+}
+void rn41_PrintOtherParam(FILE *file,unsigned short sniff,unsigned short lp)
+{
+	fprintf_P(file,PSTR("Other parameters:\n"));
+	fprintf_P(file,PSTR("\tsniff: %04X\n"),sniff);
+	fprintf_P(file,PSTR("\tLowPower: %04X\n"),lp);
 }
 
-/*
-	file: device where to send information about the setup (typically USB)
-	filebt: device where the bt chip is hooked up to
-*/
+/******************************************************************************
+	function: rn41_Setup
+*******************************************************************************	
+	Initialises the RN41, performing:
+	- Reset
+	- Set-up of the RN41 parameters (name, class, etc)
+	- Sets the low-power parameters: reduces the inquiry and scan window, low-power duty cycle 25%
+	
+
+	Parameters:
+		file		-		Device where to send information about the setup (typically USB)
+		filebt		-		Device to which the BT chip is connected to
+		devname		-		Name that the Bluetooth chip must advertise
+
+	Returns:
+		-
+******************************************************************************/
 void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 {
 	/*
@@ -315,25 +543,35 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 	*/
 	// Current parameters
 	char mac[16],name[24],baud[8],mode,auth,pin[8];
-	unsigned short srvclass,devclass;
+	unsigned short srvclass,devclass,inqw,pagw,sniff,lowpower;
 	unsigned char cfgtimer;
+	// Desired parameters
+	unsigned short p_srvclass=0b00001001000;			// Service: capturing, positioning
+	unsigned short p_devclass=0b0011100011000;			// Device: wearable, wearable computer
+	unsigned short p_inqw = 0x20;
+	unsigned short p_pagw = 0x20;						// Inquiry and page at 0x20 reduce power by -15mW. 
+	//unsigned short p_inqw = 0x100;
+	//unsigned short p_pagw = 0x100;					// Default is inqq=pagw=0x100.
+	unsigned short p_sniff = 0x0000;					// Sniff deactivated (only useful during connection, but during streaming maximum throughput and minimum latency is desired)
+	unsigned short p_lowpower = 0x0301;					// Off 3 seconds, on 1 second. Reduces by -2mW over inquiry/page settings
 	
+	//unsigned char p_cfgtimer = 255;					// 255=unlimited local/remote; 0=local only when not connected. 255 leads to instability (reboots) under high throughput, also lowers bitrate
+	unsigned char p_cfgtimer = 0;						// 255=unlimited local/remote; 0=local only when not connected. 255 leads to instability (reboots) under high throughput, also lowers bitrate
+	char p_mode = 0;									// Slave
+	char p_auth = 0;									// No authentication
+	const char *p_pin="0000";							// PIN
+	const char *p_name="BlueSense";						// Name
+	
+	
+	fprintf_P(file,PSTR("RN41 setup\n"));
 	
 	serial_setblocking(filebt,1);			// Must be in blocking mode for initialisation
 	
-	// Desired parameters
-	unsigned short p_srvclass=0b00001001000;			// Service: capturing, positioning
-	unsigned short p_devclass=0b0011100011000;		// Device: wearable, wearable computer
-	//unsigned char p_cfgtimer = 255;								// 255=unlimited local/remote; 0=local only when not connected. 255 leads to instability (reboots) under high throughput, also lowers bitrate
-	unsigned char p_cfgtimer = 0;									// 255=unlimited local/remote; 0=local only when not connected. 255 leads to instability (reboots) under high throughput, also lowers bitrate
-	char p_mode = 0;															// Slave
-	char p_auth = 0;															// No authentication
-	const char *p_pin="0000";															// PIN
-	const char *p_name="BlueSense";													// Name
 	
-	fprintf_P(file,PSTR("Reset and enter command mode\n"));
+	
+	//fprintf_P(file,PSTR("RN41 reset and command mode\n"));
 	rn41_Reset(file);		
-	fprintf_P(file,PSTR("cmd\n"));
+	//fprintf_P(file,PSTR("cmd\n"));
 	rn41_CmdEnter(file,filebt);
 	//fprintf_P(file,PSTR("Status\n"));
 	//rn41_GetBasic();
@@ -342,13 +580,17 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 	
 	// Get basic params
 	
-	fprintf_P(file,PSTR("Getting basic params\n"));
+	//fprintf_P(file,PSTR("Getting basic params\n"));
 	rn41_GetBasicParam(filebt,mac,name,baud,&mode,&auth,pin);
 	rn41_PrintBasicParam(file,mac,name,baud,mode,auth,pin);
 	
-	fprintf_P(file,PSTR("Getting extended params\n"));	
-	rn41_GetExtendedParam(filebt,&srvclass,&devclass,&cfgtimer);
-	rn41_PrintExtParam(file,srvclass,devclass,cfgtimer);
+	//fprintf_P(file,PSTR("Getting extended params\n"));	
+	rn41_GetExtendedParam(filebt,&srvclass,&devclass,&cfgtimer,&inqw,&pagw);
+	rn41_PrintExtParam(file,srvclass,devclass,cfgtimer,inqw,pagw);
+	
+	// Get other parameters
+	rn41_GetOtherParam(filebt,&sniff,&lowpower);
+	rn41_PrintOtherParam(file,sniff,lowpower);
 	
 	
 	// Check if discrepancy between desired and target params
@@ -358,12 +600,16 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 	if(p_cfgtimer != cfgtimer) config = 1;
 	if(p_mode != mode) config = 1;
 	if(p_auth != auth) config = 1;
+	if(p_inqw != inqw) config = 1;
+	if(p_pagw != pagw) config = 1;
+	if(p_sniff != sniff) config = 1;
+	if(p_lowpower != lowpower) config = 1;
 	if(strcmp(p_pin,pin)!=0) config = 1;
 	if(strncmp(p_name,name,strlen(p_name))!=0 || strlen(name)!=strlen(p_name)+5) config = 1;
 	
 	if(config==1)
 	{
-		fprintf_P(file,PSTR("BT must be configured\n"));
+		fprintf_P(file,PSTR("RN41 configuration\n"));
 		fprintf_P(file,PSTR("Set authentication\n"));
 		rn41_SetAuthentication(file,filebt,p_auth);
 		fprintf_P(file,PSTR("Set configuration timer\n"));
@@ -375,20 +621,34 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 		fprintf_P(file,PSTR("Set mode\n"));
 		rn41_SetMode(file,filebt,p_mode);						
 		fprintf_P(file,PSTR("Set service class\n"));
-		rn41_SetServiceClass(file,filebt,p_srvclass);				
+		rn41_SetServiceClass(file,filebt,p_srvclass);
 		fprintf_P(file,PSTR("Set device class\n"));
 		rn41_SetDeviceClass(file,filebt,p_devclass);				
 		
-		fprintf_P(file,PSTR("Reset, re-enter command mode and verify\n"));
+		
+		fprintf_P(file,PSTR("Set inquiry window\n"));
+		rn41_SetI(file,filebt,p_inqw);	
+		fprintf_P(file,PSTR("Set page window\n"));
+		rn41_SetJ(file,filebt,p_pagw);
+		
+		fprintf_P(file,PSTR("Set sniff\n"));
+		rn41_SetSniff(file,filebt,p_sniff);
+		fprintf_P(file,PSTR("Set low power\n"));
+		rn41_SetLowpower(file,filebt,p_lowpower);
+			
+		
+		fprintf_P(file,PSTR("RN41 reset and verify\n"));
 		rn41_Reset(file);		
 		rn41_CmdEnter(file,filebt);
 		rn41_GetBasicParam(filebt,mac,name,baud,&mode,&auth,pin);
 		rn41_PrintBasicParam(file,mac,name,baud,mode,auth,pin);	
-		rn41_GetExtendedParam(filebt,&srvclass,&devclass,&cfgtimer);
-		rn41_PrintExtParam(file,srvclass,devclass,cfgtimer);
+		rn41_GetExtendedParam(filebt,&srvclass,&devclass,&cfgtimer,&inqw,&pagw);
+		rn41_PrintExtParam(file,srvclass,devclass,cfgtimer,inqw,pagw);
+		rn41_GetOtherParam(filebt,&sniff,&lowpower);
+		rn41_PrintOtherParam(file,sniff,lowpower);
 	}
 	else
-		fprintf_P(file,PSTR("BT configuration OK\n"));
+		fprintf_P(file,PSTR("RN41 configuration OK\n"));
 		
 	// Copy the device name
 	if(devname)
@@ -400,11 +660,14 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 	//printf("Set pass data in cmd mode\n");
 	//rn41_SetPassData(0);	
 	
-	rn41_CmdLeave(file,filebt);
+	rn41_SetTempBaudrate(file,filebt,"230K");
+	uart1_init(2,0);	// 230400bps  @ 11.06 Mhz
+	
+	/*rn41_CmdLeave(file,filebt);
 	
 	if(1)
 	{
-		rn41_CmdEnter(file,filebt);
+		//rn41_CmdEnter(file,filebt);
 		
 		//rn41_SetTempBaudrate("460K");
 		//uart1_init(2,1);	// 460800bps  @ 11.06 Mhz
@@ -421,17 +684,9 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 		//uart1_init(5,0);	// 115200bps  @ 11.06 Mhz
 		//uart1_init(11,0);	// 57600bps @ 11.06 Mhz		
 		
-		/*_delay_ms(1000);
-		rn41_CmdEnter();
-		printf("Status\n");
-		rn41_GetBasic();
-		//rn41_GetExtended();
-		_delay_ms(2000);
-		//rn41_CmdResp("F,1\n");		
-		rn41_CmdLeave();
-		_delay_ms(1000);*/
 		
-	}		
+		
+	}		*/
 	
 	
 	
