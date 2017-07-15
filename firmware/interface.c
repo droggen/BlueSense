@@ -258,24 +258,25 @@ void interface_hellodbg(void)
 */
 void _interface_update(signed char cur_bt_connected,signed char cur_usb_connected)
 {
-	//fprintf(file_usb,"_interface_update: %d %d\n",cur_bt_connected,cur_usb_connected);
-	char tmp[128];
-	memcpy(tmp,system_getdevicename(),4);
-	strcpy(tmp+4,": Interface update\n");
-	fputbuf(file_dbg,tmp,strlen(tmp));
-	fputbuf(file_pri,tmp,strlen(tmp));
-	
-	
 	// Handle the possibility that one interface is "unchanged" (-1): in which case assign the past state.
 	if(cur_bt_connected==-1)
 		cur_bt_connected = interface_bt_connected_past;
 	if(cur_usb_connected==-1)
 		cur_usb_connected = interface_usb_connected_past;
-	
-	
-	// No change -> do nothing
+		
+	// No actual change -> do nothing
 	if( (cur_bt_connected==interface_bt_connected_past) && (cur_usb_connected==interface_usb_connected_past) )
 		return;
+		
+	// Change: print some info
+	char tmp[128];
+	memcpy(tmp,system_getdevicename(),4);
+	strcpy(tmp+4,": Interface update 0 0\n");
+	*(tmp+23)=*(tmp+23)+cur_bt_connected;
+	*(tmp+25)=*(tmp+25)+cur_usb_connected;
+	fputbuf(file_dbg,tmp,strlen(tmp));
+	fputbuf(file_pri,tmp,strlen(tmp));
+
 		
 	// Connection detection
 	// USB up
