@@ -63,9 +63,10 @@ TODO-FIXED:	bug in motion acquisition buffering: when the MPU interrupt callback
 		
 TODO:	bug in the mode_sample_motion quaternion (which may have no effect): acceleration is converted into mg using a fixed conversion factor, which is not reflecting the settings of the accelerometer range
 
-TODO:	Time synchronisation including epoch
+TODO-DONE:	Time synchronisation including epoch
+TODO-DONE:	Time synchronisation including epoch on boot
 TODO:	Verify time synchronisation including epoch
-TODO:	PC program to synchronise clocks
+TODO-DONE:	PC program to synchronise clocks
 TODO:	Verify sample rate regularity with high sample rate modes (200Hz-1KHz)
 TODO:	Readout of files (never practical due to slow transfer)
 TODO:	PC program to converto to quaternions
@@ -75,42 +76,7 @@ TODO:	Bluetooth check: deep sleep (SW with 0x8000+sleep). (sniff itself not desi
 TODO:	Check RN41 I/O ports best settings 
 TODO:	Check stability of magnetic field calibration
 TODO:	Reactivate the bootloader....
-*/
-/*
-	Power:
-		1. Idle, BTconn: 124/115mW
-		2. Idle, BTnoconn: 61/57mW
-		Idle, BTnoconn, quiet nondisc nonconn (Q): 42/39
-		Idle, BTnoconn, quiet nondisc conn (Q,2): 49
-		Idle, BTnoconn, SI,0012, SJ,0012 : 43/42	(discovery difficult) 43
-		Idle, BTnoconn, SI,0019, SJ,0019 : 44/43	(discovery ok)	(Seems to be an ideal setting in idle: -15mW compared to default)
-		Idle, BTnoconn, SI,0020, SJ,0020 : 44/43	(conn ok)
-		Idle, BTnoconn, SI,0100, SJ,0100 : 61/59 	(default)
-		Idle, BTnoconn, SI,0800, SJ,0800 : 177/167	(max window; power decreases after connection!)
-		Idle, BTconn, SI,0012, SJ,0012 : 121/118
-		Idle, BTnoconn, SI,0020, SJ,0020 : 118/115 (conn ok)
-		Idle, BTnoconn, S@,1000:			61/58
-		Idle, BTnoconn, SI,0019, SJ,0019, S|,0401:	x (connection difficult)
-		Idle, BTnoconn, SI,0050, SJ,0050, S|,0401:	x (connection difficult)
-		Idle, BTnoconn, SI,0100, SJ,0100, S|,0401:	49 (conn ok with moderate delay)
-		Idle, BTnoconn, SI,0019, SJ,0019, S|,0301:	42/40
-		Idle, BTnoconn, SI,0019, SJ,0019, S|,0201:	42 (conn ok)
-		Idle, BTnoconn, SI,0019, SJ,0019, S|,0101:	43/42 (conn ok)
-		Idle, BTnoconn, SW,9900:					(4 sec deep sleep, connection doesn't work) |
-		Idle, BTnoconn, SW,8C80:					(2 sec deep sleep, connection doesn't work)	|	Not clear if needs a reset or not, or a sniff enabled dongle
-		Idle, BTnoconn, SW,8640:					64/58 (1 sec deep sleep, conn ok)			|
-
-		Idle, BTnoconn, S|,0101: 59
-		Idle, BTnoconn, S|,0201: 55/51
-		Idle, BTnoconn, S|,0801: 48/42						(long connection time, ~30 sec)
-		S1. Idle w/sleep, BTnoconn, S|,0801: 23/21			(long connection time, ~30 sec)
-		S2. Idle w/sleep, BTconn, S|,0801: 107 (should be identical to S4)
-		S3. Idle w/ sleep, BTnoconn, 39/36
-		S4. Idle w/ sleep, BTconn, 109/102
-		
-		
-		TODO: S%,1000 (used on power up) or S@,1000 (used instantaneously)
-		
+TODO:	Upon time synchronisation ensure the system LED blink synchronously (currently can be either synchronised or antiphase): system_lifesign to be modified, instead of toggling must set/clear depending on odd/even second
 */
 
 
@@ -304,6 +270,10 @@ ISR(PCINT3_vect)
 	// Check connection change
 	signed char cur_bt_connected,cur_usb_connected=-1;
 	cur_bt_connected = system_isbtconnected();		
+	
+	//PORTC&=0b11110111;
+	//PORTC|=cur_bt_connected<<3;
+	
 	#if (HWVER==5) || (HWVER==6) || (HWVER==7)
 	cur_usb_connected = system_isusbconnected();	
 	#endif	

@@ -104,6 +104,7 @@ int uart1_init(unsigned int ubrr, unsigned char u2x)
 
 	// If RTS-enabled communication, enable interrupt on pin change
 /*#if ENABLE_BLUETOOTH_RTS
+	// This is now in init.c
 	PCMSK3 |= 1<<PCINT28;	// PCINT28 (PortD.4) pin change interrupt enable
 	PCICR |= 1<<PCIE3;		// Enable pin change interrupt for PCINT31..24
 #endif*/

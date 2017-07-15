@@ -164,7 +164,6 @@ void init_extended(void)
 	// BLUETOOTH INITIALISATION
 	//cli(); uart1_rx_callback = 0; sei();															// Deactivate callback
 	//cli(); uart1_rx_callback = echo_uart1_rx_callback; sei();					// Activate callback
-	fprintf_P(file_usb,PSTR("Bluetooth setup\n"));
 	rn41_Setup(file_usb,file_bt,system_devname);
 	bluetoothrts = (PIND&0x10)?1:0;
 	//cli(); uart1_rx_callback = echo_uart1_rx_callback; sei();					// Activate callback

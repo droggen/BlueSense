@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("sys",["Function"],[["system_lifesign",,[[,,,,0,"File:system.c:system_lifesign"]]]]);
+NDSearch.OnPrefixDataLoaded("sys",["Function"],[["system_getrtcint",,[[,,,,0,"File:system.c:system_getrtcint"]]],["system_lifesign",,[[,,,,0,"File:system.c:system_lifesign"]]],["system_settimefromrtc",,[[,,,,0,"File:system.c:system_settimefromrtc"]]]]);

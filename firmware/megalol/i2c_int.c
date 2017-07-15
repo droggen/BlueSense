@@ -316,6 +316,8 @@ unsigned char i2c_writeregs_int(unsigned char addr7,unsigned char reg,unsigned c
 	//	printf("queue ");
 		r = i2c_transaction_queue(1,1,&t1);
 		//if(r)
+			//_delay_us(10);		
+		//if(r)
 			//printf("fail\n");
 	} while(r);
 	

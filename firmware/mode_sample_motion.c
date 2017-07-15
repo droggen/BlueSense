@@ -113,7 +113,7 @@ unsigned char CommandParserBatBench(char *buffer,unsigned char size)
 // Builds the text string
 unsigned char stream_sample_text(FILE *f)
 {
-	char motionstream[128];		// Buffer to build the string of motion data
+	char motionstream[192];		// Buffer to build the string of motion data
 	char *strptr = motionstream;
 	
 	// Format packet counter

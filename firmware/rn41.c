@@ -25,8 +25,8 @@
 	
 	* rn41_Setup:		Initialise the RN41
 
-	
-
+*/	
+/*
 	Notes about RN41:
 		Changing a setting (i.e. ST for the configuration timeout) requires a reset either with "R,1" or with the reset pin.
 		

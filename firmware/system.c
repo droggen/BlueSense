@@ -192,11 +192,21 @@ void system_status_ok2(unsigned char status)
 	
 	Called from a timer callback.
 	
-	The parameter and return value are not used by the callback system.	
+	Parameters:
+		sec		-	Number of seconds elapsed since the epoch
+
+	Returns:
+		0 (unused)
 ******************************************************************************/
-unsigned char system_lifesign(unsigned char unused)
+unsigned char system_lifesign(unsigned char sec)
 {
-	system_led_toggle(0b10);
+	// 
+	if((sec&0b11)==00)
+		system_led_on(1);
+	else
+		system_led_off(1);
+	
+	//system_led_toggle(0b10);
 	return 0;
 }
 void system_status_error(unsigned char error,unsigned char forever)

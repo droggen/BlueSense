@@ -56,6 +56,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	* timer_waitperiod_ms:				Wait until a a period of time - or a multiple of it - has elapsed from the previous call.
 	* timer_waitperiod_us:				Wait untila a period of time - or a multiple of it - has elapsed from the previous call.
 	
+	*Callbacks*
+	
+	There are two types of callbacks: "normal" occuring at 1KHz divided by a user-specific factor and "slow" occurring at 1Hz divided by a user-specific factor.
+	
+	Slow callbacks are only available if _timer_tick_hz is called at 1Hz, otherwise use the normal callbacks. However, for infrequent tasks, slow callbacks
+	are lighter on system resources.
+	
+	The callbacks must be of the form
+		unsigned char callback(unsigned char)
+	
+	The return value of the callback is currently not used, but it is recommended to return 0 (future versions of the API could use the return value
+	to deregister a callback).
+	
+	The parameter passed to "normal" callbacks is always 0. The parameter passed to the "slow" callbacks is the number of seconds since the epoch, i.e.
+	the number of times _timer_tick_hz has been called. This can be used to synchronise tasks based on the number of seconds elapsed since the epoch.
+	
+	
+	
 */
 
 
@@ -81,6 +99,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	_timer_time_1000: time in 1/1000s; used for a faster version of the code
 ******************************************************************************/
 volatile unsigned long _timer_time_1_in_ms=0;
+volatile unsigned long _timer_time_1_in_s=0;
 volatile unsigned long _timer_time_1024=0;
 volatile unsigned long _timer_time_1000=0;
 volatile unsigned long _timer_time_1000_abs=0;
@@ -119,6 +138,7 @@ void timer_init(unsigned long epoch_sec)
 	{
 		// Initialise the state variables
 		_timer_time_1_in_ms=epoch_sec*1000;
+		_timer_time_1_in_s=epoch_sec;
 		_timer_time_1024=0;
 		_timer_time_1000=0;
 		_timer_time_1000_abs=0;
@@ -628,6 +648,7 @@ void _timer_tick_hz(void)
 
 	// Increment the second counter
 	_timer_time_1_in_ms+=1000;
+	_timer_time_1_in_s++;
 	// Reset the 1/1024s timer.
 	_timer_time_1024=0;
 	// Reset the 1/1000s timer.
@@ -640,7 +661,7 @@ void _timer_tick_hz(void)
 		if(timer_slowcallbacks[i].counter>timer_slowcallbacks[i].top)
 		{
 			timer_slowcallbacks[i].counter=0;
-			timer_slowcallbacks[i].callback(0);
+			timer_slowcallbacks[i].callback(_timer_time_1_in_s);
 		}		
 	}	
 }

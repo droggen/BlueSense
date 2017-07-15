@@ -47,7 +47,7 @@
 const COMMANDPARSER CommandParsersIdle[] =
 { 
 	{'Z',CommandParserSync,help_z},
-	{'z',CommandParserSyncFromRTC,help_zsyncfromrtc},
+	//{'z',CommandParserSyncFromRTC,help_zsyncfromrtc},
 	{'Y',CommandParserTestSync,help_y},
 	{'R',CommandParserBT,help_r},
 	{'L',CommandParserLCD,help_l},
@@ -60,8 +60,8 @@ const COMMANDPARSER CommandParsersIdle[] =
 	{'V', CommandParserDemo,help_demo},
 	//{'B', CommandParserBench,help_b},
 	{'I', CommandParserIO,help_i},
-	{'M', CommandParserMotion,help_m},
-	{'N', CommandParserMPUTest,help_n},
+	{'M', CommandParserMotion,help_M},
+	{'m', CommandParserMPUTest,help_m},
 	//{'G', CommandParserMotionRecog,help_g},
 	{'W', CommandParserSwap,help_w},
 	{'O', CommandParserOff,help_o},

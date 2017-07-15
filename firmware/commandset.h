@@ -6,7 +6,7 @@
 
 extern const char help_demo[];
 extern const char help_z[];
-extern const char help_zsyncfromrtc[];
+//extern const char help_zsyncfromrtc[];
 extern const char help_y[];
 extern const char help_w[];
 extern const char help_b[];
@@ -21,8 +21,8 @@ extern const char help_quit[];
 extern const char help_h[];
 extern const char help_a[];
 extern const char help_f[];
+extern const char help_M[];
 extern const char help_m[];
-extern const char help_n[];
 extern const char help_g[];
 extern const char help_o[];
 extern const char help_sd[];
@@ -59,7 +59,7 @@ unsigned char CommandParserStreamFormat(char *buffer,unsigned char size);
 unsigned char CommandParserPower(char *buffer,unsigned char size);
 unsigned char CommandParserPowerTest(char *buffer,unsigned char size);
 unsigned char CommandParserSync(char *buffer,unsigned char size);
-unsigned char CommandParserSyncFromRTC(char  *buffer,unsigned char size);
+//unsigned char CommandParserSyncFromRTC(char  *buffer,unsigned char size);
 unsigned char CommandParserTestSync(char *buffer,unsigned char size);
 unsigned char CommandParserIdentify(char *buffer,unsigned char size);
 unsigned char CommandParserAnnotation(char *buffer,unsigned char size);

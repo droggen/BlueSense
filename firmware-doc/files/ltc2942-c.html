@@ -8,7 +8,7 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="ltc2942"></a><a name="Topic171"></a><div class="CTopic TFile LC first">
+<a name="ltc2942"></a><a name="Topic77"></a><div class="CTopic TFile LC first">
  <div class="CTitle">ltc2942</div>
  <div class="CBody"><p>LTC2942 functions</p><p>This library interfaces with the LTC2942 gas gauge which allows to measure charge flowing through the battery.</p><p><b>Dependencies</b></p><ul><li><p>I2C library</p></li></ul><p><b>Key functions</b></p><p>This library provides immediate functions which immediately carry out an action, and functions which initiate background reads and return data read after these background reads.</p><p>In order to use background functions, ltc2942_backgroundgetstate must be called at regular intervals, typically from a timer interrupt.</p><p>Prior to using any functions ltc2942_init must be called.</p><p>The key immediate functions are:</p><ul><li><p>ltc2942_init:					Initialise the LTC2942 to default settings.</p></li><li><p>ltc2942_getcharge:			Returns the charge counter in uAh.</p></li><li><p>ltc2942_getchargectr:			Returns the 16-bit accumulated charge counter.</p></li><li><p>ltc2942_setchargectr:			Sets the 16-bit accumulated charge counter.</p></li><li><p>ltc2942_getvoltage:			Returns the voltage on the battery lead in millivolts.</p></li><li><p>ltc2942_gettemperature:		Returns the LTC2942 temperature in decidegrees (1 unit=0.1?celsius).</p></li><li><p>ltc2942_setadc:				Setups the LTC2942 conversion of voltage and temperature and the charge prescaler.</p></li><li><p>ltc2942_setprescaler:			Setups the LTC2942 charge prescaler.</p></li><li><p>ltc2942_printreg:				Prints the LTC2942 register states to a file.</p></li><li><p>ltc2942_getavgpower: 			Computes the average power consumption in mW</p></li></ul><p>The key background functions are:</p><ul><li><p>ltc2942_backgroundgetstate:	Initiates a background read of the LTC2942 charge, voltage and temperature registers.&nbsp; This function can be called from a timer interrupt to perform transparent background read of the battery status</p></li><li><p>ltc2942_last_charge:			Returns the charge counter in uAh.</p></li><li><p>ltc2942_last_chargectr:		Returns the 16-bit accumulated charge counter.</p></li><li><p>ltc2942_last_mV:				Returns the voltage on the battery lead in millivolts.</p></li><li><p>ltc2942_last_mA:				Returns the average current between two background reads in mA.</p></li><li><p>ltc2942_last_mW:				Returns the average power between two background reads in mW.</p></li><li><p>ltc2942_last_temperature:		Returns the LTC2942 temperature in decidegrees (1 unit=0.1?celsius).</p></li><li><p>ltc2942_last_strstatus		Returns a status string describing the battery mV, mA and mW.</p></li></ul><p><b>Usage in interrupts</b></p><p>None of the immediate functions are suitable to be called from interrupts and will result in a crash, with exception of ltc2942_getavgpower.</p><p>The function ltc2942_backgroundgetstate can be called from an interrupt (typically a timer interrupt) to initiate a background read of the data. All the background functions can be called from interrupts.</p></div>
 </div>
@@ -47,9 +47,9 @@
  <div class="CBody"><p>Returns the voltage on the battery lead in millivolts.</p><div class="CHeading">Note</div><p>no error checking on the I2C interface.</p><div class="CHeading">Returns</div><table class="CDefinitionList"><tr><td class="CDLEntry">Voltage</td><td class="CDLDefinition"><p>Voltage in millivolts</p></td></tr></table></div>
 </div>
 
-<a name="ltc2942_gettemperature"></a><a name="Topic224"></a><div class="CTopic TFunction LC">
+<a name="ltc2942_gettemperature"></a><a name="Topic247"></a><div class="CTopic TFunction LC">
  <div class="CTitle">ltc2942_gettemperature</div>
- <div id="NDPrototype224" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">short</span> ltc2942_gettemperature(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype247" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">short</span> ltc2942_gettemperature(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Returns the LTC2942 temperature in decidegrees (1 unit=0.1?celsius).</p><div class="CHeading">Note</div><p>no error checking on the I2C interface.</p><div class="CHeading">Returns</div><table class="CDefinitionList"><tr><td class="CDLEntry">Temperature[dd]</td><td class="CDLDefinition"><p>Temperature in decidegrees (1 unit=0.1?celsius)</p></td></tr></table></div>
 </div>
 
@@ -113,9 +113,9 @@
  <div class="CBody"><p>Returns the voltage on the battery lead in millivolts obtained during the last background read.</p><div class="CHeading">Returns</div><table class="CDefinitionList"><tr><td class="CDLEntry">Voltage</td><td class="CDLDefinition"><p>Voltage in millivolts</p></td></tr></table></div>
 </div>
 
-<a name="ltc2942_last_temperature"></a><a name="Topic238"></a><div class="CTopic TFunction LC">
+<a name="ltc2942_last_temperature"></a><a name="Topic254"></a><div class="CTopic TFunction LC">
  <div class="CTitle">ltc2942_last_temperature</div>
- <div id="NDPrototype238" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">short</span> ltc2942_last_temperature(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
+ <div id="NDPrototype254" class="NDPrototype WideForm CStyle"><table><tr><td class="PBeforeParameters"><span class="SHKeyword">short</span> ltc2942_last_temperature(</td><td class="PParametersParentCell"><table class="PParameters"><tr><td class="PName first last">void</td></tr></table></td><td class="PAfterParameters">)</td></tr></table></div>
  <div class="CBody"><p>Returns the LTC2942 temperature in decidegrees (1 unit=0.1?celsius) obtained during the last&nbsp; background read.</p><div class="CHeading">Returns</div><table class="CDefinitionList"><tr><td class="CDLEntry">Temperature[dd]</td><td class="CDLDefinition"><p>Temperature in decidegrees (1 unit=0.1?celsius)</p></td></tr></table></div>
 </div>
 

@@ -30,8 +30,8 @@
 
 // Command help
 
-const char help_z[] PROGMEM ="Z[,<hh><mm><ss>]: Resets the absolute time counter to zero, and optionally sets the RTC time";
-const char help_zsyncfromrtc[] PROGMEM ="z sync system time from RTC time";
+const char help_z[] PROGMEM ="Z[,<hh><mm><ss>]: without parameters resets local time; otherwise sets the RTC and local time to hhmmss";
+//const char help_zsyncfromrtc[] PROGMEM ="z sync system time from RTC time";
 const char help_y[] PROGMEM ="Test sync";
 const char help_demo[] PROGMEM ="Demo mode";
 const char help_c[] PROGMEM ="Clock mode";
@@ -48,8 +48,8 @@ const char help_h[] PROGMEM ="Help";
 const char help_a[] PROGMEM ="A,<hex>,<us>: ADC mode. hex: ADC channel bitmask in hex; us: sample period in microseconds";
 const char help_s[] PROGMEM ="S,<us>: test streaming/logging mode; us: sample period in microseconds";
 const char help_f[] PROGMEM ="F,<bin>,<pktctr>,<ts>,<bat>,<label>: bin: 1 for binary, 0 for text; for others: 1 to stream, 0 otherwise";
-const char help_m[] PROGMEM ="M[,<mode>] stream motion data in specified mode; use M for available modes";
-const char help_n[] PROGMEM ="MPU test mode";
+const char help_M[] PROGMEM ="M[,<mode>] stream motion data in specified mode; use M for available modes";
+const char help_m[] PROGMEM ="MPU test mode";
 const char help_g[] PROGMEM ="G,<mode> enters motion recognition mode. The parameter is the sample rate/channels to acquire. Use G? to find more about modes";
 const char help_o[] PROGMEM ="O[,sec] Power off and no wakeup, or wakeup after sec seconds";
 const char help_coulomb[] PROGMEM ="Coulomb counter test mode";
@@ -693,13 +693,33 @@ unsigned char CommandParserPowerTest(char *buffer,unsigned char size)
 	return 0;
 }
 
+/******************************************************************************
+	function: CommandParserSync
+*******************************************************************************	
+	Receive hhmmss time, update the RTC and synchronise the local time to the 
+	RTC.
+	
+	This function operates in two steps:
+	- 	First, it immediately sets the RTC time - this ensures the RTC is synchronised
+		to the provided time.
+	-	Then, it synchronises the local time to the RTC using system_settimefromrtc.
+		
+	Parameters:
+		buffer	-		Pointer to the command string
+		size	-		Size of the command string
+
+	Returns:
+		0		-		Success
+		1		-		Message execution error (message valid)
+		2		-		Message invalid 
+		
+
+******************************************************************************/
 unsigned char CommandParserSync(char *buffer,unsigned char size)
 {
-	unsigned char rv;
-	
-	rv = 0;
 	if(size!=0)
 	{
+		// Parameters are passed: check validity
 		if(size!=7 || buffer[0]!=',')
 			return 2;
 		
@@ -714,21 +734,20 @@ unsigned char CommandParserSync(char *buffer,unsigned char size)
 		m = (buffer[2]-'0')*10+(buffer[3]-'0');
 		s = (buffer[4]-'0')*10+(buffer[5]-'0');
 		
-		fprintf_P(file_dbg,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
+		//fprintf_P(file_dbg,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
 		
 		if(h>23 || m>59 || s>59)
 		{
 			return 2;
 		}
 		
-		// Execute
-		rv = ds3232_writetime(h,m,s);
-        timer_init(h*60*24+m*60+s);
-	}	
+		// Update the RTC time
+		ds3232_writetime(h,m,s);
+		// Synchronise local time to RTC time
+		system_settimefromrtc();
+		return 0;
+	}
 	timer_init(0);
-	fprintf_P(file_pri,PSTR("Time sync'd\n"));
-	if(rv!=0)
-		return 1;
 	return 0;
 }
 unsigned char CommandParserSyncFromRTC(char  *buffer,unsigned char size)

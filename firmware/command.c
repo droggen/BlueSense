@@ -61,17 +61,17 @@ unsigned char CommandProcess(const COMMANDPARSER *CommandParsers,unsigned char C
 	if(rv==3)
 	{
 		fputs_P(CommandInvalid,file_pri);
-		fputs_P(CommandInvalid,file_dbg);
+		//fputs_P(CommandInvalid,file_dbg);
 		return 1;
 	}
 	if(rv==1)
 	{
 		fputs_P(CommandSuccess,file_pri);
-		fputs_P(CommandSuccess,file_dbg);
+		//fputs_P(CommandSuccess,file_dbg);
 		return 1;
 	}
 	fputs_P(CommandError,file_pri);
-	fputs_P(CommandError,file_dbg);	
+	//fputs_P(CommandError,file_dbg);	
 	return 1;
 }
 
