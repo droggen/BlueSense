@@ -45,7 +45,7 @@ unsigned char ds3232_readtemp_int_cb_cb(I2C_TRANSACTION *t);
 
 // I2C transactional
 unsigned char ds3232_readtime_int(unsigned char *time);
-unsigned char ds3232_readtime_conv_int(unsigned char *hour,unsigned char *min,unsigned char *sec);
+unsigned char ds3232_readtime_conv_int(unsigned char sync, unsigned char *hour,unsigned char *min,unsigned char *sec);
 unsigned char ds3232_readdate_conv_int(unsigned char *date,unsigned char *month,unsigned char *year);
 
 #endif

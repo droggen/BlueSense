@@ -72,11 +72,11 @@ TODO:	Readout of files (never practical due to slow transfer)
 TODO:	PC program to converto to quaternions
 TODO:	Magnetic field: check effect of quantisation and sample rate (8/100) on quaternions
 TODO:	Improve idle bluetooth power efficiency w/ inquiry and scan pages (SI,SJ)
-TODO:	Bluetooth check: deep sleep (SW with 0x8000+sleep). (sniff itself not desirable)
-TODO:	Check RN41 I/O ports best settings 
+TODO-DONE:	RN41: power optimisation of radio
+TODO:	RN41 I/O ports best settings ?
 TODO:	Check stability of magnetic field calibration
 TODO:	Reactivate the bootloader....
-TODO:	Upon time synchronisation ensure the system LED blink synchronously (currently can be either synchronised or antiphase): system_lifesign to be modified, instead of toggling must set/clear depending on odd/even second
+TODO-DONE:	Upon time synchronisation ensure the system LED blink synchronously
 */
 
 

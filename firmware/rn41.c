@@ -691,7 +691,5 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 	
 	
 	serial_setblocking(filebt,0);			// Return in non blocking mdoe
-	
-	fprintf_P(file,PSTR("bt init: returning\n"));
 }
 

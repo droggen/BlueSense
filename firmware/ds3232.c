@@ -15,6 +15,7 @@
 #include "i2c_int.h"
 #include "main.h"
 #include "helper.h"
+#include "system.h"
 
 /*
 	file: ds3232
@@ -206,25 +207,48 @@ unsigned char ds3232_readtime_int(unsigned char *time)
 	return 0;
 }
 
-/******************************************************************************
-	ds3232_readtime_conv_int
-*******************************************************************************	
-	
-	Return value:
-		0:			success
-		1:			error
-******************************************************************************/
-unsigned char ds3232_readtime_conv_int(unsigned char *hour,unsigned char *min,unsigned char *sec)
-{
-	unsigned char val[7];
-	unsigned char r;
-	
-	r = ds3232_readtime_int(val);
-	if(r!=0)
-		return r;
-		
-	ds3232_convtime(val,hour,min,sec);
 
+
+/******************************************************************************
+	function: ds3232_readtime_conv_int
+*******************************************************************************	
+	Returns the DS3232 time in hh:mm.ss format, optionally with synchronising return.
+	
+	In synchronised mode (sync=1), this function waits for a change of second and then reads and returns the time.
+	In immediate mode (sync=0) this function immediately reads and returns the time.
+	
+	Use the synchronised mode when the precise moment at which the time is read is important. This
+	mode introduces a latency of up to one second, as it must wait for a second change before returning.
+		
+	Parameters:
+		sync		-	0: to read and return the time immediately, 1 to read and return the time at a change of seconds.
+		hour		-	Pointer to the variable holding the returned hours
+		min			-	Pointer to the variable holding the returned min
+		sec			-	Pointer to the variable holding the returned sec
+
+	Returns:
+		0			-	Success, the returned time is provided in the variables hour, min, sec.
+		1			-	Error
+******************************************************************************/
+unsigned char ds3232_readtime_conv_int(unsigned char sync, unsigned char *hour,unsigned char *min,unsigned char *sec)
+{
+	unsigned char pc,pn;		// pc: current pin state, pn: new pin state
+	
+	
+	if(sync)
+	{
+		// Wait for the falling edge of the RTC int
+		pc=system_getrtcint();
+		while( !( ((pn=system_getrtcint())!=pc) && pn==0) )		// Loop until pn!=pc and pn==0
+			pc=pn;
+		// Read time
+		ds3232_readtime_conv(hour,min,sec);
+	}
+	else
+	{
+		ds3232_readtime_conv(hour,min,sec);
+	}
+	
 	return 0;
 }
 
@@ -666,7 +690,7 @@ void ds3232_alarm_in(unsigned short insec)
 	
 	
 	r = ds3232_readdate_conv_int(&date,&month,&year);
-	r = ds3232_readtime_conv_int(&hour,&min,&sec);
+	r = ds3232_readtime_conv_int(0,&hour,&min,&sec);
 	
 	fprintf_P(file_pri,PSTR("Cur: %02d.%02d.%02d %02d:%02d:%02d\n"),date,month,year,hour,min,sec);
 	

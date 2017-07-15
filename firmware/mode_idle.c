@@ -116,7 +116,7 @@ void mode_idle(void)
 	time_laststatus=stat_timemsstart = timer_ms_get();
 	while(1)
 	{
-		//sleep_cpu();
+		sleep_cpu();
 	//	fprintf_P(file_pri,PSTR("Some ADC stuff: %d. period: %d. mask: %02X. pri: %p dbg: %p\n"),ctr,mode_adc_period,mode_adc_mask,file_pri,file_dbg);
 
 		while(CommandProcess(CommandParsersIdle,CommandParsersIdleNum));		

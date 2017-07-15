@@ -103,7 +103,7 @@ unsigned char CommandParserTime(char *buffer,unsigned char size)
 	if(size==0)
 	{
 		// Query time
-		ds3232_readtime_conv_int(&h,&m,&s);	
+		ds3232_readtime_conv_int(1,&h,&m,&s);	
 		fprintf_P(file_pri,PSTR("%02d:%02d:%02d\n"),h,m,s);
 		return 0;	
 	}
