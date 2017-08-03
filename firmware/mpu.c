@@ -56,7 +56,7 @@
 	The following counters are available to monitor the interrupt-driven automatic read. These counters are cleared upon calling mpu_config_motionmode with a new acquisition mode:
 	
 	* mpu_cnt_int:				counts how often the MPU isr has been triggered
-	* mpu_cnt_sample_tot:		counts how many samples occurred, independently of whether successful or not
+	* mpu_cnt_sample_tot:		counts how many samples occurred, independently of whether successful or not (this is equal or lower than mpu_cnt_int due to possible software downsampling)
 	* mpu_cnt_sample_succcess:	counts how many samples were acquired and successfully stored in the buffer; mpu_cnt_sample_succcess-mpu_cnt_sample_tot indicates the number of errors that occurred
 	* mpu_cnt_sample_errbusy:	counts how many samples were skipped because the interface was busy (e.g. from an ongoing transfer)
 	* mpu_cnt_sample_errfull: 	counts how many samples were skipped because the buffer was full 
@@ -81,6 +81,9 @@
 	Functions to handle the magnetometer - prefixed by mpu_mag_... - can only be used when the MPU is configured
 	in a mode where the magnetic field sensor is turned on; otherwise the function time-out due to the magnetic field
 	sensor being inaccessible via the internal I2C interface.
+	
+	
+	*Interrupt Service Routine (ISR)*
 	
 	The function mpu_isr must be called on the rising edge of the MPU interrupt pin. 
 	
@@ -122,8 +125,8 @@ unsigned char __mpu_sample_softdivider_ctr=0,__mpu_sample_softdivider_divider=0;
 volatile signed short mpu_data_ax[MPU_MOTIONBUFFERSIZE],mpu_data_ay[MPU_MOTIONBUFFERSIZE],mpu_data_az[MPU_MOTIONBUFFERSIZE],mpu_data_gx[MPU_MOTIONBUFFERSIZE],mpu_data_gy[MPU_MOTIONBUFFERSIZE],mpu_data_gz[MPU_MOTIONBUFFERSIZE],mpu_data_mx[MPU_MOTIONBUFFERSIZE],mpu_data_my[MPU_MOTIONBUFFERSIZE],mpu_data_mz[MPU_MOTIONBUFFERSIZE],mpu_data_temp[MPU_MOTIONBUFFERSIZE];
 volatile unsigned long int mpu_data_time[MPU_MOTIONBUFFERSIZE];
 volatile unsigned char mpu_data_ms[MPU_MOTIONBUFFERSIZE];
-volatile unsigned short mpu_data_packetctr[MPU_MOTIONBUFFERSIZE];
-volatile unsigned short __mpu_data_packetctr_current;
+volatile unsigned long mpu_data_packetctr[MPU_MOTIONBUFFERSIZE];
+volatile unsigned long __mpu_data_packetctr_current;
 volatile unsigned char mpu_data_rdptr,mpu_data_wrptr;
 volatile MPUMOTIONDATA _mpumotiondata_test;
 
@@ -182,7 +185,7 @@ void mpu_isr(void)
 		// Automatically read data
 		if(__mpu_autoread)
 		{
-			__mpu_data_packetctr_current=(unsigned short)mpu_cnt_sample_tot;
+			__mpu_data_packetctr_current=mpu_cnt_sample_tot;
 			// Initiate readout: 3xA+3*G+1*T+3*M+Ms = 21 bytes
 			// Registers start at 59d (ACCEL_XOUT_H) until 79 (EXT_SENS_DATA_06). 
 			// The EXT_SENS_DATA_xx is populated from the magnetometer
@@ -205,23 +208,80 @@ void mpu_isr(void)
 	}
 }
 
+/******************************************************************************
+	function: mpu_clearstat
+*******************************************************************************	
+	Clear the MPU acquisition statistics.
+	
+	Returns:
+		-
+*******************************************************************************/
+void mpu_clearstat(void)
+{
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		mpu_cnt_int=0;
+		mpu_cnt_sample_tot=0;
+		mpu_cnt_sample_succcess=0;
+		mpu_cnt_sample_errbusy=0;
+		mpu_cnt_sample_errfull=0;
+	}
+}
+/******************************************************************************
+	function: mpu_getstat
+*******************************************************************************	
+	Get the MPU acquisition statistics.
+
+	All parameters are pointer to a variable holding the return values. 
+	If the pointer is null, the corresponding parameter is not returned.
+	
+	Parameters:
+		cnt_int					-	Number of MPU ISR calls
+		cnt_sample_tot			-	Number of MPU samples so far, regardless of successfull or not
+		cnt_sample_succcess		-	Number of successful MPU samples acquired
+		cnt_sample_errbusy		-	Number of unsuccessful MPU sample acquisition due to the MPU interface being busy
+		cnt_sample_errfull		-	Number of unsuccessful MPU samples acquisition due to the MPU sample buffer being full
+	
+	Returns:
+		-
+*******************************************************************************/
+void mpu_getstat(unsigned long *cnt_int, unsigned long *cnt_sample_tot, unsigned long *cnt_sample_succcess, unsigned long *cnt_sample_errbusy, unsigned long *cnt_sample_errfull)
+{
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		if(cnt_int)
+			*cnt_int=mpu_cnt_int;
+		if(cnt_sample_tot)
+			*cnt_sample_tot=mpu_cnt_sample_tot;
+		if(cnt_sample_succcess)
+			*cnt_sample_succcess=mpu_cnt_sample_succcess;
+		if(cnt_sample_errbusy)
+			*cnt_sample_errbusy=mpu_cnt_sample_errbusy;
+		if(cnt_sample_errfull)
+			*cnt_sample_errfull=mpu_cnt_sample_errfull;
+	}
+}
+
+void mpu_clearbuffer(void)
+{
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		mpu_data_rdptr=mpu_data_wrptr=0;
+	}	
+}
+
 void _mpu_enableautoread(void)
 {
+	// Clear statistics counters
+	mpu_clearstat();
 	// Clear the software divider counter
 	__mpu_sample_softdivider_ctr=0;
-	// Clear statistics counters
-	mpu_cnt_int=0;
-	mpu_cnt_sample_tot=0;
-	mpu_cnt_sample_succcess=0;
-	mpu_cnt_sample_errbusy=0;
-	mpu_cnt_sample_errfull=0;
 	// Clear data buffers
-	mpu_data_rdptr=mpu_data_wrptr=0;
+	mpu_clearbuffer();
 	// Enable automatic read
 	__mpu_autoread=1;
 	// Enable motion interrupts
-	mpu_set_interrutenable(0,0,0,1);
-	
+	mpu_set_interrutenable(0,0,0,1);	
 }
 void _mpu_disableautoread(void)
 {
@@ -249,13 +309,11 @@ void __mpu_read_cb(void)
 	}*/
 	
 	// Discard oldest data and store new one
-	// BUG: the current user code makes direct access to the interrupt buffers; this is OK for the "immediately return if the buffer is full"
-	// however not in this "discard oldest data"
 	if(mpu_data_isfull())
 	{
 		_mpu_data_rdnext();
 		mpu_cnt_sample_errfull++;
-		mpu_cnt_sample_succcess--;
+		mpu_cnt_sample_succcess--;		// This plays with the increment of mpu_cnt_sample_succcess on the last line of this function; i.e. mpu_cnt_sample_succcess does not change.
 	}
 
 	// Conver the data

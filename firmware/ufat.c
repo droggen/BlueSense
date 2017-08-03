@@ -13,6 +13,7 @@
 #include "sd.h"
 #include "ufat.h"
 #include "serial.h"
+#include "helper.h"
 
 /*
 	File: ufat
@@ -230,7 +231,7 @@ SERIALPARAM _log_file_param;
 
 
 #define _UFAT_NUMLOGENTRY 14								// Maximum number 14; 16 root entries=volid+logs+metadata
-char ufatblock[512];										// Multiuse buffer
+char ufatblock[512];								// Multiuse buffer
 //unsigned char *ufatblock=_log_buffer[0];					// Multiuse buffer -> points to log buffer as no need for both at same time
 LOGENTRY _logentries[_UFAT_NUMLOGENTRY];					// Predefined number of log entries
 FSINFO _fsinfo;												// Summary of key info here
@@ -281,10 +282,18 @@ unsigned char ufat_format(unsigned char numlogfile)
 	if(numlogfile>_UFAT_NUMLOGENTRY)
 		numlogfile=_UFAT_NUMLOGENTRY;
 		
-	// Initialise the SD card; this initialises _fsinfo.card_capacity
+	// Initialise the SD card; this initialises _fsinfo.card_capacity_sector
 	if(_ufat_init_sd())
 		return 1;
 
+
+	// Erase the content of the card
+	fprintf_P(file_pri,PSTR("%sErasing card\n"),_str_ufat);
+	if(sd_erase(0,_fsinfo.card_capacity_sector-1))
+	{
+		fprintf_P(file_pri,PSTR("%sError erasing card\n"),_str_ufat);
+		return 1;
+	}
 		
 	// Optional: clear first sectors with specific pattern to make it easier to spot modifications made to the file system
 	/*for(unsigned i=0;i<1024;i++)
@@ -515,11 +524,21 @@ FILE *ufat_log_open(unsigned char n)
 	_log_current_log = n;
 	_log_current_size=_logentries[n].size=0;
 	_log_current_sector=_logentries[n].startsector;
-	//_log_bufptr=0;
 	
 	
-	printf_P(PSTR("%s: streaming write at sector %lu\n"),_str_ufat,_log_current_sector);
-	sd_stream_open(_log_current_sector);
+	printf_P(PSTR("%sStreaming write at sector %lu\n"),_str_ufat,_log_current_sector);
+	// Erase file area; this seems more effective than the pre-erase command and helps reduce latency of writes
+	printf_P(PSTR("%sErase sectors %lu-%lu\n"),_str_ufat,_log_current_sector,_log_current_sector+(_fsinfo.logsizebytes>>9)-1);
+	if(sd_erase(_log_current_sector,_log_current_sector+(_fsinfo.logsizebytes>>9)-1))
+	{
+		#ifdef UFATDBG
+			printf("Error erasing file\n");
+		#endif
+		return 0;
+	}
+	
+	// Open stream specifying a pre-erase size
+	sd_stream_open(_log_current_sector,_fsinfo.logsizebytes>>9);
 	
 	return &_log_file;
 }
@@ -545,18 +564,6 @@ unsigned char ufat_log_close(void)
 	}
 	
 	// Must write last sector if any
-	/*if(_log_bufptr)
-	{
-		_log_current_size+=_log_bufptr;
-		printf("Writing partial block to sector %lu... ",_log_current_sector);
-		unsigned char rv = sd_block_write(_log_current_sector,ufatblock);
-		if(rv!=0)
-		{
-			printf("failed\n");
-			return EOF;
-		}
-		printf("ok\n");
-	}*/
 	log_printstatus();
 	// Here must write root
 	_logentries[_log_current_log].size = _log_current_size;
@@ -621,6 +628,100 @@ void ufat_log_test(unsigned char lognum,unsigned long size,unsigned char ch,unsi
 	dt = t2-t1;
 	// size/1024 [KB] / dt/1000 -> size/1024*1000/dt -> size*125/128/dt
 	printf_P(PSTR("Time: %lu ms. Speed: %lu kB/s Close time: %lu ms\n"),dt,size*125/128/dt,t3-t2);
+	
+		
+}
+/******************************************************************************
+	function: ufat_log_test2
+*******************************************************************************	
+	Test writing data to a log file.
+	
+	The data is being written is a fake payload of 128B, which is about
+	the maximum data written when logging motion sensor data.
+	
+
+	Parameters:
+		lognum			-	Log number to write to
+		size			-	Number of bytes to write
+
+
+******************************************************************************/
+void ufat_log_test2(unsigned char lognum,unsigned long size)
+{
+	FILE *log;
+	char buf[128];
+	unsigned long t1;
+	//unsigned long dt;
+	unsigned long cursize;
+	unsigned long pkt;
+	unsigned long numfail;
+	unsigned long lastsize;
+	
+	
+	memset(buf,'0',128);
+	buf[127]=0;
+	buf[126]='\n';
+	
+	
+	//memset(ufatblock,ch,bsize);
+	
+	//_sd_acmd23(9765);
+	
+	printf_P(PSTR("Benchmarking log %u writing 128 bytes up to %lu\n"),lognum,size);
+	log = ufat_log_open(lognum);
+	if(!log)
+	{
+		printf("Error opening log\n");
+		return;
+	}
+	log_printstatus();	
+	
+	cursize=0;
+	pkt=0;
+	numfail=0;
+	lastsize=0;
+	unsigned long tlast=timer_ms_get();
+	
+	while(cursize<size)
+	{
+		// Do something
+		//_delay_ms(1);
+		//_delay_us(500);
+		
+		if(cursize>=lastsize+32768)
+		{
+			lastsize=cursize;
+			unsigned long t=timer_ms_get();
+			fprintf_P(file_pri,PSTR("cursiz: %lu %lu\n"),cursize,t-tlast);
+			tlast=t;
+			
+		}
+		
+		
+		t1=timer_ms_get();
+		char *strptr = buf;		
+		strptr=format1u32(strptr,t1);		
+		strptr=format1u32(strptr,pkt);
+		strptr=format1u32(strptr,numfail);
+		strptr=format1u32(strptr,ufat_log_getsize());
+		strptr=format1u32(strptr,cursize);
+				
+		if(fputbuf(log,buf,127))
+		{
+			numfail++;
+		}	
+		else
+		{
+			cursize+=127;
+		}
+		
+		pkt++;
+		
+		
+	}
+	
+	ufat_log_close();
+	
 	
 		
 }
@@ -723,6 +824,7 @@ unsigned char _ufat_init_sd(void)
 {
 	CID cid;
 	CSD csd;
+	SDSTAT sdstat;
 	unsigned long capacity_sector;
 	
 	// Initialise fsinfo with card and fs not available
@@ -731,7 +833,7 @@ unsigned char _ufat_init_sd(void)
 	
 	// Initialise the SD card
 	fprintf_P(file_pri,PSTR("%sInit SD...\n"),_str_ufat);
-	if(sd_init(&cid,&csd,&capacity_sector))
+	if(sd_init(&cid,&csd,&sdstat,&capacity_sector))
 	{
 		fprintf_P(file_pri,PSTR("%sInit SD error\r"),_str_ufat);
 		return 1;
@@ -1563,12 +1665,9 @@ int _ufat_log_fputchar(char c,FILE *f)
 
 void log_printstatus(void)
 {
-	printf_P(PSTR("Current log: %u\n"),_log_current_log);
+	printf_P(PSTR("%sCurrent log: %u\n"),_str_ufat,_log_current_log);
 	printf_P(PSTR("\tsize: %lu\n"),_log_current_size);
 	printf_P(PSTR("\tsector: %lu\n"),_log_current_sector);
-//	printf_P(PSTR("\twrbuf: %u\n"),_log_wrbuf);
-	//printf_P(PSTR("\tbufptr: %u\n"),_log_bufptr);
-//	printf_P(PSTR("\tnwbuf: %u\n"),_log_nwbuf);
 }
 
 

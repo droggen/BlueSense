@@ -53,6 +53,7 @@ void fract16toa(_Fract a,char *ptr);
 unsigned char checkdigits(const char *str,unsigned char n);
 unsigned char ParseComma(const char *str,unsigned char n,...);
 unsigned char ParseCommaGetInt(const char *str,int n,...);
+unsigned char ParseCommaGetLong(const char *str,int n,...);
 
 unsigned char TimeAddSeconds(unsigned short hour, unsigned short min, unsigned short sec, unsigned short ds,unsigned short *ohour, unsigned short *omin, unsigned short *osec);
 
@@ -65,6 +66,11 @@ char *format4float(char *strptr,float q0,float q1,float q2,float q3);
 #ifndef __cplusplus
 char *format4fract16(char *strptr,float q0,float q1,float q2,float q3);
 #endif
+
+void hist_init(unsigned long *hist,unsigned short n);
+void hist_insert(unsigned long *hist,unsigned short n,unsigned short width,unsigned short value);
+
+void slist_add(unsigned long *slist,int n,unsigned long v);
 
 
 

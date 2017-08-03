@@ -117,7 +117,7 @@ unsigned char CommandParserSampleLog(char *buffer,unsigned char size)
 			fprintf_P(file_pri,PSTR("Error opening log\n"));
 			return 1;
 		}
-		log_printstatus();
+		//log_printstatus();
 	}
 	
 	return 0;

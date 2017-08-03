@@ -71,12 +71,17 @@ TODO:	Verify sample rate regularity with high sample rate modes (200Hz-1KHz)
 TODO:	Readout of files (never practical due to slow transfer)
 TODO:	PC program to converto to quaternions
 TODO:	Magnetic field: check effect of quantisation and sample rate (8/100) on quaternions
-TODO:	Improve idle bluetooth power efficiency w/ inquiry and scan pages (SI,SJ)
+TODO:	Improve idle bluetooth power efficiency w/ inquiry and scan pages (SI,SJ)
 TODO-DONE:	RN41: power optimisation of radio
 TODO:	RN41 I/O ports best settings ?
 TODO:	Check stability of magnetic field calibration
 TODO:	Reactivate the bootloader....
 TODO-DONE:	Upon time synchronisation ensure the system LED blink synchronously
+TODO:	Check sampling returns calibrated magnetic field
+TODO:	Convert to quaternion when logging without, taking into account dt
+TODO:	Identify the regular >50ms hicckups in the logging
+TODO:	Sometimes error writing log 4 (F,10) on S10 - ?
+BUG:	Stopeeing logging and quitting motion sampling mode with ! does not write battery statistics data unlike stopping logging with L first, then quitting with !
 */
 
 

@@ -558,6 +558,60 @@ unsigned char ParseCommaGetInt(const char *str,int n,...)
 	}
 	return 0;
 }
+/******************************************************************************
+	function: ParseCommaGetLong
+*******************************************************************************	
+	Identify the n tokens delimited by a comma. Decodes the tokens assuming they 
+	are long ints.
+	
+	For example, the string "M,45,128,-99" is decoded in the tokens 45, 128, -99.
+	
+	Takes as parameter as many pointers to a long that will contain the token.
+		
+	Warning: Modifies the passed string to have null instead of commas to facilitate further token parsing
+	
+	Return value:
+		0: 				success
+		nonzero:	parse error
+	
+******************************************************************************/
+unsigned char ParseCommaGetLong(const char *str,int n,...)
+{
+	va_list args;	
+	unsigned long integer;
+	
+	// Initialise the return values to null
+	va_start(args,n);
+	for(unsigned char i=0;i<n;i++)
+	{
+		unsigned long *rv = va_arg(args,unsigned long *);
+		*rv = 0;
+	}
+	
+	va_start(args,n);
+	for(unsigned char i=0;i<n;i++)
+	{
+		char *p = strchr(str,',');
+		// Not found -> return
+		if(!p)
+			return 1;
+		*p=0;		
+		p++;
+		// End of string -> return
+		if(!*p)
+			return 1;
+
+		if(sscanf(p,"%ld",&integer)!=1)
+			return 1;
+
+		unsigned long *rv = va_arg(args,unsigned long *);
+		*rv = integer;
+		
+		str=p;
+		
+	}
+	return 0;
+}
 
 
 /******************************************************************************
@@ -758,5 +812,102 @@ char *format4float(char *strptr,float q0,float q1,float q2,float q3)
 }
 #endif
 
+
+
+
+/******************************************************************************
+	function: hist_init
+*******************************************************************************	
+	Initialises a histogram for N0 natural numbers.
+	
+	The histogram holds n bins.
+	
+	Parameters:
+		hist		-	Pointer to a histogram, which holds n bins. 
+		n			-	Number of histogram entries
+
+	Returns:
+		-
+******************************************************************************/
+void hist_init(unsigned long *hist,unsigned short n)
+{
+	memset(hist,0,n*sizeof(unsigned long));
+}
+
+/******************************************************************************
+	function: hist_insert
+*******************************************************************************	
+	Inserts a datapoint in a histogram for N0 natural numbers.
+	
+	The histogram holds n bins with the specified width.
+	Bin 0 is [0;width[ bin 1 is [width;2*width[, etc.
+	The last bin is [(n-1)*width;inf[.
+
+	Negative datapoints are entered in bin 0.
+	Datapoints larger than (n-1)*width are entered in the last bin.
+	
+	Parameters:
+		hist		-	Pointer to a histogram, which holds n bins. 
+		n			-	Number of histogram entries
+		width		-	Width of each bin. 
+		value		-	Value to add to the histogram
+						
+	Returns:
+		-
+******************************************************************************/
+void hist_insert(unsigned long *hist,unsigned short n,unsigned short width,unsigned short value)
+{
+	unsigned short idx;
+	
+	if(value<0)
+	{
+		idx=0;
+	}
+	else
+	{
+		idx=value/width;
+		if(idx>n-1)
+			idx=n-1;
+	}
+	hist[idx]++;
+}
+
+
+/******************************************************************************
+	function: slist_add
+*******************************************************************************	
+	Adds a value v into a sorted list slist of n elements
+	
+	The ordering of the list is kep
+	
+	Parameters:
+		hist		-	Pointer to a histogram, which holds n bins. 
+		n			-	Number of histogram entries
+		width		-	Width of each bin. 
+		value		-	Value to add to the histogram
+						
+	Returns:
+		-
+******************************************************************************/
+void slist_add(unsigned long *slist,int n,unsigned long v)
+{
+	// Check if the element is larger than the rightmost element
+	if(v>slist[n-1])
+	{
+		// Add the element at the rightmost location
+		slist[n-1]=v;
+		// Sort the list (bubble)
+		for(int i=n-1;i>=1;i--)
+		{
+			if(slist[i]>slist[i-1])
+			{
+				// Swap
+				unsigned long t = slist[i-1];
+				slist[i-1]=slist[i];
+				slist[i]=t;
+			}
+		}
+	}
+}
 
 

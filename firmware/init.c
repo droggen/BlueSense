@@ -171,7 +171,7 @@ void init_extended(void)
 
 
 	//system_status_ok(7);
-	system_status_ok(4);
+	//system_status_ok(4);
 	
 	
 	
@@ -258,7 +258,7 @@ void init_extended(void)
 	
 	//system_status_ok(5);
 	
-	system_status_ok(3);
+	//system_status_ok(3);
 	
 	/*I2C_TRANSACTION tx;
 	i2c_transaction_setup(&tx,DBG_ADDRESS,I2C_WRITE,1,0);
@@ -326,7 +326,7 @@ void init_extended(void)
 	mpu_init();
 	
 	
-	system_status_ok(3);
+	//system_status_ok(3);
 	
 	// Estimate baseline performance (optional)
 	//fprintf_P(file_pri,PSTR("Estimating baseline performance... "));		

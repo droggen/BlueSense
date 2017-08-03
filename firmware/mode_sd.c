@@ -39,28 +39,84 @@
 #include "test_sd.h"
 
 const char help_sdinit[] PROGMEM="Low-level SD card initialisation";
+const char help_erase[] PROGMEM="E,<sectorstart>,<sectorend>: erase all sectors or from [start;end]. If start and end are zero the entire flash is erased.";
 const char help_write[] PROGMEM="W,<sector>,<value>: Fills a sector with the given value (all data in decimal)";
 const char help_stream[] PROGMEM="S,<sector>,<value>,<size>,<bsize>: Writes size bytes data in streaming mode with caching; sends data by blocks of size bsize";
 const char help_read[] PROGMEM="R,<sector>: Reads a sector (sector number in decimal)";
 const char help_volume[] PROGMEM="Initialise volume";
 const char help_format[] PROGMEM="F,<numlogfiles>: Format the card for numlogfiles and initialise the volume (maximum numlogfiles=14)";
 const char help_logtest[] PROGMEM="L,<lognum>,<sizebytes>,<char>,<bsiz>: Writes to lognum sizebytes character char in bsiz blocks";
+const char help_logtest2[] PROGMEM="l,<lognum>,<sizekb>: Writes to lognum sizekb packets including time of write";
 const char help_sdbench[] PROGMEM="B,<benchtype>";
+const char help_sdbench2[] PROGMEM="b,<startsect>,<sizekb> stream cache write from startsect up to sizekb";
+const char help_sdbench3[] PROGMEM="1,<startsect>,<sizekb>,<preerasekb> stream cache write from startsect up to sizekb, optional preerase kb";
 
-#define CommandParsersSDNum 10
+#define CommandParsersSDNum 15
 const COMMANDPARSER CommandParsersSD[CommandParsersSDNum] =
 { 
 	{'I', CommandParserSDInit,help_sdinit},
+	{'E', CommandParserSDErase,help_erase},
+	//{'e', CommandParserSDErase2,help_erase},
+	//{'X', CommandParserSDErase3,help_erase},
 	{'W', CommandParserSDWrite,help_write},
 	{'S', CommandParserSDStream,help_stream},
 	{'R', CommandParserSDRead,help_read},
 	{'V', CommandParserSDVolume,help_volume},
 	{'F', CommandParserSDFormat,help_format},
 	{'L', CommandParserSDLogTest,help_logtest},
+	{'l', CommandParserSDLogTest2,help_logtest2},
 	{'B', CommandParserSDBench,help_sdbench},
+	{'b', CommandParserSDBench2,help_sdbench2},
+	{'1', CommandParserSDBench_t1,help_sdbench3},
+	{'2', CommandParserSDBench_t2,help_sdbench2},
 	{'H', CommandParserHelp,help_h},	
 	{'!', CommandParserQuit,help_quit}	
 };
+
+unsigned char CommandParserSDErase(char *buffer,unsigned char size)
+{
+	// Parse arguments
+	unsigned long addr1,addr2;
+	unsigned char rv = ParseCommaGetLong(buffer,2,&addr1,&addr2);
+	if(rv)
+		return 2;
+	
+	if(addr1==0 && addr2==0)
+	{
+		addr2 = _fsinfo.card_capacity_sector-1;
+	}
+	printf_P(PSTR("Erase %lu-%lu\n"),addr1,addr2);
+	
+	if(sd_erase(addr1,addr2))
+	{
+		printf_P(PSTR("Erase error.\n"));
+		return 1;
+	}
+	
+	
+	return 0;
+}
+/*unsigned char CommandParserSDErase2(char *buffer,unsigned char size)
+{
+	// Parse arguments
+	unsigned long addr;
+	unsigned char rv = ParseCommaGetLong(buffer,1,&addr);
+	if(rv)
+		return 2;
+	
+	printf("Erase end: %lu\n",addr);
+	
+	_sd_cmd33(addr);
+	return 0;
+}
+unsigned char CommandParserSDErase3(char *buffer,unsigned char size)
+{
+	printf("try erase\n");
+	//_sd_cmd38();
+	_sd_cmd_38_wait();
+	return 0;
+}*/
+
 
 unsigned char CommandParserSDBench(char *buffer,unsigned char size)
 {
@@ -96,6 +152,48 @@ unsigned char CommandParserSDBench(char *buffer,unsigned char size)
 	}
 	return 0;
 }
+unsigned char CommandParserSDBench2(char *buffer,unsigned char size)
+{
+	// Parse arguments
+	unsigned long startaddr,sizekb,preerasekb;
+	unsigned char rv = ParseCommaGetLong(buffer,3,&startaddr,&sizekb,&preerasekb);
+	if(rv)
+		return 2;
+	
+	printf("Stream cache write from %lu up to %luKB\n",startaddr,sizekb);
+	
+	sd_bench_streamcache_write2(startaddr,sizekb*1024l,preerasekb*2l);
+	return 0;
+}
+unsigned char CommandParserSDBench_t1(char *buffer,unsigned char size)
+{
+	// Parse arguments
+	unsigned long startaddr,sizekb,preerasekb;
+	unsigned char rv = ParseCommaGetLong(buffer,3,&startaddr,&sizekb,&preerasekb);
+	if(rv)
+		return 2;
+	
+	printf("Stream write from %lu up to %luKB\n",startaddr,sizekb);
+	
+	// preerase in sectors=preerase*1024/512=preerase*2l
+	sd_bench_stream_write2(startaddr,sizekb*1024l,preerasekb*2l);
+	return 0;
+}
+unsigned char CommandParserSDBench_t2(char *buffer,unsigned char size)
+{
+	// Parse arguments
+	unsigned long startaddr,sizekb;
+	unsigned char rv = ParseCommaGetLong(buffer,2,&startaddr,&sizekb);
+	if(rv)
+		return 2;
+	
+	printf("Write from %lu up to %luKB\n",startaddr,sizekb);
+	
+	//sd_bench_write(startaddr,sizekb*1024l);
+	sd_bench_write2(startaddr,sizekb*1024l);
+	return 0;
+}
+
 unsigned char CommandParserSDFormat(char *buffer,unsigned char size)
 {
 	unsigned int numlog;
@@ -120,6 +218,19 @@ unsigned char CommandParserSDLogTest(char *buffer,unsigned char size)
 	ufat_log_test(lognum,sz,ch,bsiz);
 	//t2 = timer_ms_get();
 	//printf_P(PSTR("Time: %lu ms. %lu bytes/s\n"),t2-t1,(sz*1000)/(t2-t1));
+	return 0;
+}
+unsigned char CommandParserSDLogTest2(char *buffer,unsigned char size)
+{
+	unsigned char rv;
+	unsigned int lognum,sz;
+	rv = ParseCommaGetInt((char*)buffer,2,&lognum,&sz);
+	if(rv)
+		return 2;
+	
+	printf("lognum: %u\n",lognum);
+	printf("sz: %u KB\n",sz);
+	ufat_log_test2(lognum,(unsigned long)sz*1024l);
 	return 0;
 }
 unsigned char CommandParserSDWrite(char *buffer,unsigned char size)
@@ -236,7 +347,7 @@ unsigned char CommandParserSDStream(char *buffer,unsigned char size)
 	unsigned long curraddr;
 	for(unsigned short i=0;i<512;i++)
 		block[i]=data;
-	sd_stream_open(sector);
+	sd_stream_open(sector,0);
 	while(len)
 	{
 		unsigned int effw=bsize;
@@ -265,11 +376,12 @@ unsigned char CommandParserSDInit(char *buffer,unsigned char size)
 	unsigned char rv;
 	CID cid;
 	CSD csd;
+	SDSTAT sdstat;
 	unsigned long capacity_sector;	
 	
 	printf_P(PSTR("Init SD\r"));
 		
-	rv = sd_init(&cid,&csd,&capacity_sector);
+	rv = sd_init(&cid,&csd,&sdstat,&capacity_sector);
 	if(rv!=0)
 	{
 		printf_P(PSTR("Init SD failure (%d)\r"),rv);
@@ -279,6 +391,7 @@ unsigned char CommandParserSDInit(char *buffer,unsigned char size)
 	printf_P(PSTR("Init SD success (%d)\r"),rv);
 	sd_print_cid(file_pri,&cid);
 	sd_print_csd(file_pri,&csd);	
+	sd_print_sdstat(file_pri,&sdstat);	
 	printf_P(PSTR("Card capacity: %ld sectors\n"),capacity_sector);
 	
 	// Check that we deal with an SDHC card with block length of 512 bytes

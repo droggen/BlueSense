@@ -61,7 +61,33 @@ typedef struct _OCR {
 	unsigned char v2728;
 } OCR;
 
+typedef struct _SDSTAT {
+	unsigned char DAT_BUS_WIDTH;
+	unsigned char SECURED_MODE;
+	unsigned short SD_CARD_TYPE;
+	unsigned long SIZE_OF_PROTECTED_AREA;
+	unsigned char SPEED_CLASS;
+	unsigned char PERFORMANCE_MOVE;
+	unsigned char AU_SIZE;
+	unsigned short ERASE_SIZE;
+	unsigned char ERASE_TIMEOUT;
+	unsigned char ERASE_OFFSET;
+	unsigned char UHS_SPEED_GRADE;
+	unsigned char UHS_AU_SIZE;
+	unsigned char VIDEO_SPEED_CLASS;
+	unsigned short VSC_AU_SIZE;
+	unsigned long SUS_ADDR;
+	unsigned char APP_PERF_CLASS;
+	unsigned char PERFORMANCE_ENHANCE;
+	unsigned char DISCARD_SUPPORT;
+	unsigned char FULE_SUPPORT;
+	
+} SDSTAT;
 
+
+
+
+	
 
 // Low-level
 unsigned char _sd_command_rn_retry(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,char *response,unsigned short n, unsigned char answermask,unsigned char okanswer);
@@ -73,12 +99,24 @@ unsigned char _sd_command_rn(unsigned char cmd,unsigned char p1,unsigned char p2
 unsigned char _sd_command_rn_ns(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char crc,char *response, unsigned short n);
 
 unsigned char _sd_readbock_ns(char *buffer,unsigned short n,unsigned short *checksum);
-unsigned char _sd_command_r1_readblock(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,char *r1,char *block,unsigned short n,unsigned short *checksum);
+unsigned char _sd_command_r1_datablock(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char *r1,char *block,unsigned short n,unsigned short *checksum);
+unsigned char _sd_command_r1_datablock_ns(unsigned char cmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4,unsigned char *r1,char *block,unsigned short n,unsigned short *checksum);
+unsigned char _sd_waitblock_ns(void);
+unsigned char _sd_readblock_ns(char *buffer,unsigned short n,unsigned short *checksum);
+
+unsigned char _sd_acommand_ns(unsigned char acmd,unsigned char p1,unsigned char p2,unsigned char p3,unsigned char p4);
 
 // Commands
 unsigned char _sd_cmd9(CSD *csd,unsigned long *capacity_sector);
 unsigned char _sd_cmd10(CID *cid);
+unsigned char _sd_acmd13(SDSTAT *sdstat);
+unsigned char _sd_acmd23_ns(unsigned long num);
+unsigned char _sd_cmd32(unsigned long addr);
+unsigned char _sd_cmd33(unsigned long addr);
+unsigned char _sd_cmd38(void);
 unsigned char _sd_cmd58(OCR *ocr);
+
+
 
 
 
@@ -94,9 +132,11 @@ void _sd_writeconst(unsigned char b,unsigned short size);
 
 
 // Internal multiblock writes
-unsigned char _sd_multiblock_open(unsigned long addr);
+unsigned char _sd_multiblock_open(unsigned long addr,unsigned long preerase);
 unsigned char _sd_multiblock_close(void);
 
+// Helpers
+unsigned char __sd_wait_notbusy(unsigned long timeout);
 
 
 #endif

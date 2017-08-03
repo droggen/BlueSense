@@ -146,17 +146,20 @@ typedef struct {
 	unsigned char ms;
 	signed short temp;
 	unsigned long int time;
-	unsigned short packetctr;
+	unsigned long packetctr;
 } MPUMOTIONDATA;
 
 
 // Data buffers
-#define MPU_MOTIONBUFFERSIZE 32
+// 64 buffers works on all cards which are U-1 or faster without data loss at 1KHz
+//#define MPU_MOTIONBUFFERSIZE 64		
+#define MPU_MOTIONBUFFERSIZE 8
+//#define MPU_MOTIONBUFFERSIZE 128
 extern volatile signed short mpu_data_ax[],mpu_data_ay[],mpu_data_az[],mpu_data_gx[],mpu_data_gy[],mpu_data_gz[],mpu_data_mx[],mpu_data_my[],mpu_data_mz[],mpu_data_temp[];
 extern volatile unsigned long int mpu_data_time[];
 extern volatile unsigned char mpu_data_ms[];
-extern volatile unsigned short mpu_data_packetctr[];
-extern volatile unsigned short __mpu_data_packetctr_current;
+extern volatile unsigned long mpu_data_packetctr[];
+extern volatile unsigned long __mpu_data_packetctr_current;
 extern volatile unsigned char mpu_data_rdptr,mpu_data_wrptr;
 
 extern volatile MPUMOTIONDATA _mpumotiondata_test;
@@ -177,6 +180,7 @@ extern unsigned char __mpu_autoread;
 extern unsigned long mpu_cnt_int, mpu_cnt_sample_tot, mpu_cnt_sample_succcess, mpu_cnt_sample_errbusy, mpu_cnt_sample_errfull;
 
 
+
 void __mpu_read_cb(void);
 
 // Motion data buffers
@@ -187,7 +191,9 @@ unsigned char mpu_data_getnext_raw(MPUMOTIONDATA &data);
 void _mpu_data_wrnext(void);
 void _mpu_data_rdnext(void);
 
-
+void mpu_clearstat(void);
+void mpu_clearbuffer(void);
+void mpu_getstat(unsigned long *cnt_int, unsigned long *cnt_sample_tot, unsigned long *cnt_sample_succcess, unsigned long *cnt_sample_errbusy, unsigned long *cnt_sample_errfull);
 
 void mpu_mode_accgyro(unsigned char gdlpe,unsigned char gdlpoffhbw,unsigned char gdlpbw,unsigned char adlpe,unsigned char adlpbw,unsigned char divider);
 void mpu_mode_gyro(unsigned char gdlpe,unsigned char gdlpoffhbw,unsigned char gdlpbw,unsigned char divider);

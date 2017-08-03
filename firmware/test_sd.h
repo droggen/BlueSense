@@ -45,6 +45,12 @@
 void test_sd_benchmarkwriteblock(unsigned long capacity_sectors);
 void test_sd_benchmarkwriteblockmulti(unsigned long capacity_sectors);
 void test_sdmulti(void);
-
+void sd_bench_streamcache_write(unsigned long startsect,unsigned long size);
+void sd_bench_stream_write(unsigned long startsect,unsigned long size,unsigned long preerase);
+void sd_bench_write(unsigned long startsect,unsigned long size);
+void sd_bench_write2(unsigned long startsect,unsigned long size);
+void sd_bench_stream_write2(unsigned long startsect,unsigned long size,unsigned long preerase);
+void sd_bench_streamcache_write2(unsigned long startsect,unsigned long size,unsigned long preerase);
 
 #endif
+

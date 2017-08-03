@@ -62,7 +62,6 @@ unsigned long stat_samplesendfailed;
 unsigned long stat_totsample;
 unsigned long stat_timemsstart,stat_t_cur,stat_wakeup,stat_time_laststatus;
 
-
 typedef struct {
 	unsigned long t;
 	signed short mW,mA,mV;
@@ -70,6 +69,7 @@ typedef struct {
 #define MAXBATSTATPTR 150
 BATSTAT batstat[MAXBATSTATPTR];
 unsigned short batstatptr;
+
 
 MPUMOTIONDATA mpumotiondata;
 
@@ -82,7 +82,7 @@ const COMMANDPARSER CommandParsersMotionStream[] =
 	{'H', CommandParserHelp,help_h},
 	//{'W', CommandParserSwap,help_w},
 	{'F', CommandParserStreamFormat,help_f},
-	{'L', CommandParserSampleLog,help_samplelog},
+	{'L', CommandParserSampleLogMPU,help_samplelog},
 	{'Z',CommandParserSync,help_z},
 	{'i',CommandParserInfo,help_info},
 	{'N', CommandParserAnnotation,help_annotation},
@@ -93,15 +93,33 @@ const COMMANDPARSER CommandParsersMotionStream[] =
 };
 const unsigned char CommandParsersMotionStreamNum=sizeof(CommandParsersMotionStream)/sizeof(COMMANDPARSER); 
 
+void clearstat(void)
+{
+	stat_totsample=0;
+	stat_samplesendfailed=0;	
+	stat_wakeup=0;	
+}
+
+unsigned char CommandParserSampleLogMPU(char *buffer,unsigned char size)
+{
+	// MPU specific code to start/stop the log
+	unsigned char rv=CommandParserSampleLog(buffer,size);
+	mpu_clearstat();	// Clear MPU ISR statistics
+	mpu_clearbuffer();
+	clearstat();		// Clear statistics related to streaming/logging
+	return rv;
+}
+
 unsigned char CommandParserSampleStatus(char *buffer,unsigned char size)
 {
-	stream_status(file_pri);
+	stream_status(file_pri,mode_stream_format_bin);
 	return 0;
 }
+
 void printbatstat(FILE *f)
 {
 	for(unsigned short i=0;i<batstatptr;i++)
-	fprintf_P(f,PSTR("%d %lu %d %d %d\n"),i,batstat[i].t,batstat[i].mV,batstat[i].mA,batstat[i].mW);
+		fprintf_P(f,PSTR("%d %lu %d %d %d\n"),i,batstat[i].t,batstat[i].mV,batstat[i].mA,batstat[i].mW);
 }
 
 unsigned char CommandParserBatBench(char *buffer,unsigned char size)
@@ -119,7 +137,7 @@ unsigned char stream_sample_text(FILE *f)
 	// Format packet counter
 	if(mode_stream_format_pktctr)
 	{
-		strptr=format1u16(strptr,mpumotiondata.packetctr);
+		strptr=format1u32(strptr,mpumotiondata.packetctr);
 	}
 	// Format timestamp
 	if(mode_stream_format_ts)
@@ -190,7 +208,7 @@ unsigned char stream_sample_bin(FILE *f)
 	// Format packet counter
 	if(mode_stream_format_pktctr)
 	{
-		packet_add16_little(&p,mpumotiondata.packetctr);
+		packet_add32_little(&p,mpumotiondata.packetctr);
 	}
 	// Format timestamp
 	if(mode_stream_format_ts)
@@ -293,20 +311,27 @@ unsigned char stream_sample(FILE *f)
 	
 	Paramters:
 		f		-	File to which to send the status
+		bin		-	Indicate status in binary or text
 
 	Returns:
 		Nothing
 *******************************************************************************/
-void stream_status(FILE *f)
+void stream_status(FILE *f,unsigned char bin)
 {
 	unsigned long wps = stat_wakeup*1000l/(stat_t_cur-stat_time_laststatus);
-	if(mode_stream_format_bin==0)
+	//unsigned long cnt_int, cnt_sample_tot, cnt_sample_succcess, cnt_sample_errbusy, cnt_sample_errfull;
+	unsigned long cnt_sample_errbusy, cnt_sample_errfull;
+	
+	//mpu_getstat(&cnt_int, &cnt_sample_tot, &cnt_sample_succcess, &cnt_sample_errbusy, &cnt_sample_errfull);
+	mpu_getstat(0, 0, 0, &cnt_sample_errbusy, &cnt_sample_errfull);
+	
+	if(bin==0)
 	{
 		// Information text
 		char str[128];
 		sprintf_P(str,PSTR("#t=%lu ms; %s"),stat_t_cur-stat_timemsstart,ltc2942_last_strstatus());
 		fputbuf(f,str,strlen(str));
-		sprintf_P(str,PSTR("; wps=%lu; spl=%lu spl; err=%lu spl; log=%lu KB; logmax=%lu KB; logfull=%lu %%\n"),wps,stat_totsample,stat_samplesendfailed,ufat_log_getsize()>>10,ufat_log_getmaxsize()>>10,ufat_log_getsize()/(ufat_log_getmaxsize()/100l));
+		sprintf_P(str,PSTR("; wps=%lu; errbsy=%lu; errfull=%lu; spl=%lu; errsend=%lu; log=%lu KB; logmax=%lu KB; logfull=%lu %%\n"),wps,cnt_sample_errbusy,cnt_sample_errfull,stat_totsample,stat_samplesendfailed,ufat_log_getsize()>>10,ufat_log_getmaxsize()>>10,ufat_log_getsize()/(ufat_log_getmaxsize()/100l));
 		fputbuf(f,str,strlen(str));
 	}
 	else
@@ -357,6 +382,9 @@ void stream_start(void)
 	scale = ConfigLoadMotionGyroScale();
 	fprintf_P(file_pri,PSTR("Gyro scale: %d\n"),scale);
 	mpu_setgyroscale(scale);
+	
+	// Clear statistics
+	mpu_clearstat();
 }
 void stream_stop(void)
 {
@@ -393,13 +421,10 @@ unsigned char CommandParserMotion(char *buffer,unsigned char size)
 ******************************************************************************/
 void mode_motionstream(void)
 {
-	
-	unsigned long int time_lastblink,t_end;
-	unsigned long int time_lastmemlog;
+	unsigned long int time_lastblink;
 	unsigned char putbufrv;
-	
-	
-	
+	unsigned long int time_lastbatlog;
+
 	system_led_set(0b01);
 	
 	//lcd_clear565(0);
@@ -413,18 +438,20 @@ void mode_motionstream(void)
 
 	stream_start();
 	
-	stat_totsample=0;
-	stat_samplesendfailed=0;	
-	stat_wakeup=0;	
-	stat_t_cur = time_lastmemlog = time_lastblink = stat_time_laststatus = stat_timemsstart = timer_ms_get();
-	batstatptr=0;
+	clearstat();
+	stat_t_cur = time_lastblink = stat_time_laststatus = stat_timemsstart = timer_ms_get();	
 	
-	// Store the data
+	
+	time_lastbatlog=stat_t_cur;
+	batstatptr=0;	
+	// Store battery data
 	batstat[batstatptr].t = stat_t_cur-stat_timemsstart;
 	batstat[batstatptr].mV = ltc2942_last_mV();
 	batstat[batstatptr].mA = ltc2942_last_mA();
 	batstat[batstatptr].mW = ltc2942_last_mW();
 	batstatptr++;
+	
+	
 	
 	while(1)
 	{
@@ -453,30 +480,30 @@ void mode_motionstream(void)
 			if(stat_t_cur-stat_time_laststatus>10000)
 			//if(stat_t_cur-stat_time_laststatus>2000)
 			{
-				stream_status(file_pri);
+				stream_status(file_pri,mode_stream_format_bin);
 				stat_time_laststatus=stat_t_cur;
 				stat_wakeup=0;
 			}
 		}
 		
 		// Memory logs for battery benchmarks
-		if(stat_t_cur-time_lastmemlog>150000l)
-		//if(stat_t_cur-time_lastmemlog>30000l)
-		{		
+	
+		if(stat_t_cur-time_lastbatlog>150000l)
+		{
 			// Store the data
-			printf("Storing bat log at %d\n",batstatptr);
 			if(batstatptr<MAXBATSTATPTR)
 			{
+				//printf_P(PSTR("Storing bat log at %d\n"),batstatptr);
 				batstat[batstatptr].t = stat_t_cur-stat_timemsstart;
 				batstat[batstatptr].mV = ltc2942_last_mV();
 				batstat[batstatptr].mA = ltc2942_last_mA();
 				batstat[batstatptr].mW = ltc2942_last_mW();
 				batstatptr++;
 			}
-			time_lastmemlog=stat_t_cur;
+			time_lastbatlog=stat_t_cur;
 		}
 		
-		// Stream
+		// Stream existing data
 		unsigned char l = mpu_data_level();
 		for(unsigned char i=0;i<l;i++)
 		{
@@ -581,60 +608,66 @@ void mode_motionstream(void)
 				// Check whether the fputbuf was done on a log file; in which case close the log file.
 				if(file_stream==mode_sample_file_log)
 				{
-					mode_sample_logend();
-					fprintf_P(file_pri,PSTR("Motion mode: log file full\n"));
+					fprintf_P(file_pri,PSTR("Motion mode: log file full or log error\n"));
 					break;
 				}
 			}
 			stat_totsample++;
-		}
-		
-		
+		} // End iterating sample buffer
 		
 		
 		// Stop if batter too low
 		if(ltc2942_last_mV()<3350)
-		//if(ltc2942_last_mV()<4160)
 		{
-			mode_sample_logend();
 			fprintf_P(file_pri,PSTR("Low battery, interrupting\n"));
 			break;
 		}
-	}
+		
+	} // End sample loop
 	
+	// Stop acquiring data
 	stream_stop();	
-	t_end=timer_ms_get();
 	
-	// End the logging, if logging was ongoing
+	// Stop the logging, if logging was ongoing
 	mode_sample_logend();
 	
-	// Store batstat in a logfile
-	mode_sample_file_log = ufat_log_open(ufat_log_getnumlogs()-1);
-	if(!mode_sample_file_log)
-	{
-		fprintf_P(file_pri,PSTR("Error opening batstatlog\n"));
-	}
-	else
-	{
-		log_printstatus();
-		fprintf(mode_sample_file_log,"Battery log:\n");
-		printbatstat(mode_sample_file_log);
-		fprintf(mode_sample_file_log,"Battery log end\n");
-		mode_sample_file_log=0;
-		ufat_log_close();
-	}
-
-	
-
-	printf_P(PSTR("Streaming stopped. Total streaming time: %lu ms\n"),t_end-stat_timemsstart);
-	printf_P(PSTR("Put buffer errors: %lu\n"),stat_samplesendfailed);
-	
-	printf_P(PSTR("stat_wakeups: %u\n"),stat_wakeup);
+	#ifdef MSM_LOGBAT
+		// Store batstat in a logfile
+		if(ufat_available())
+		{
+			mode_sample_file_log = ufat_log_open(ufat_log_getnumlogs()-1);
+			if(!mode_sample_file_log)
+			{
+				fprintf_P(file_pri,PSTR("Error opening batstatlog\n"));
+			}
+			else
+			{
+				//log_printstatus();
+				fprintf(mode_sample_file_log,"Battery log:\n");
+				printbatstat(mode_sample_file_log);
+				fprintf(mode_sample_file_log,"Battery log end\n");
+				mode_sample_file_log=0;
+				ufat_log_close();
+			}
+		}
+	#endif 	
+	printbatstat(file_pri);
+	stream_status(file_pri,0);	
 	mpu_printstat(file_pri);
 	
+	// Total errors
+	unsigned long cnt_sample_errbusy, cnt_sample_errfull,toterr;
+	mpu_getstat(0, 0, 0, &cnt_sample_errbusy, &cnt_sample_errfull);
+	toterr = stat_samplesendfailed+cnt_sample_errfull+cnt_sample_errbusy;
+	fprintf_P(file_pri,PSTR("Total sampling errors: %lu on %lu samples (%lu ppm)\n"),toterr,stat_totsample,toterr*1000000l/stat_totsample);
+	if(toterr*1000000l/stat_totsample>10)
+		fprintf_P(file_pri,PSTR("WARNING: HIGH SAMPLING ERRORS\n"));
 
+
+	system_led_set(0b0);
 	
 }
+
 
 
 
