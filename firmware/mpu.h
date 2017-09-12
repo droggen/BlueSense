@@ -155,10 +155,7 @@ typedef struct {
 //#define MPU_MOTIONBUFFERSIZE 64		
 #define MPU_MOTIONBUFFERSIZE 8
 //#define MPU_MOTIONBUFFERSIZE 128
-extern volatile signed short mpu_data_ax[],mpu_data_ay[],mpu_data_az[],mpu_data_gx[],mpu_data_gy[],mpu_data_gz[],mpu_data_mx[],mpu_data_my[],mpu_data_mz[],mpu_data_temp[];
-extern volatile unsigned long int mpu_data_time[];
-extern volatile unsigned char mpu_data_ms[];
-extern volatile unsigned long mpu_data_packetctr[];
+extern MPUMOTIONDATA volatile mpu_data[];
 extern volatile unsigned long __mpu_data_packetctr_current;
 extern volatile unsigned char mpu_data_rdptr,mpu_data_wrptr;
 

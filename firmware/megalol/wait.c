@@ -26,8 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	
 	This library requires some of these functions to be called from a timer interrupt to update the internal logic:
 	
-	_tick_1024hz		-	This function must be called from an interrupt running at 1024Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.
-	[_tick_1000hz		-	This function must be called from an interrupt running at 1000Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.]
+	_timer_tick_1024hz	-	This function must be called from an interrupt running at 1024Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.
+	[_timer_tick_1000hz	-	This function must be called from an interrupt running at 1000Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.]
 	_timer_tick_hz		-	Optionally, this may be called once per second if a high-accuracy RTC with second resolution is available.
 		
 	The overall time is composed of the highly accurate second counter (if available), combined with the less 1024Hz timer for millisecond accuracy.
@@ -72,6 +72,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	The parameter passed to "normal" callbacks is always 0. The parameter passed to the "slow" callbacks is the number of seconds since the epoch, i.e.
 	the number of times _timer_tick_hz has been called. This can be used to synchronise tasks based on the number of seconds elapsed since the epoch.
 	
+	*Implementation rationale*
+	
+	The time in milliseconds is computed and updated upon each callback call. This slightly increases the time to execute the callback, but the benefits are:
+	- a much faster timer_ms_get function which only needs to return the pre-computed time; this is especially beneficial if timestamps are required in interrupt routines or for delays.
+	- a more consistent use of CPU resources in a real-time implementation.
+	
+	*TODO*
+	
+	The assembler version of time in microsecond uses a previous implementation of the millisecond time which was not precomputed. 
+	This timer_us_get_asm_fast should be updated to rely on the pre-computed milliseconds; if this is done, the following variable and their updates can be eliminated: _timer_time_1_in_ms, _timer_time_1_in_s, _timer_time_1024.
 	
 	
 */
@@ -97,14 +107,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 										conversion to time will fail. This is not an issue if a
 										1Hz timer is available. 
 	_timer_time_1000: time in 1/1000s; used for a faster version of the code
+	_timer_time_ms:				Current time in milliseconds, guaranteed to be monotonic; this is updated every time a _timer_tick_1024hz or _timer_tick_hz callback is called. This is the time returned by timer_ms_get
+	_timer_time_ms_lastsec:		Time in milliseconds the last time _timer_tick_hz was called. This is used internally to compute _timer_time_ms.
+	
 ******************************************************************************/
 volatile unsigned long _timer_time_1_in_ms=0;
 volatile unsigned long _timer_time_1_in_s=0;
 volatile unsigned long _timer_time_1024=0;
-volatile unsigned long _timer_time_1000=0;
-volatile unsigned long _timer_time_1000_abs=0;
-volatile unsigned long _timer_lastmillisec=0;
+//volatile unsigned long _timer_time_1000=0;
+volatile unsigned long _timer_time_ms_intclk=0;
+//volatile unsigned long _timer_lastmillisec=0;
 volatile unsigned long long _timer_lastmicrosec=0;
+
+volatile unsigned long _timer_time_ms=0;				// Current time in milliseconds; combination of the 1Hz callback time and the internal clock
+volatile unsigned long _timer_time_ms_lastsec=0;			// Time in milliseconds the last time the 1Hz callback was called
 
 // State
 unsigned char _timer_time_1024to1000_divider=0;		// This variable is used by _timer_tick_1024hz to generate a 1000Hz update from a 1024Hz clock
@@ -140,10 +156,13 @@ void timer_init(unsigned long epoch_sec)
 		_timer_time_1_in_ms=epoch_sec*1000;
 		_timer_time_1_in_s=epoch_sec;
 		_timer_time_1024=0;
-		_timer_time_1000=0;
-		_timer_time_1000_abs=0;
-		_timer_lastmillisec=0;
+		//_timer_time_1000=0;
+		_timer_time_ms_intclk=0;
+		//_timer_lastmillisec=0;
 		_timer_lastmicrosec=0;
+		
+		_timer_time_ms=_timer_time_ms_lastsec=epoch_sec*1000;
+		
 		
 		// Clear counter and interrupt flags
 		TCNT1=0;				// Clear counter, and in case the timer generated an interrupt during this initialisation process clear the interrupt flag manually
@@ -159,7 +178,6 @@ void timer_init(unsigned long epoch_sec)
 			timer_callbacks[i].counter=0;
 		}
 		
-		//system_led_set(0);		// Reset the lifesign led
 	}
 }
 
@@ -310,55 +328,7 @@ unsigned int timer_elapsed_fast(void)
 
 }*/
 extern unsigned long cpu_time;
-/******************************************************************************
-	function: timer_ms_get_c
-*******************************************************************************
-	Return the time in millisecond since the epoch.
-	
-	The maximum time since the epoch is about 48.5 days or .
-	The return value is guaranteed to be monotonic until the time counter wraps
-	around after 48 days.
-	
-	Returns:
-		Time in milliseconds since the epoch	
-******************************************************************************/
-/*unsigned long timer_ms_get_c(void)
-{
-	// Old version doing multiplication by 1000 and shift
-	unsigned long t1,t1024;
-	unsigned long t;
-	
-	// Copy current time atomically
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-	{
-		t1 = _timer_time_1_in_ms;
-		t1024 = _timer_time_1024;
-	}
-	
-	// Convert 1/1024s into milliseconds using a fast asm implementation
-	//t1024 *= 1000;
-	//t1024 >>= 10;
-	//t1024 = (t1024*1000)>>10;
-	//t1024=shr_u32_10(t1024);
-	//t1024=shr_u32_10(t1024*1000);
-	t1024=u32_mul1000_shr_10(t1024);
-	
-	// Compose the elapsed time
-	t = t1 + t1024;
-	
-	// Ensure monoticity of the returned time. 
-	// Correct time if the elapsed time is lower than the last returned time.
-	// This may (but is unlikely) happen if the 1024Hz timer is highly inaccurate.
-	// In that case we return the last returned time.
-	
-	// Ensure monoticity
-	if(t<_timer_lastmillisec)
-		return _timer_lastmillisec;
-	
-	// Update the last returned time
-	_timer_lastmillisec = t;	
-	return t;
-}*/
+
 /******************************************************************************
 	function: timer_ms_get_intclk
 *******************************************************************************
@@ -384,40 +354,33 @@ unsigned long timer_ms_get_intclk(void)
 	// Copy current time atomically
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		t1000 = _timer_time_1000_abs;
+		t1000 = _timer_time_ms_intclk;
 	}
 	return t1000;
 }
-unsigned long timer_ms_get_c_new(void)
-{	
-	// New version relying on _timer_time_1000
-	unsigned long t1,t1000;
-	unsigned long t;
+/******************************************************************************
+	function: timer_ms_get_c
+*******************************************************************************
+	Return the time in millisecond since the epoch.
 	
-	// Copy current time atomically
+	The maximum time since the epoch is about 48.5 days.
+	The return value is guaranteed to be monotonic until the time counter wraps
+	around after 48 days.
+	
+	Returns:
+		Time in milliseconds since the epoch	
+******************************************************************************/
+unsigned long timer_ms_get_c(void)
+{	
+	unsigned long t;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		t1 = _timer_time_1_in_ms;
-		t1000 = _timer_time_1000;
+		t=_timer_time_ms;
 	}
-	// Compose the elapsed time
-	t = t1 + t1000;
-	
-	// Ensure monoticity of the returned time. 
-	// Correct time if the elapsed time is lower than the last returned time.
-	// This may (but is unlikely) happen if the 1024Hz timer is highly inaccurate.
-	// In that case we return the last returned time.
-	
-	// Ensure monoticity
-	if(t<_timer_lastmillisec)
-		return _timer_lastmillisec;
-	
-	// Update the last returned time
-	_timer_lastmillisec = t;	
 	return t;
 }
 /******************************************************************************
-	timer_us_get
+	timer_us_get_c_new
 *******************************************************************************
 	Return the time in microsecond since the epoch.
 	
@@ -425,37 +388,33 @@ unsigned long timer_ms_get_c_new(void)
 	epochs older than 1 hour.
 	
 ******************************************************************************/
-unsigned long int timer_us_get_c(void)
+unsigned long int timer_us_get_c_new(void)
 {
-/*	unsigned long t1,t1024;
-	unsigned short tcnt;
-	//unsigned long tcntus;
+	// New version relying on _timer_time_1000
+	unsigned long tms;
+	unsigned long tcnt;
 	unsigned long long t;
-	//unsigned long t;
 	
-	// Copy current time 
+	// Copy current time atomically
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		tcnt = TCNT1;			// Copy first as counter keeps going on
-		t1 = _timer_time_1_in_ms;
-		t1024 = _timer_time_1024;		
+		t = _timer_time_ms;
 	}
-	
+	// Compose the elapsed time in us
+	t *= 1000;
 		
-	
-	// Convert t1024 to ms
-	t1024=u32_mul1000_shr_10(t1024);
 	
 	// TCNT is at 11059200Hz. Convert tcnt to uS using approximate function
 	// TCNT*1000000/11059200 in us. 
 	// 
 	tcnt=u16_mul5925_shr_16(tcnt);
+	//tcnt = (tcnt*5925l)>>16;
 	//tcntus = tcnt;
 	//tcntus =tcntus*625/6912;
 	
-	// Compose the elapsed time
-	t = t1*1000 + t1024*1000 + tcnt;
-	//t = t1*1000 + t1024*1000 + tcntus;
+	// Compose the elapsed time in us
+	t += tcnt;
 	
 	// Ensure monoticity of the returned time. 
 	// Correct time if the elapsed time is lower than the last returned time.
@@ -468,8 +427,7 @@ unsigned long int timer_us_get_c(void)
 	
 	// Update the last returned time
 	_timer_lastmicrosec = t;	
-	return t;*/
-	return 0;
+	return t;
 }
 
 
@@ -652,7 +610,13 @@ void _timer_tick_hz(void)
 	// Reset the 1/1024s timer.
 	_timer_time_1024=0;
 	// Reset the 1/1000s timer.
-	_timer_time_1000=0;
+	//_timer_time_1000=0;
+	
+	// Compute the new current time
+	_timer_time_ms_lastsec=_timer_time_ms_lastsec+1000;		// The time from the last 1Hz clock is incremented by 1000ms
+	if(_timer_time_ms_lastsec>_timer_time_ms)				// If this time is larger than the previous computed using the 1024/1000Hz timer, update to this; otherwise nothing.
+		_timer_time_ms=_timer_time_ms_lastsec;
+	
 	
 	// Process the callbacks
 	for(unsigned char i=0;i<timer_numslowcallbacks;i++)
@@ -688,8 +652,12 @@ void _timer_tick_1024hz(void)
 		return;	
 	
 	// This part is called at 1000Hz on average.	
-	_timer_time_1000++;
-	_timer_time_1000_abs++;
+	//_timer_time_1000++;
+	_timer_time_ms_intclk++;
+	
+	
+	_timer_time_ms++;		// Current time
+	
 	
 	// Process the callbacks
 	for(unsigned char i=0;i<timer_numcallbacks;i++)

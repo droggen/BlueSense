@@ -39,8 +39,8 @@ typedef struct
 
 
 // Select which implementation of timer_ms_get to use timer_ms_get_c, timer_ms_get_asm, timer_ms_get_asm_fast
-#define timer_ms_get timer_ms_get_asm_fast
-//#define timer_ms_get timer_ms_get_c
+//#define timer_ms_get timer_ms_get_asm_fast
+#define timer_ms_get timer_ms_get_c
 #define timer_us_get timer_us_get_asm_fast
 
 /*
@@ -48,14 +48,13 @@ typedef struct
 */
 extern volatile unsigned long _timer_time_1_in_ms;							// We count time from the 1Hz clock in milliseconds to speedup timer_ms_get. 32-bit: max 49 days
 extern volatile unsigned long _timer_time_1024;
-extern volatile unsigned long _timer_time_1000;
-extern volatile unsigned long _timer_time_1000_abs;
-extern volatile unsigned long _timer_lastmillisec;							// 32-bit: max 49 days
+//extern volatile unsigned long _timer_time_1000;
+extern volatile unsigned long _timer_time_ms_intclk;
+//extern volatile unsigned long _timer_lastmillisec;							// 32-bit: max 49 days
 extern volatile unsigned long long _timer_lastmicrosec;
 
 void timer_init(unsigned long epoch_sec);
 unsigned long timer_ms_get_c(void);
-unsigned long timer_ms_get_c_new(void);
 unsigned long timer_ms_get_asm(void);
 #ifdef __cplusplus
 extern "C" unsigned long timer_ms_get_asm_fast(void);
@@ -64,7 +63,7 @@ extern "C" unsigned long int timer_us_get_asm_fast(void);
 unsigned long timer_ms_get_asm_fast(void);
 unsigned long int timer_us_get_asm_fast(void);
 #endif
-unsigned long int timer_us_get_c(void);
+unsigned long int timer_us_get_c_new(void);
 unsigned long timer_ms_get_intclk(void);
 
 // Call this function from an interrupt routine every herz, if available, e.g. from a RTC

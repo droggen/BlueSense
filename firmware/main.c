@@ -295,13 +295,16 @@ ISR(PCINT3_vect)
 	Benchmarks the processor, here using simple counting. Use to assess
 	CPU load during sampling.
 	
+	Parameters:
+		mintime		-		Minimum duration of the benchmark in ms. 
+							If 0 (default if no parameters) does a 1000ms test.
+	
 	Return value:	performance result
 ******************************************************************************/
-unsigned long main_perfbench(void)
+unsigned long main_perfbench(unsigned long mintime)
 {
 	unsigned long int t_last,t_cur;
 	unsigned long int ctr,cps;
-	const unsigned long int mintime=1000;
 		
 	ctr=0;
 	t_last=timer_ms_get();
@@ -519,6 +522,57 @@ int main(void)
 		
 	}*/
 	
+	// Benchmark of timers
+	/*unsigned long t,tt1,tt2;
+	tt1=timer_ms_get();
+	for(unsigned i=0,t=0;i<50000;i++)
+	{
+		t=t+timer_ms_get();
+	}
+	tt2=timer_ms_get();
+	printf("timer_ms_get: %lu ms (%lu)\n",tt2-tt1,t);
+	tt1=timer_ms_get();
+	for(unsigned i=0,t=0;i<50000;i++)
+	{
+		t=t+timer_ms_get_c();
+	}
+	tt2=timer_ms_get();
+	printf("timer_ms_get_c: %lu ms (%lu)\n",tt2-tt1,t);
+	
+	
+	
+	// Benchmark of timers
+	tt1=timer_ms_get();
+	for(unsigned i=0,t=0;i<50000;i++)
+	{
+		t=t+timer_us_get_c_new();
+	}
+	tt2=timer_ms_get();
+	printf("timer_us_get_c_new: %lu ms (%lu)\n",tt2-tt1,t);
+	tt1=timer_ms_get();
+	for(unsigned i=0,t=0;i<50000;i++)
+	{
+		t=t+timer_us_get();
+	}
+	tt2=timer_ms_get();
+	printf("timer_us_get: %lu ms (%lu)\n",tt2-tt1,t);
+	
+	while(1)
+	{
+		for(int i=0;i<10;i++)
+		{
+			//t = timer_ms_get_c();
+			//tt1=timer_ms_get_asm_fast();
+			//printf("%ld %ld %ld\n",t,tt1,t-tt1);
+			
+			t = timer_us_get_c_new();
+			tt1 = timer_us_get();
+			printf("%lu %lu %ld\n",t,tt1,t-tt1);
+			_delay_us(200);
+		}
+		_delay_ms(1000);
+	}
+	*/
 	
 	mode_main();			// This never returns.
 	

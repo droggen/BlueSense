@@ -640,11 +640,11 @@ unsigned char CommandParserMPUTest_Auto(char *buffer,unsigned char size)
 	Benchmark all the motion modes and indicates CPU overhead and sample loss.
 	
 ******************************************************************************/
-unsigned long perfbench_withreadout(void)
+unsigned long perfbench_withreadout(unsigned long mintime)
 {
 	unsigned long int t_last,t_cur;
 	unsigned long int ctr,cps;
-	const unsigned long int mintime=1000;
+	//const unsigned long int mintime=1000;
 	MPUMOTIONDATA mpumotiondata;
 		
 	ctr=0;
@@ -668,19 +668,46 @@ unsigned long perfbench_withreadout(void)
 
 unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 {
-	long int perf,refperf;
+	long int perf,refperf,mintime=2000;
 	mpu_config_motionmode(MPU_MODE_OFF,0);
 	fprintf_P(file_pri,PSTR("Benchmarking all auto acquire modes\n"));
-	refperf = main_perfbench();
+	refperf = main_perfbench(mintime);
 	fprintf_P(file_pri,PSTR("Reference performance: %lu\n"),refperf);
-	for(unsigned char mode=MPU_MODE_OFF;mode<MOTIONCONFIG_NUM;mode++)
+	
+	unsigned char modestotest[]={
+		MPU_MODE_500HZ_GYRO_BW250, 
+		MPU_MODE_500HZ_GYRO_BW184,
+		MPU_MODE_200HZ_GYRO_BW92,
+		//MPU_MODE_100HZ_GYRO_BW41,
+		MPU_MODE_1KHZ_ACC_BW460,
+		MPU_MODE_500HZ_ACC_BW184,
+		MPU_MODE_200HZ_ACC_BW92,
+		//MPU_MODE_100HZ_ACC_BW41,
+		MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250,
+		MPU_MODE_500HZ_ACC_BW184_GYRO_BW250,
+		MPU_MODE_500HZ_ACC_BW184_GYRO_BW184,
+		MPU_MODE_200HZ_ACC_BW92_GYRO_BW92,
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41,
+		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_8,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_8,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_8,
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,
+		MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_100,
+		MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_100,
+		MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,
+		MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100
+		};
+
+	for(unsigned char mi=0;mi<sizeof(modestotest);mi++)
+	//for(unsigned char mode=MPU_MODE_OFF;mode<MOTIONCONFIG_NUM;mode++)
 	{
+		char mode=modestotest[mi];
 		char buf[96];
 		mpu_getmodename(mode,buf);
 		fprintf_P(file_pri,PSTR("Benchmarking mode %d: %s\n"),mode,buf);
-		mpu_config_motionmode(mode,1);
-		
-		perf = perfbench_withreadout();		
+		mpu_config_motionmode(mode,1);;
+		perf = perfbench_withreadout(mintime);		
 		
 		mpu_config_motionmode(MPU_MODE_OFF,0);
 		mpu_printstat(file_pri);

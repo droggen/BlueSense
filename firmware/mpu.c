@@ -122,10 +122,7 @@
 unsigned char __mpu_sample_softdivider_ctr=0,__mpu_sample_softdivider_divider=0;
 
 // Data buffers
-volatile signed short mpu_data_ax[MPU_MOTIONBUFFERSIZE],mpu_data_ay[MPU_MOTIONBUFFERSIZE],mpu_data_az[MPU_MOTIONBUFFERSIZE],mpu_data_gx[MPU_MOTIONBUFFERSIZE],mpu_data_gy[MPU_MOTIONBUFFERSIZE],mpu_data_gz[MPU_MOTIONBUFFERSIZE],mpu_data_mx[MPU_MOTIONBUFFERSIZE],mpu_data_my[MPU_MOTIONBUFFERSIZE],mpu_data_mz[MPU_MOTIONBUFFERSIZE],mpu_data_temp[MPU_MOTIONBUFFERSIZE];
-volatile unsigned long int mpu_data_time[MPU_MOTIONBUFFERSIZE];
-volatile unsigned char mpu_data_ms[MPU_MOTIONBUFFERSIZE];
-volatile unsigned long mpu_data_packetctr[MPU_MOTIONBUFFERSIZE];
+MPUMOTIONDATA volatile mpu_data[MPU_MOTIONBUFFERSIZE];
 volatile unsigned long __mpu_data_packetctr_current;
 volatile unsigned char mpu_data_rdptr,mpu_data_wrptr;
 volatile MPUMOTIONDATA _mpumotiondata_test;
@@ -315,6 +312,10 @@ void __mpu_read_cb(void)
 		mpu_cnt_sample_errfull++;
 		mpu_cnt_sample_succcess--;		// This plays with the increment of mpu_cnt_sample_succcess on the last line of this function; i.e. mpu_cnt_sample_succcess does not change.
 	}
+	
+	// Pointer to memory structure
+	volatile MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
+	
 
 	// Conver the data
 	signed short ax,ay,az,gx,gy,gz,mx,my,mz,temp;
@@ -336,34 +337,37 @@ void __mpu_read_cb(void)
 	switch(_mpu_mag_correctionmode)
 	{
 		case 0:
-			mpu_data_mx[mpu_data_wrptr]=mx;
-			mpu_data_my[mpu_data_wrptr]=my;
-			mpu_data_mz[mpu_data_wrptr]=mz;
+			mdata->mx=mx;
+			mdata->my=my;
+			mdata->mz=mz;
 			break;
 		case 1:
-			mpu_mag_correct1(mx,my,mz,&mpu_data_mx[mpu_data_wrptr],&mpu_data_my[mpu_data_wrptr],&mpu_data_mz[mpu_data_wrptr]);
+			mpu_mag_correct1(mx,my,mz,&mdata->mx,&mdata->my,&mdata->mz);
 			break;			
 		default:
-			mpu_mag_correct2(mx,my,mz,&mpu_data_mx[mpu_data_wrptr],&mpu_data_my[mpu_data_wrptr],&mpu_data_mz[mpu_data_wrptr]);
+			mpu_mag_correct2(mx,my,mz,&mdata->mx,&mdata->my,&mdata->mz);
 	}
 	
-	
 	// Fill the buffer
-	mpu_data_ax[mpu_data_wrptr]=ax;
-	mpu_data_ay[mpu_data_wrptr]=ay;
-	mpu_data_az[mpu_data_wrptr]=az;
-	mpu_data_gx[mpu_data_wrptr]=gx;
-	mpu_data_gy[mpu_data_wrptr]=gy;
-	mpu_data_gz[mpu_data_wrptr]=gz;
-	mpu_data_ms[mpu_data_wrptr]=ms;
-	mpu_data_temp[mpu_data_wrptr]=temp;
-	mpu_data_time[mpu_data_wrptr]=timer_ms_get();	
-	mpu_data_packetctr[mpu_data_wrptr]=__mpu_data_packetctr_current;
+	mdata->ax=ax;
+	mdata->ay=ay;
+	mdata->az=az;
+	mdata->gx=gx;
+	mdata->gy=gy;
+	mdata->gz=gz;
+	mdata->ms=ms;
+	mdata->temp=temp;
+	mdata->time=timer_ms_get();
+	mdata->packetctr=__mpu_data_packetctr_current;
 	_mpu_data_wrnext();
+	
 	
 	// Statistics
 	mpu_cnt_sample_succcess++;
 }
+
+
+
 
 /******************************************************************************
 	function: mpu_data_isfull
@@ -421,21 +425,9 @@ unsigned char mpu_data_getnext_raw(MPUMOTIONDATA &data)
 		if(mpu_data_wrptr==mpu_data_rdptr)
 			return 1;
 		// Copy the data
-		
-		data.ax = mpu_data_ax[mpu_data_rdptr];
-		data.ay = mpu_data_ay[mpu_data_rdptr];
-		data.az = mpu_data_az[mpu_data_rdptr];
-		data.gx = mpu_data_gx[mpu_data_rdptr];
-		data.gy = mpu_data_gy[mpu_data_rdptr];
-		data.gz = mpu_data_gz[mpu_data_rdptr];
-		data.mx = mpu_data_mx[mpu_data_rdptr];
-		data.my = mpu_data_my[mpu_data_rdptr];
-		data.mz = mpu_data_mz[mpu_data_rdptr];
-		data.ms = mpu_data_ms[mpu_data_rdptr];
-		data.temp=mpu_data_temp[mpu_data_rdptr];
-		data.time=mpu_data_time[mpu_data_rdptr];
-		data.packetctr=mpu_data_packetctr[mpu_data_rdptr];		
-		//memcpy((void*)&data,(void*)&_mpumotiondata_test,sizeof(MPUMOTIONDATA));
+		//memcpy((void*)&data,(void*)&mpu_data[mpu_data_rdptr],sizeof(MPUMOTIONDATA));
+		data = *(MPUMOTIONDATA*)&mpu_data[mpu_data_rdptr];
+		//data = mpu_data[mpu_data_rdptr];
 		// Increment the read pointer
 		_mpu_data_rdnext();
 		return 0;
@@ -1572,7 +1564,8 @@ void _mpu_mag_interfaceenable(unsigned char en)
 	else
 	{
 		// Deactivates periodic slave access		
-		mpu_writereg(MPU_R_I2C_MST_CTRL,0b00000000);		// Clear MULT_MST_EN, clear WAIT_FOR_ES. I2C 348KHz. TODO: check if needed.
+		mpu_writereg(MPU_R_I2C_MST_CTRL,0b00000000);		// Clear MULT_MST_EN, clear WAIT_FOR_ES. I2C 348KHz. TODO: check if needed.		(Default)
+		//mpu_writereg(MPU_R_I2C_MST_CTRL,0b00001001);		// Clear MULT_MST_EN, clear WAIT_FOR_ES. I2C 500KHz. TODO: check if needed.		(Increasing the I2C clock does not seem to improve/change anything in the behaviour)
 		unsigned char usr = mpu_readreg(MPU_R_USR_CTRL);
 		mpu_writereg(MPU_R_USR_CTRL,usr&0b11011111);		// Clears I2C_MST_EN		
 	}
@@ -1610,12 +1603,12 @@ void _mpu_mag_mode(unsigned char mode,unsigned char magdiv)
 			break;
 		case 1:
 			mpu_mag_writereg(0x0a,0b00010010);		// Continuous mode 1 (8Hz conversion), 16 bit
-			_mpu_mag_regshadow(1,magdiv,3,7);		// Start shadowing, dly=31
+			_mpu_mag_regshadow(1,magdiv,3,7);		// Start shadowing
 			break;
 		case 2:
 		default:
 			mpu_mag_writereg(0x0a,0b00010110);		// Continuous mode 2 (100Hz conversion), 16 bit
-			_mpu_mag_regshadow(1,magdiv,3,7);		// Start shadowing, dly=9
+			_mpu_mag_regshadow(1,magdiv,3,7);		// Start shadowing
 			break;
 	}
 }
@@ -1784,9 +1777,9 @@ void mpu_mag_calibrate(void)
 		timer_waitperiod_ms(10,&p);
 		
 		// BUG: this should use the new mpu_data_getnext_raw functions
-		m[0] = mpu_data_mx[mpu_data_rdptr];
-		m[1] = mpu_data_my[mpu_data_rdptr];
-		m[2] = mpu_data_mz[mpu_data_rdptr];
+		m[0] = mpu_data[mpu_data_rdptr].mx;
+		m[1] = mpu_data[mpu_data_rdptr].my;
+		m[2] = mpu_data[mpu_data_rdptr].mz;
 		_mpu_data_rdnext();
 		
 		unsigned char dirty=0;

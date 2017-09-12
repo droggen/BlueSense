@@ -178,7 +178,7 @@ void spiusart0_init(void)
 	// Set baud rate
 	//UBRR0=1;				//	2764 KHz @ 11'059'200 Hz
 	//UBRR0=3;				//	1382 KHz @ 11'059'200 Hz
-	UBRR0=5;				//	921.6 KHz @ 11'059'200 Hz
+	UBRR0=5;				//	921.6 KHz @ 11'059'200 Hz		// Works (default)
 	//UBRR0=54;				//	100.5 KHz @ 11'059'200 Hz
 	//UBRR0=255;			//	21.6 KHz @ 11'059'200 Hz
 	

@@ -153,6 +153,7 @@ void main_samplestatclear(void);
 unsigned short Battery_ADC2mv(unsigned short adc);
 void isr_motionint_sample(void);
 char ui_shouldexit(FILE *file);
-unsigned long main_perfbench(void);
+unsigned long main_perfbench(unsigned long mintime);
+
 
 
