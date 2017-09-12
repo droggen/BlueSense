@@ -164,10 +164,15 @@ void init_extended(void)
 	// BLUETOOTH INITIALISATION
 	//cli(); uart1_rx_callback = 0; sei();															// Deactivate callback
 	//cli(); uart1_rx_callback = echo_uart1_rx_callback; sei();					// Activate callback
+	unsigned long rnt1 = timer_ms_get();
 	rn41_Setup(file_usb,file_bt,system_devname);
+	unsigned long rnt2 = timer_ms_get();
 	bluetoothrts = (PIND&0x10)?1:0;
 	//cli(); uart1_rx_callback = echo_uart1_rx_callback; sei();					// Activate callback
 	cli(); uart1_rx_callback = 0; sei();															// Deactivate callback
+	
+	//fprintf_P(file_usb,PSTR("RN41 setup: %ld ms\n"),rnt2-rnt1);
+	//_delay_ms(500);
 
 
 	//system_status_ok(7);
@@ -345,6 +350,7 @@ void init_extended(void)
 
 	//timer_register_slowcallback(system_sampletemperature,6);
 	timer_register_slowcallback(system_lifesign,0);
+	timer_register_callback(system_batterystat,99);		// Battery status at 100Hz
 	
 
 	system_status_ok(1);

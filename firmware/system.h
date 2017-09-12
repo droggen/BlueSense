@@ -10,7 +10,9 @@
 extern unsigned char system_enable_lcd;
 #endif
 
-
+#define BATTERY_VERYVERYLOW 3350
+#define BATTERY_VERYLOW 3600
+#define BATTERY_LOW 3700
 
 
 void system_delay_ms(unsigned short t);
@@ -25,6 +27,7 @@ void system_status_ok2(unsigned char status);
 void system_status_error(unsigned char error,unsigned char forever);
 void system_led_test(void);
 unsigned char system_lifesign(unsigned char unused);
+unsigned char system_batterystat(unsigned char unused);
 
 unsigned char system_isbtconnected(void);
 unsigned char system_isusbconnected(void);

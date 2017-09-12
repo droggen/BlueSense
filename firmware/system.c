@@ -209,6 +209,68 @@ unsigned char system_lifesign(unsigned char sec)
 	//system_led_toggle(0b10);
 	return 0;
 }
+/******************************************************************************
+	function: system_batterystat
+*******************************************************************************
+	Blinks the red LED to indicate battery level.
+	
+	Must be called from a timer callback at 100Hz.
+	
+	Every 4 seconds, either does not blink (battery on the full side), or blinks
+	1, 2 or 3 times to indicate how low the battery is.
+	
+	Requires the ltc2942_last_mV function to return the battery voltage.
+	
+	Parameters:
+		unused	-	Unused parameter passed by the timer callback
+
+	Returns:
+		0 (unused)
+******************************************************************************/
+unsigned char system_batterystat(unsigned char unused)
+{
+	// Counter counts from 0 to 999 hundredth of seconds and wraps around (10 second period).
+	static unsigned char counter=0;
+	static unsigned char nblinks;
+	
+	if(counter==0)
+	{
+		// If counter is zero, we initialise the blink logic.
+		// nblinks indicate the number of blinks to issue.
+		nblinks=0;
+		unsigned short mv = ltc2942_last_mV();
+		
+		//mv=3550;
+		
+		nblinks=0;
+		if(mv<BATTERY_LOW)
+			nblinks++;
+		if(mv<BATTERY_VERYLOW)
+			nblinks++;
+		if(mv<BATTERY_VERYVERYLOW)
+			nblinks++;
+			
+		// Must blink nblinks time.		
+	}
+	// When nblinks is nonzero, the led is turned on when the lsb is 0, and turned off when the lsb is 1.
+	if(nblinks)
+	{
+		if( (counter&1) == 0)
+		{
+			system_led_on(0);
+		}
+		else
+		{
+			system_led_off(0);
+			nblinks--;
+		}
+	}
+	
+	counter++;
+	if(counter>39)
+		counter=0;
+	return 0;
+}
 void system_status_error(unsigned char error,unsigned char forever)
 {
 	do

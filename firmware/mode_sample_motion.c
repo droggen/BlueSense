@@ -425,8 +425,6 @@ void mode_motionstream(void)
 	unsigned char putbufrv;
 	unsigned long int time_lastbatlog;
 
-	system_led_set(0b01);
-	
 	//lcd_clear565(0);
 	//lcd_writestring("Streaming",28,0,2,0x0000,0xffff);	
 
@@ -617,7 +615,7 @@ void mode_motionstream(void)
 		
 		
 		// Stop if batter too low
-		if(ltc2942_last_mV()<3350)
+		if(ltc2942_last_mV()<BATTERY_VERYVERYLOW)
 		{
 			fprintf_P(file_pri,PSTR("Low battery, interrupting\n"));
 			break;
@@ -664,8 +662,7 @@ void mode_motionstream(void)
 		fprintf_P(file_pri,PSTR("WARNING: HIGH SAMPLING ERRORS\n"));
 
 
-	system_led_set(0b0);
-	
+
 }
 
 
