@@ -49,8 +49,9 @@
 	- 32 KHz pin disabled when powered on and powered off
 	
 	Parameters:
-								
+		-
 	Returns:
+		-
 
 ******************************************************************************/
 void ds3232_init(void)
@@ -490,15 +491,21 @@ void ds3232_printreg(FILE *file)
 			fprintf_P(file,PSTR(" %02x: %02X\n"),i,data[i]);
 		}*/
 		
-		fprintf_P(file,PSTR("DS3232 registers:\n"));
+		fprintf_P(file,PSTR("DS3232 registers:"));
 		
 		r1 = i2c_readregs(DS3232_ADDRESS,0,0x15,data);
-		fprintf_P(file,PSTR("readregs return: %d\n"),r1);
+		//fprintf_P(file,PSTR("readregs return: %d\n"),r1);
 		
-		for(int i=0;i<0x14;i++)
-		{		
-			fprintf_P(file,PSTR(" %02x: %02X\n"),i,data[i]);
+		// Pretty print as 2 rows of 16 registers
+		for(int j=0;j<2;j++)
+		{
+			fprintf_P(file,PSTR("\n\t%02X-%02X: "),j*16,j*16+15);
+			for(int i=0;i<16;i++)
+			{		
+				fprintf_P(file,PSTR("%02X "),data[j*16+i]);
+			}
 		}
+		fprintf_P(file,PSTR("\n"));
 
 }
 

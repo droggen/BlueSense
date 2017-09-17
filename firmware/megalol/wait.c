@@ -380,6 +380,51 @@ unsigned long timer_ms_get_c(void)
 	return t;
 }
 /******************************************************************************
+	function: timer_s_wait
+*******************************************************************************
+	Waits for a change in the seconds-since-epoch counter and returns the 
+	time in seconds since the epoch. 
+	
+	This function requires the  _timer_tick_hz callback to be called at 1Hz.
+	
+	As this function synchronises the time with changes to the 	
+	
+	
+	Returns:
+		Time in seconds since the epoch	
+******************************************************************************/
+unsigned long timer_s_wait(void)
+{	
+	unsigned long t1,t2;
+	t1=timer_s_get();
+	do
+	{
+		t2=timer_s_get();
+	}
+	while(t1==t2);
+	//printf("t1: %ld t2: %ld\n",t1,t2);
+	return t2;
+}
+/******************************************************************************
+	function: timer_s_get
+*******************************************************************************
+	Returns the time in seconds since the epoch. 
+	
+	This function requires the  _timer_tick_hz callback to be called at 1Hz.
+	
+	Returns:
+		Time in seconds since the epoch	
+******************************************************************************/
+unsigned long timer_s_get(void)
+{	
+	unsigned long t;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		t=_timer_time_1_in_s;
+	}
+	return t;
+}
+/******************************************************************************
 	timer_us_get_c_new
 *******************************************************************************
 	Return the time in microsecond since the epoch.
@@ -633,9 +678,9 @@ void _timer_tick_hz(void)
 
 
 /******************************************************************************
-	_timer_tick_1024hz
+	function: _timer_tick_1024hz
 *******************************************************************************
-	This function must be called from an interrupt routine every 1/1024 hz (mandatory)
+	This function must be called from an interrupt routine every 1/1024 hz.
 	
 	This may not be a very accurate clock (the 1 Hz clock aims to compensate for that).
 	
@@ -875,3 +920,26 @@ unsigned long timer_waitperiod_us(unsigned long p,WAITPERIOD *wp)
 	}
 	
 }*/
+
+
+/******************************************************************************
+	function: timer_waitperiod_us
+*******************************************************************************
+	Wait until a a period of time, or a multiple of it, has elapsed from the previous call.
+		
+	Prior to the first call to this function, wp must be set to 0.
+	
+	This function is time-wraparound-safe if the desired period and maximum
+	time elapsed between each function call is lower than 0x80000000 us (i.e. 35 minutes). 
+	
+	This function returns immediately for delays lower than 50uS.
+	This function may not be sufficiently accurate for delays below about 150us.
+	
+	Parameters:
+		p			-		Period in microseconds
+		wp			-		Pointer to WAITPERIOD, internally used to regularly
+							schedule the waits.
+							
+	Returns:
+		Current time in us.
+******************************************************************************/

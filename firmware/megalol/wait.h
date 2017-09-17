@@ -66,6 +66,9 @@ unsigned long int timer_us_get_asm_fast(void);
 unsigned long int timer_us_get_c_new(void);
 unsigned long timer_ms_get_intclk(void);
 
+unsigned long timer_s_wait(void);
+unsigned long timer_s_get(void);
+
 // Call this function from an interrupt routine every herz, if available, e.g. from a RTC
 void _timer_tick_hz(void);
 // Call this function from an interrupt routine every 1/1024 hz (_timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: call one or the other)

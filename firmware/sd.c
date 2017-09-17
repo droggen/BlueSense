@@ -152,8 +152,7 @@ unsigned char sd_init(CID *cid,CSD *csd,SDSTAT *sdstat,unsigned long *capacity)
 	// state.
 	sd_select_n(0);
 	_delay_ms(SD_DELAYBETWEENCMD);
-	//for(i=0; i < 16; i++) spi_rw_noselect(0xFF); // send 10*8=80 clock pulses
-	for(i=0; i < 128; i++) spi_rw_noselect(0xFF); // send 10*8=80 clock pulses
+	for(i=0; i < 128; i++) spi_rw_noselect(0xFF); // send at least 80 clock pulses
 	_delay_ms(SD_DELAYBETWEENCMD);
 	sd_select_n(1);		// Make sure we are in SDC mode
 	
@@ -704,6 +703,11 @@ sd_streamcache_write_loop:
 		//fputc('w',file_pri);
 		// Get card status
 		rv = spi_rw_noselect(0xFF);
+		// To prevent timeout if streaming slowly. E.g. when sending one packet to the card every second only one FF is sent to the card per second, which timeouts MMC_TIMEOUT_READWRITE.
+		// Sending more FF is harmless at the cost of slightly slower maximum write speed (less than 0.5%).
+		rv = spi_rw_noselect(0xFF);
+		rv = spi_rw_noselect(0xFF);
+		rv = spi_rw_noselect(0xFF);
 		
 		#ifdef MMCDBG
 			printf_P(PSTR("sd_streamcache: wait <- %02X\n"),rv);
@@ -718,8 +722,12 @@ sd_streamcache_write_loop:
 			break;
 		}
 		// Check the time elapsed from _sd_block_stop_nowait for a timeout.
+		// ISSUE: with certain cards and slow streaming speed, the following timeouts. 
+		// This happens because multiple FF's must be sent above, and only one FF is sent per "putbuf" call. Options: send multiple FF's above, or increase the timeout. 
+		// Choice: issue multiple FF above
 		if(timer_ms_get()-_sd_write_stream_t1>=MMC_TIMEOUT_READWRITE)
 		{
+			//printf("Dan timeout\n");
 			// Timeout waiting for card. Close the block
 			//fputc('t',file_pri);			
 			_sd_write_stream_error++;

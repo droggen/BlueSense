@@ -27,7 +27,8 @@ extern volatile float q0, q1, q2, q3;	// quaternion of sensor frame relative to 
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
-
+void testf(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz) ;
+void MadgwickAHRSinit(void);
 void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
 
 

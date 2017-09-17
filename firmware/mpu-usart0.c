@@ -1,3 +1,10 @@
+/*
+	Changes:
+		- Remove the "busy" and rely on the underlying spi-usart0 busy
+		- Either: give up on fixing the first byte and document it should be ignored, or fix the read/interrupt logic to not write the 1st byte.
+		-- In this case, exchange n bytes means sending n bytes and receiving n-1
+*/
+
 #include "cpu.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -57,7 +64,7 @@
 unsigned char _mpu_tmp[_MPU_FASTREAD_LIM+1];
 unsigned char *_mpu_tmp_reg = _mpu_tmp+1;
 void (*_mpu_cb)(void);
-volatile unsigned char _mpu_ongoing=0;
+volatile unsigned char _mpu_ongoing=0;				// _mpu_ongoing is used to block access to _mpu_tmp and other static/global variables which can only be used by a single transaction at a time.
 unsigned char *_mpu_result;
 unsigned short _mpu_n;
 
@@ -101,7 +108,7 @@ unsigned char mpu_readreg(unsigned char reg)
 	return buf[1];
 }
 /******************************************************************************
-	function: mpu_readreg
+	function: mpu_readreg16
 *******************************************************************************	
 	Reads a 16-bit MPU register.
 	
@@ -162,35 +169,49 @@ void mpu_readregs_int(unsigned char *d,unsigned char reg,unsigned char n)
 {
 	if(n<=_MPU_FASTREAD_LIM)
 	{
-		// Wait for end of interrupt transfer if any transfer is ongoing, as we use mpu_tmp which is shared with mpu_readregs_int_cb
-		mpu_readregs_int_wait:
-		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-		{
-			if(!_mpu_ongoing)
-			{
-				_mpu_ongoing=1;
-				goto mpu_readregs_int_start;
-			}
-		}
-		// Ensures opportunities to manage interrupts
-		_delay_us(1);				// 1 byte at 1MHz is 1uS. 
-		goto mpu_readregs_int_wait;
+		// Allocate enough memory for _MPU_FASTREAD_LIM+1 exchange
+		unsigned char tmp[_MPU_FASTREAD_LIM+1],*tmp2;
+		tmp[0]=0x80|reg;
+		tmp2=tmp+1;
 		
-		mpu_readregs_int_start:
-	
-		_mpu_tmp[0]=0x80|reg;
-		spiusart0_rwn_int(_mpu_tmp,n+1);
+		spiusart0_rwn_int(tmp,n+1);		// Waits for peripheral available, and blocks until transfer complete
+		// Discard the first byte which is meaningless and copy to return buffer
 		for(unsigned char i=0;i<n;i++)
-			//d[i] = _mpu_tmp[i+1];
-			d[i] = _mpu_tmp_reg[i];	// _mpu_tmp_reg is equal to _mpu_tmp+1
-		_mpu_ongoing=0;
+			d[i]=tmp2[i];
 	}
 	else
 	{
 		mpu_readregs(d,reg,n);
 	}
 }
+/******************************************************************************
+	function: mpu_readregs_int_try_raw
+*******************************************************************************	
+	Reads several MPU registers using polling. Waits until transfer completion. 
+	
+	Suitable for calls from interrupts.
+	
+	Note that d must be an n+1 buffer, and the first register read will be
+	stored at d[1].
+	
+	Parameters:
+		d		-		Buffer receiving the register data; this must be a n+1 bytes register
+		reg		-		First register to read data from
+		n		-		Number of registers to read		
+	
+	Returns:
+		0		-		Success
+		1		-		Error: transaction too large or peripheral busy
+	
+******************************************************************************/
+unsigned char mpu_readregs_int_try_raw(unsigned char *d,unsigned char reg,unsigned char n)
+{
+	if(n>=_MPU_FASTREAD_LIM)
+		return 1;
 
+	d[0]=0x80|reg;
+	return spiusart0_rwn_try(d,n+1);
+}
 /******************************************************************************
 	function: mpu_readregs_int_cb
 *******************************************************************************	
@@ -201,6 +222,8 @@ void mpu_readregs_int(unsigned char *d,unsigned char reg,unsigned char n)
 	is ongoing. It calls a callback upon completion.
 	
 	This function is safe to be called from an interrupt.
+	
+	The maximum number of exchanged bytes is _MPU_FASTREAD_LIM.
 	
 	Parameters:
 		d		-		Buffer receiving the register data.
@@ -221,13 +244,17 @@ void mpu_readregs_int(unsigned char *d,unsigned char reg,unsigned char n)
 ******************************************************************************/
 unsigned char mpu_readregs_int_cb(unsigned char *d,unsigned char reg,unsigned char n,void (*cb)(void))
 {
-	// Disable interrupts and reserve the transaction
+	// Transaction too large
+	if(n>=_MPU_FASTREAD_LIM)
+		return 1;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		if(_mpu_ongoing || n>_MPU_FASTREAD_LIM)
+		// Another mpu transaction ongoing: return error.
+		if(_mpu_ongoing)
 		{
 			return 1;
 		}
+		// Block from other mpu transactions being initiated
 		_mpu_ongoing=1;
 	}
 		
@@ -257,7 +284,6 @@ void __mpu_readregs_int_cb_cb(void)
 	if(_mpu_result)
 	{
 		for(unsigned char i=0;i<_mpu_n;i++)
-			//_mpu_result[i] = _mpu_tmp[i+1];
 			_mpu_result[i] = _mpu_tmp_reg[i];	// _mpu_tmp_reg is equal to _mpu_tmp+1
 	}
 	if(_mpu_cb)
@@ -265,7 +291,67 @@ void __mpu_readregs_int_cb_cb(void)
 	//dbg_fputchar_nonblock('Y',0);
 	_mpu_ongoing=0;
 }
-
+/******************************************************************************
+	function: mpu_readregs_int_cb_raw
+*******************************************************************************	
+	Read several MPU registers using interrupt transfer. 
+	
+	This is a "raw" variant of mpu_readregs_int_cb which is slightly faster.
+	
+	The result of the register read is in _mpu_tmp_reg must be used within the callback
+	as subsequent transactions will overwrite the results.
+	
+	The callback must set _mpu_ongoing=0, otherwise no further transactions are possible.	
+	
+	The maximum transfer size must be smaller or equal to _MPU_FASTREAD_LIM.
+	
+	The function returns immediately if another mpu_readregs_int_cb transaction
+	is ongoing. It calls a callback upon completion.
+	
+	This function is safe to be called from an interrupt.
+	
+	The maximum number of exchanged bytes is _MPU_FASTREAD_LIM.
+	
+	Parameters:
+		reg		-		First register to read data from
+		n		-		Number of registers to read		
+		cb		-		User callback to call when the transaction is completed.
+						The result of the transaction is available in the 
+						unsigned char array _mpu_result, which is set to point to
+						d.
+	Returns:
+		0		-		Success
+		1		-		Error
+		
+******************************************************************************/
+unsigned char mpu_readregs_int_cb_raw(unsigned char reg,unsigned char n,void (*cb)(void))
+{
+	// Transaction too large
+	if(n>=_MPU_FASTREAD_LIM)
+		return 1;
+	// Disable interrupts and reserve the transaction
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		// Another mpu transaction ongoing: return error.
+		if(_mpu_ongoing)
+		{
+			return 1;
+		}
+		// Block from other mpu transactions being initiated
+		_mpu_ongoing=1;
+	}
+		
+	_mpu_n = n;	
+	_mpu_cb = cb;
+	_mpu_tmp[0]=0x80|reg;
+	if(spiusart0_rwn_int_cb(_mpu_tmp,n+1,cb))
+	{
+		// Transaction failed
+		_mpu_ongoing=0;
+		return 1;
+	}
+	return 0;
+}
 /******************************************************************************
 	function: mpu_get_agt_int_init
 *******************************************************************************	

@@ -45,8 +45,8 @@ const char help_stream[] PROGMEM="S,<sector>,<value>,<size>,<bsize>: Writes size
 const char help_read[] PROGMEM="R,<sector>: Reads a sector (sector number in decimal)";
 const char help_volume[] PROGMEM="Initialise volume";
 const char help_format[] PROGMEM="F,<numlogfiles>: Format the card for numlogfiles and initialise the volume (maximum numlogfiles=14)";
-const char help_logtest[] PROGMEM="L,<lognum>,<sizebytes>,<char>,<bsiz>: Writes to lognum sizebytes character char in bsiz blocks";
-const char help_logtest2[] PROGMEM="l,<lognum>,<sizekb>: Writes to lognum sizekb packets including time of write";
+const char help_logtest[] PROGMEM="l,<lognum>,<sizekb>: QA test. Logs test data to <lognum> up to <sizekb> KB. Use to validate speed/consistency of SD card writes.";
+//const char help_logtest2[] PROGMEM="L,<lognum>,<sizebytes>,<char>,<bsiz>: Writes to lognum sizebytes character char in bsiz blocks";
 const char help_sdbench[] PROGMEM="B,<benchtype>";
 const char help_sdbench2[] PROGMEM="b,<startsect>,<sizekb> stream cache write from startsect up to sizekb";
 const char help_sdbench3[] PROGMEM="1,<startsect>,<sizekb>,<preerasekb> stream cache write from startsect up to sizekb, optional preerase kb";
@@ -64,7 +64,7 @@ const COMMANDPARSER CommandParsersSD[CommandParsersSDNum] =
 	{'V', CommandParserSDVolume,help_volume},
 	{'F', CommandParserSDFormat,help_format},
 	{'L', CommandParserSDLogTest,help_logtest},
-	{'l', CommandParserSDLogTest2,help_logtest2},
+	//{'l', CommandParserSDLogTest2,help_logtest2},
 	{'B', CommandParserSDBench,help_sdbench},
 	{'b', CommandParserSDBench2,help_sdbench2},
 	{'1', CommandParserSDBench_t1,help_sdbench3},
@@ -204,7 +204,7 @@ unsigned char CommandParserSDFormat(char *buffer,unsigned char size)
 	ufat_format(numlog);
 	return 0;
 }
-unsigned char CommandParserSDLogTest(char *buffer,unsigned char size)
+/*unsigned char CommandParserSDLogTest2(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	unsigned int lognum,ch,sz,bsiz;
@@ -212,15 +212,10 @@ unsigned char CommandParserSDLogTest(char *buffer,unsigned char size)
 	if(rv)
 		return 2;
 		
-	//printf_P(PSTR("Logging to %d for %u bytes with char %02x in block size of %u\n"),lognum,sz,ch,bsiz);
-	//unsigned long t1,t2;
-	//t1 = timer_ms_get();
-	ufat_log_test(lognum,sz,ch,bsiz);
-	//t2 = timer_ms_get();
-	//printf_P(PSTR("Time: %lu ms. %lu bytes/s\n"),t2-t1,(sz*1000)/(t2-t1));
+	ufat_log_test2(lognum,sz,ch,bsiz);
 	return 0;
-}
-unsigned char CommandParserSDLogTest2(char *buffer,unsigned char size)
+}*/
+unsigned char CommandParserSDLogTest(char *buffer,unsigned char size)
 {
 	unsigned char rv;
 	unsigned int lognum,sz;
@@ -230,7 +225,7 @@ unsigned char CommandParserSDLogTest2(char *buffer,unsigned char size)
 	
 	printf("lognum: %u\n",lognum);
 	printf("sz: %u KB\n",sz);
-	ufat_log_test2(lognum,(unsigned long)sz*1024l);
+	ufat_log_test(lognum,(unsigned long)sz*1024l,65536);
 	return 0;
 }
 unsigned char CommandParserSDWrite(char *buffer,unsigned char size)
@@ -445,17 +440,18 @@ void mode_sd(void)
 	
 	*/
 	
-	
+	fprintf_P(file_pri,PSTR("SD>\n"));
 	
 	while(1)
 	{
 	//	fprintf_P(file_pri,PSTR("Some ADC stuff: %d. period: %d. mask: %02X. pri: %p dbg: %p\n"),ctr,mode_adc_period,mode_adc_mask,file_pri,file_dbg);
 
-		while(CommandProcess(CommandParsersSD,CommandParsersSDNum));
+		CommandProcess(CommandParsersSD,CommandParsersSDNum);
 		if(CommandShouldQuit())
 			break;
 			
 	}
+	fprintf_P(file_pri,PSTR("<SD\n"));
 }
 
 

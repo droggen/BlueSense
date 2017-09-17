@@ -161,6 +161,7 @@ ASRC =
 #ASRC = num.S
 ASRC = helper_num.S
 ASRC += numeric.S
+ASRC += mpu_helper.S
 #ASRC += softspi.S
 #ASRC += lcd_spi.S
 #ASRC = softspi.S

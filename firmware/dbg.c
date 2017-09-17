@@ -19,6 +19,22 @@
 #include "serial1.h"
 #include "adc.h"
 
+/*
+	File: dbg
+	
+	FT200X debugging interface
+	
+	*Internal notes*
+	
+	Benchmarking of the inquire process, from the issuing of transaction until available bytes returned (from i2c_transaction_queue(2,0,&_dbg_trans_query1,&_dbg_trans_query2); until _dbg_query_callback2 is called)
+	is:
+		~208-256uS @ 552KHz
+		~232-279uS @ 394 KHz
+		~511-559 @ 100KHz
+	
+	
+*/
+
 //#define DBG_DBG
 
 CIRCULARBUFFER _dbg_tx_state,_dbg_rx_state;
@@ -38,6 +54,7 @@ unsigned char _dbg_numtxbeforerx=5;			// 5: 13743 bytes/sec @1024Hz	6880 bytes/s
 //unsigned char _dbg_numtxbeforerx=10;	// 10: 14894 bytes/sec @1024Hz	7447 bytes/sec @512Hz
 unsigned char _dbg_newnumtxbeforerx=0;
 
+volatile unsigned long _dbg_query_callback2_time,_dbg_query_callback1_time;
 
 /*
 	State 0: send data if any
@@ -56,6 +73,7 @@ void dbg_init(void)
 	_dbg_rx_state.mask = DBG_BUFFER_SIZE-1;
 	
 	dbg_general_state=0;
+	dbg_general_busy=0;
 	
 	dbg_clearbuffers();
 	
@@ -177,8 +195,10 @@ unsigned char dbg_callback(unsigned char p)
 {
 	unsigned char r;
 	unsigned short lvl;
-	static unsigned char ctr=0;
-	char b[32];
+	//static unsigned char ctr=0;
+	//char b[32];
+	
+	//_delay_us(100);
 	
 	// If not connected we don't run the callback at all
 	//return 0;
@@ -243,13 +263,15 @@ unsigned char dbg_callback(unsigned char p)
 		{
 			// Two possibilities: 1) if nothing to send go to inquire state; 2) if nothing to send go to next state (tx or inquire). 
 			// Option 1 puts higher load on CPU.
+			// Option 2 is required to ensure the CPU does not miss MPU samples. 
+			// It is unclear why MPU samples could be missed, as the MPU interrupt is higher priority than the I2C interrupt
 			
 			// 1) If nothing to send, then go to inquire state.
-			dbg_general_state = _dbg_numtxbeforerx;
-			goto inquire_state;
+			//dbg_general_state = _dbg_numtxbeforerx;
+			//goto inquire_state;
 			// 2) if nothing to send go to next state (tx or inquire). 
-			//dbg_general_state++;
-			//return 0;
+			dbg_general_state++;
+			return 0;
 		}
 		
 		// Clamp max write to DBG_MAXPAYLOAD (<I2C buffer)
@@ -392,6 +414,9 @@ unsigned char _dbg_write_callback(I2C_TRANSACTION *t)
 }
 unsigned char _dbg_query_callback1(I2C_TRANSACTION *t)
 {
+	_dbg_query_callback1_time = timer_us_get();
+	_dbg_query_callback1_time&=0xFFFFFFFE;		// Even value in case of success
+	
 	// First transaction successful -> do nothing
 	if(t->status==0)
 		return 0;
@@ -408,10 +433,15 @@ unsigned char _dbg_query_callback1(I2C_TRANSACTION *t)
 	fputs(b,file_bt);*/
 	fputc('Q',file_bt);
 	#endif
+	
+	_dbg_query_callback1_time++;	// odd value in case of error
+	
 	return 1;
 }
 unsigned char _dbg_query_callback2(I2C_TRANSACTION *t)
 {
+	//_dbg_query_callback2_time = 2;
+	
 	// Second transaction
 	if(t->status==0)
 	{
@@ -432,7 +462,8 @@ unsigned char _dbg_query_callback2(I2C_TRANSACTION *t)
 			//system_led_set(0);
 			dbg_general_state=0;
 		}
-		
+		_dbg_query_callback2_time=timer_us_get();
+		_dbg_query_callback2_time&=0xfffffffE;
 		return 0;
 	}
 	// Second transaction failed
@@ -446,6 +477,9 @@ unsigned char _dbg_query_callback2(I2C_TRANSACTION *t)
 	
 	dbg_general_busy=0;
 	dbg_general_state=0;		
+	_dbg_query_callback2_time=timer_us_get();
+	_dbg_query_callback2_time&=0xfffffffE;
+	_dbg_query_callback2_time+1;
 	return 1;
 }
 unsigned char _dbg_read_callback(I2C_TRANSACTION *t)
@@ -529,3 +563,59 @@ void dbg_setioparam(unsigned char period,unsigned char txbeforerx)
 	dbg_setnumtxbeforerx(txbeforerx);
 	timer_register_callback(dbg_callback,period);
 }
+
+/*
+ Benchmark the speed of the inquire process
+*/
+void dbg_inquire_testspeed(void)
+{
+	unsigned char r;
+	unsigned long t1,t2,tcb1,tcb2;
+	
+	t1=timer_us_get();
+	_delay_ms(10);
+	t2=timer_us_get();
+	fprintf_P(file_pri,PSTR("10 ms delay: %lu us\n"),t2-t1);
+	
+	// Disable interrupts
+	timer_unregister_callback(dbg_callback);
+	while(dbg_general_busy);
+	
+	_delay_ms(1000);
+	
+	_dbg_query_callback2_time=0;
+	t1 = timer_us_get();
+	r = i2c_transaction_queue(2,0,&_dbg_trans_query1,&_dbg_trans_query2);
+	t2 = timer_us_get();
+	/*if(r)
+	{
+		printf("err\n");
+	}
+	while(_dbg_query_callback2_time==0);*/
+	
+	//_delay_ms(1000);
+	
+	while(_dbg_query_callback2_time==0);
+	// Copy the value
+	tcb1 = _dbg_query_callback1_time;
+	tcb2 = _dbg_query_callback2_time;
+	unsigned int rxl=dbg_rxlevel;
+	
+	// Reset the state machine
+	dbg_general_state=0;
+	dbg_general_busy=0;
+	
+
+	
+	timer_register_callback(dbg_callback,1);
+	
+	
+	fprintf_P(file_pri,PSTR("inquire: r: %d\n"),r);
+	fprintf_P(file_pri,PSTR("t1: %lu t2: %lu tcb1: %lu tcb2: %lu\n"),t1,t2,tcb1,tcb2);
+	fprintf_P(file_pri,PSTR("t1-cb2: %lu t2-cb2: %lu\n"),tcb2-t1,tcb2-t2);
+	fprintf_P(file_pri,PSTR("t1-cb1: %lu t2-cb1: %lu\n"),tcb1-t1,tcb1-t2);
+	fprintf_P(file_pri,PSTR("dbg_rxlevel: %d\n"),rxl);
+	
+}
+
+

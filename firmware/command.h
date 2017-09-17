@@ -2,7 +2,7 @@
 #define __COMMAND_H
 
 
-#define COMMANDMAXSIZE 32
+#define COMMANDMAXSIZE 96
 
 
 
@@ -16,7 +16,7 @@ extern const COMMANDPARSER *CommandParsersCurrent;
 extern unsigned char CommandParsersCurrentNum;
 
 
-
+void _CommandPrint(void);
 unsigned char CommandProcess(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum);
 unsigned char CommandGet(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum,unsigned char *msgid);
 unsigned char CommandDecodeExec(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum,char *buffer,unsigned char size,unsigned char *msgid);

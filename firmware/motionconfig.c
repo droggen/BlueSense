@@ -12,23 +12,24 @@
 		
 */
 
-const char mc_0[] PROGMEM = "Motion off";
-const char mc_1[] PROGMEM = "  500Hz Gyro (BW=250Hz)";
-const char mc_2[] PROGMEM = "  500Hz Gyro (BW=184Hz)";
-const char mc_3[] PROGMEM = "  200Hz Gyro (BW= 92Hz)";
-const char mc_4[] PROGMEM = "  100Hz Gyro (BW= 41Hz)";
-const char mc_5[] PROGMEM = "   50Hz Gyro (BW= 20Hz)";
-const char mc_6[] PROGMEM = "   10Hz Gyro (BW=  5Hz)";
-const char mc_7[] PROGMEM = "    1Hz Gyro (BW=  5Hz)";
-const char mc_8[] PROGMEM = " 1000Hz Acc  (BW=460Hz)";
-const char mc_9[] PROGMEM = "  500Hz Acc  (BW=184Hz)";
-const char mc_10[] PROGMEM = " 200Hz Acc  (BW= 92Hz)";
-const char mc_11[] PROGMEM = " 100Hz Acc  (BW= 41Hz)";
-const char mc_12[] PROGMEM = "  50Hz Acc  (BW= 20Hz)";
-const char mc_13[] PROGMEM = "  10Hz Acc  (BW=  5Hz)";
-const char mc_14[] PROGMEM = "   1Hz Acc  (BW=  5Hz)";
-const char mc_15[] PROGMEM = " 1000Hz Acc  (BW=460Hz) Gyro (BW=250Hz)";
-const char mc_16[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=250Hz)";
+// Exhaustive set of frequencies up to 1KHz
+const char mc_0[] PROGMEM =  "Motion off";
+const char mc_1[] PROGMEM =  "  500Hz Gyro (BW=250Hz) x";
+const char mc_2[] PROGMEM =  "  500Hz Gyro (BW=184Hz)";
+const char mc_3[] PROGMEM =  "  200Hz Gyro (BW= 92Hz)";
+const char mc_4[] PROGMEM =  "  100Hz Gyro (BW= 41Hz)";
+const char mc_5[] PROGMEM =  "   50Hz Gyro (BW= 20Hz)";
+const char mc_6[] PROGMEM =  "   10Hz Gyro (BW=  5Hz)";
+const char mc_7[] PROGMEM =  "    1Hz Gyro (BW=  5Hz)";
+const char mc_8[] PROGMEM =  " 1000Hz Acc  (BW=460Hz) x";
+const char mc_9[] PROGMEM =  "  500Hz Acc  (BW=184Hz)";
+const char mc_10[] PROGMEM = "  200Hz Acc  (BW= 92Hz)";
+const char mc_11[] PROGMEM = "  100Hz Acc  (BW= 41Hz)";
+const char mc_12[] PROGMEM = "   50Hz Acc  (BW= 20Hz)";
+const char mc_13[] PROGMEM = "   10Hz Acc  (BW=  5Hz)";
+const char mc_14[] PROGMEM = "    1Hz Acc  (BW=  5Hz)";
+const char mc_15[] PROGMEM = " 1000Hz Acc  (BW=460Hz) Gyro (BW=250Hz) x";
+const char mc_16[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=250Hz) x";
 const char mc_17[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz)";
 const char mc_18[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz)";
 const char mc_19[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz)";
@@ -41,13 +42,13 @@ const char mc_25[] PROGMEM = "  125Hz Acc low power";
 const char mc_26[] PROGMEM = " 62.5Hz Acc low power";
 const char mc_27[] PROGMEM = "31.25Hz Acc low power";
 const char mc_28[] PROGMEM = "    1Hz Acc low power";
-const char mc_29[] PROGMEM = " 1000Hz Acc  (BW=460Hz) Gyro (BW=250Hz) Mag 8Hz";
-const char mc_30[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=250Hz) Mag 8Hz";
+const char mc_29[] PROGMEM = " 1000Hz Acc  (BW=460Hz) Gyro (BW=250Hz) Mag 8Hz x";
+const char mc_30[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=250Hz) Mag 8Hz x";
 const char mc_31[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 8Hz";
 const char mc_32[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz";
 const char mc_33[] PROGMEM = "   50Hz Acc  (BW= 20Hz) Gyro (BW= 20Hz) Mag 8Hz";
-const char mc_34[] PROGMEM = " 1000Hz Acc  (BW=460Hz) Gyro (BW=250Hz) Mag 100Hz";
-const char mc_35[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=250Hz) Mag 100Hz";
+const char mc_34[] PROGMEM = " 1000Hz Acc  (BW=460Hz) Gyro (BW=250Hz) Mag 100Hz x";
+const char mc_35[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=250Hz) Mag 100Hz x";
 const char mc_36[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 100Hz";
 const char mc_37[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz";
 const char mc_38[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz";
@@ -55,6 +56,43 @@ const char mc_39[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz 
 const char mc_40[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz Quaternions  (broken, do not use)";
 const char mc_41[] PROGMEM = "  100Hz Quaternions";
 const char mc_42[] PROGMEM = "  200Hz Quaternions (broken, do not use)";
+
+// Reduced set of frequencies for which no sample loss can be guaranteed.
+/*const char mc_0[] PROGMEM = "Motion off";
+const char mc_1[] PROGMEM = "  500Hz Gyro (BW=184Hz)";
+const char mc_2[] PROGMEM = "  200Hz Gyro (BW= 92Hz)";
+const char mc_3[] PROGMEM = "  100Hz Gyro (BW= 41Hz)";
+const char mc_4[] PROGMEM = "   50Hz Gyro (BW= 20Hz)";
+const char mc_5[] PROGMEM = "   10Hz Gyro (BW=  5Hz)";
+const char mc_6[] PROGMEM = "    1Hz Gyro (BW=  5Hz)";
+const char mc_7[] PROGMEM = "  500Hz Acc  (BW=184Hz)";
+const char mc_8[] PROGMEM = " 200Hz Acc  (BW= 92Hz)";
+const char mc_9[] PROGMEM = " 100Hz Acc  (BW= 41Hz)";
+const char mc_10[] PROGMEM = "  50Hz Acc  (BW= 20Hz)";
+const char mc_11[] PROGMEM = "  10Hz Acc  (BW=  5Hz)";
+const char mc_12[] PROGMEM = "   1Hz Acc  (BW=  5Hz)";
+const char mc_13[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz)";
+const char mc_14[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz)";
+const char mc_15[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz)";
+const char mc_16[] PROGMEM = "   50Hz Acc  (BW= 20Hz) Gyro (BW= 20Hz)";
+const char mc_17[] PROGMEM = "   10Hz Acc  (BW=  5Hz) Gyro (BW=  5Hz)";
+const char mc_18[] PROGMEM = "    1Hz Acc  (BW=  5Hz) Gyro (BW=  5Hz)";
+const char mc_19[] PROGMEM = "  500Hz Acc low power";
+const char mc_20[] PROGMEM = "  250Hz Acc low power";
+const char mc_25[] PROGMEM = "  125Hz Acc low power";
+const char mc_26[] PROGMEM = " 62.5Hz Acc low power";
+const char mc_27[] PROGMEM = "31.25Hz Acc low power";
+const char mc_28[] PROGMEM = "    1Hz Acc low power";
+const char mc_31[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 8Hz";
+const char mc_32[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz";
+const char mc_33[] PROGMEM = "   50Hz Acc  (BW= 20Hz) Gyro (BW= 20Hz) Mag 8Hz";
+const char mc_36[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 100Hz";
+const char mc_37[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz";
+const char mc_38[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz";
+const char mc_39[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz Quaternions";
+const char mc_40[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz Quaternions  (broken, do not use)";
+const char mc_41[] PROGMEM = "  100Hz Quaternions";
+const char mc_42[] PROGMEM = "  200Hz Quaternions (broken, do not use)";*/
 
 PGM_P const mc_options[MOTIONCONFIG_NUM] PROGMEM = 
 {
@@ -125,9 +163,9 @@ const char config_sensorsr_settings[MOTIONCONFIG_NUM][11] = {
 					// Off
 					{ MPU_MODE_OFF,        0,         0,               0,     0,               0,      0,             0,     0,     0,		0},
 					// 500Hz Gyro (BW=250Hz)
-					{ MPU_MODE_GYR,        1,         0, MPU_GYR_LPF_250,     0,               0,      0,             0,     15,    0,		0},
+					{ MPU_MODE_GYR,        1,         0, MPU_GYR_LPF_250,     0,               0,      0,             0,     15,    0,		0},			// ODR=8000Hz
 					// 500Hz Gyro (BW=184Hz)
-					{ MPU_MODE_GYR,        1,         0, MPU_GYR_LPF_184,     0,               0,      1,             0,     0,     0,		0},
+					{ MPU_MODE_GYR,        1,         0, MPU_GYR_LPF_184,     0,               0,      1,             0,     0,     0,		0},			// ODR=500Hz
 					// 200Hz Gyro (BW= 92Hz)
 					{ MPU_MODE_GYR,        1,         0,  MPU_GYR_LPF_92,     0,               0,      4,             0,     0,     0,		0},
 					// 100Hz Gyro (BW= 41Hz)
@@ -139,7 +177,7 @@ const char config_sensorsr_settings[MOTIONCONFIG_NUM][11] = {
 					// 1Hz Gyro (BW=  5Hz)
 					{ MPU_MODE_GYR,        1,         0,   MPU_GYR_LPF_5,     0,               0,     99,             0,     9,     0,		0},
 					// 1000Hz Acc  (BW=460Hz)
-					{ MPU_MODE_ACC,        0,         0,               0,     1, MPU_ACC_LPF_460,      0,             0,     0,     0,		0},
+					{ MPU_MODE_ACC,        0,         0,               0,     1, MPU_ACC_LPF_460,      0,             0,     0,     0,		0},			// ODR=1000Hz
 					// 500Hz Acc  (BW=184Hz)
 					{ MPU_MODE_ACC,        0,         0,               0,     1, MPU_ACC_LPF_184,      1,             0,     0,     0,		0},
 					// 200Hz Acc  (BW= 92Hz)
@@ -153,11 +191,11 @@ const char config_sensorsr_settings[MOTIONCONFIG_NUM][11] = {
 					// 1Hz Acc  (BW=  5Hz)
 					{ MPU_MODE_ACC,        0,         0,               0,     1,   MPU_ACC_LPF_5,     99,             0,     9,     0,		0},
 					// 1000Hz Acc  (BW=460Hz) Gyro (BW=250Hz)
-					{ MPU_MODE_ACCGYR,     1,         0, MPU_GYR_LPF_250,     1, MPU_ACC_LPF_460,      0,             0,     7,     0,		0},
+					{ MPU_MODE_ACCGYR,     1,         0, MPU_GYR_LPF_250,     1, MPU_ACC_LPF_460,      0,             0,     7,     0,		0},			// ODR=8000Hz
 					// 500Hz Acc  (BW=184Hz) Gyro (BW=250Hz)
-					{ MPU_MODE_ACCGYR,     1,         0, MPU_GYR_LPF_250,     1, MPU_ACC_LPF_184,      0,             0,    15,     0,		0},
+					{ MPU_MODE_ACCGYR,     1,         0, MPU_GYR_LPF_250,     1, MPU_ACC_LPF_184,      0,             0,    15,     0,		0},			// ODR=8000Hz
 					// 500Hz Acc  (BW=184Hz) Gyro (BW=184Hz)
-					{ MPU_MODE_ACCGYR,     1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0,     0,		0},
+					{ MPU_MODE_ACCGYR,     1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0,     0,		0},			// ODR=500Hz
 					// 200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz)
 					{ MPU_MODE_ACCGYR,     1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     0,		0},
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz)
@@ -321,7 +359,7 @@ void mpu_getmodename(unsigned char motionmode,char *buffer)
 *******************************************************************************/
 void mpu_printmotionmode(FILE *file)
 {	
-	fprintf_P(file,PSTR("Motion modes:\n"));		
+	fprintf_P(file,PSTR("Motion modes (x indicates experimental modes; sample rate not respected):\n"));		
 	for(unsigned char i=0;i<MOTIONCONFIG_NUM;i++)
 	{
 		char buf[96];

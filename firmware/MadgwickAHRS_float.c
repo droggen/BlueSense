@@ -20,6 +20,7 @@
 
 #include "MadgwickAHRS.h"
 #include <math.h>
+#include <stdio.h>
 
 
 
@@ -50,8 +51,20 @@ float invSqrtf(float x);
 //====================================================================================================
 // Functions
 
+void MadgwickAHRSinit(void)
+{
+	q0 = 1.0f; 
+	q1 = 0.0f;
+	q2 = 0.0f;
+	q3 = 0.0f;
+}
+
 //---------------------------------------------------------------------------------------------------
 // AHRS algorithm update
+
+void testf(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz) {
+	printf("MadgParam: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,mx,my,mz);
+}
 
 void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz) {
 	float recipNorm;
@@ -61,6 +74,8 @@ void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, 
 	float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
 	float _4q0, _4q1, _4q2 ,_8q1, _8q2;
 
+	//printf("Madgqpre: %f %f %f %f\n",q0,q1,q2,q3);	
+	//printf("MadgParam: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,mx,my,mz);
 	
 	// Rate of change of quaternion from gyroscope
 	qDot1 = 0.5f * (-q1 * gx - q2 * gy - q3 * gz);
@@ -73,6 +88,7 @@ void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, 
 	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
 
 		// Normalise accelerometer measurement
+		//printf("A");
 		recipNorm = invSqrtf(ax * ax + ay * ay + az * az);
 		ax *= recipNorm;
 		ay *= recipNorm;
@@ -93,6 +109,7 @@ void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, 
 			// mag is non null
 			
 			// Normalise magnetometer measurement
+			//printf("B");
 			recipNorm = invSqrtf(mx * mx + my * my + mz * mz);
 			mx *= recipNorm;
 			my *= recipNorm;
@@ -143,6 +160,7 @@ void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, 
 			s2 = 4.0f * q0q0 * q2 + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az;
 			s3 = 4.0f * q1q1 * q3 - _2q1 * ax + 4.0f * q2q2 * q3 - _2q2 * ay;
 		}
+		//printf("C");
 		recipNorm = invSqrtf(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
 		s0 *= recipNorm;
 		s1 *= recipNorm;
@@ -166,11 +184,14 @@ void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, 
 	q3 += qDot4 * invSampleFreq;
 
 	// Normalise quaternion
+	//printf("D");
 	recipNorm = invSqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
 	q0 *= recipNorm;
 	q1 *= recipNorm;
 	q2 *= recipNorm;
 	q3 *= recipNorm;
+	
+	//printf("Madgqpost: %f %f %f %f\n",q0,q1,q2,q3);
 }
 
 
@@ -180,12 +201,22 @@ void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, 
 // See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
 
 float invSqrtf(float x) {
+
+	//printf("invsqrt %f ",x);
+
+
 	float halfx = 0.5f * x;
 	float y = x;
 	long i = *(long*)&y;
 	i = 0x5f3759df - (i>>1);
 	y = *(float*)&i;
 	y = y * (1.5f - (halfx * y * y));
+	
+	
+	
+//	float y = 1.0/sqrt(x);     // No need to save computation here
+	
+	//printf("%f\n",y);
 	return y;
 }
 

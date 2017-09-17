@@ -107,7 +107,7 @@ void mode_idle(void)
 	lcd_clear565(0);
 	lcd_writestring("Idle",48,0,2,0x0000,0xffff);	
 	
-	fprintf_P(file_pri,PSTR("Entering idle mode\n"));
+	fprintf_P(file_pri,PSTR("IDLE>\n"));
 	
 	
 	set_sleep_mode(SLEEP_MODE_IDLE); 
@@ -119,7 +119,7 @@ void mode_idle(void)
 		sleep_cpu();
 	//	fprintf_P(file_pri,PSTR("Some ADC stuff: %d. period: %d. mask: %02X. pri: %p dbg: %p\n"),ctr,mode_adc_period,mode_adc_mask,file_pri,file_dbg);
 
-		while(CommandProcess(CommandParsersIdle,CommandParsersIdleNum));		
+		CommandProcess(CommandParsersIdle,CommandParsersIdleNum);
 		if(CommandShouldQuit())
 			break;
 			
@@ -134,5 +134,5 @@ void mode_idle(void)
 			//fprintf_P(file_bt,PSTR("toto bt\n"));
 		}
 	}
-	fprintf_P(file_pri,PSTR("Idle mode end\n"));
+	fprintf_P(file_pri,PSTR("<IDLE\n"));
 }

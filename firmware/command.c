@@ -25,7 +25,7 @@
 	
 
 char CommandBuffer[COMMANDMAXSIZE];
-unsigned char CommandBufferPtr=0;
+unsigned char CommandBufferPtr=0;				// Index into CommandBuffer
 
 const char CommandSuccess[] PROGMEM = "CMDOK\n";
 const char CommandInvalid[] PROGMEM = "CMDINV\n";
@@ -76,6 +76,22 @@ unsigned char CommandProcess(const COMMANDPARSER *CommandParsers,unsigned char C
 }
 
 /******************************************************************************
+	function: _CommandPrint
+*******************************************************************************	
+	Pretty-print what is currently in the command buffer.
+	
+	Parameters:
+		-
+	
+	Returns:
+		-
+******************************************************************************/
+void _CommandPrint(void)
+{
+	fprintf_P(file_pri,PSTR("CommandBuffer %d/%d: "),CommandBufferPtr,COMMANDMAXSIZE);
+	prettyprint_hexascii(file_pri,CommandBuffer,CommandBufferPtr);
+}
+/******************************************************************************
 	function: CommandGet
 *******************************************************************************	
 	Reads file_pri until empty into the command buffer.
@@ -83,26 +99,32 @@ unsigned char CommandProcess(const COMMANDPARSER *CommandParsers,unsigned char C
 	Afterwards, process the command buffer and identifies which command to run and returns.
 	If a message is received its ID is placed in msgid.
 	
+	The command separators are CR, LF and ;.
+	
+	If the command were to use a ; within it (e.g. to set a boot script), the 
+	command must be enclosed in double quotation marks ".
+	CR or LF delimiters are still detected within the quotation block.
+	
+	If a single quotation mark only is present the command is treated as quoted 
+	from then until the next separator.
+	
+	A command can be a maximum of COMMANDMAXSIZE length; this function ensures
+	there is never more than COMMANDMAXSIZE stored in buffers.
+	
 	Returns:
 		0	-	no message
 		1	-	message execution ok (message valid)
 		2	-	message execution error (message valid)
 		3	-	message invalid 
 ******************************************************************************/
-void printcmd(void)
-{
-	printf("cmd: ");
-	for(int i=0;i<COMMANDMAXSIZE;i++)
-		printf("%02X ",CommandBuffer[i]);
-	printf(" (%d)\n",CommandBufferPtr);
-}
 unsigned char CommandGet(const COMMANDPARSER *CommandParsers,unsigned char CommandParsersNum,unsigned char *msgid)
 {
 	unsigned char rv;
 	short c;
+	unsigned char quote=0;			// Indicates whether we are in a quotation mode, where the semicolon separator is not used to separate commands
 	
-	//printf("read cmd before: %d\n",CommandBufferPtr);
 	// If connected to a primary source, read that source until the source is empty or the command buffer is full
+	// CommandBufferPtr indicates how many bytes are in the command buffer. The code below limits this to maximum COMMANDMAXSIZE.
 	if(file_pri)
 	{
 		while(CommandBufferPtr<COMMANDMAXSIZE)
@@ -112,52 +134,76 @@ unsigned char CommandGet(const COMMANDPARSER *CommandParsers,unsigned char Comma
 			CommandBuffer[CommandBufferPtr++] = c;
 		}
 	}
-	//printf("read cmd after: %d\n",CommandBufferPtr);
+	
 	// Fast path: command buffer empty
 	if(CommandBufferPtr==0)
 		return 0;
-	//printf("gotdata "); printcmd();
-	// Process the command buffer: find first cr or lf
+	
+	//_CommandPrint();		// Debug
+	
+	// Process the command buffer: search for the first command delimiter (cr, lf or ;)
 	for(unsigned char i=0;i<CommandBufferPtr;i++)
 	{
-		if(CommandBuffer[i]==10 || CommandBuffer[i]==13)
+		if(CommandBuffer[i]=='"')
 		{
-			//printf("crlf at %d\n",i);
-			// Found a CR or lF			
+			//printf("Quote at %d\n",i);
+			quote=1-quote;			// Toggle the quotation mode
+			// the quotation byte must 'disappear' from the command string: shift left the string by 1 and decrease string length by 1
+			memmove(&CommandBuffer[i],&CommandBuffer[i+1],COMMANDMAXSIZE-1-i);			// Shift left by 1
+			CommandBufferPtr--;															// Decrease size of string by 1
+			// Decrease index by one, so that the loop processes the new character that moved in the current index.
+			i--;					
+			//_CommandPrint();		// Debug
+			continue;
+		}
+		if(CommandBuffer[i]==10 || CommandBuffer[i]==13 || (CommandBuffer[i]==';' && quote==0) )
+		{
+			// Found a command delimiter
+			//fprintf_P(file_pri,PSTR("Separator at %d\n"),i);		// Debug
+			
+			// Exit the quote mode. An unclosed quote in a command terminated by a CR or LF should not spread to the next command
+			quote=0;
+			
 			if(i==0)
 			{
-				// First character is a cr/lf: return 'no command'
+				// The command is empty: store the return value 'no command'.
+				// Do not return immediately, as the command buffer must be shifted by one, which is done below.
 				rv=0;		
 			}
 			else
 			{
-				// The first character is not a cr/lf, hence a command is received
-				// Null-terminate the command
+				// The command is non empty. Null-terminate the command
 				CommandBuffer[i] = 0;
-				//printf("cmd string is '%s'\n",CommandBuffer);
+				
+				//fprintf_P(file_pri,PSTR("cmd string is '%s'\n"),CommandBuffer);			// Debug
 				// Decode the command
 				rv = CommandDecodeExec(CommandParsers,CommandParsersNum,CommandBuffer,i,msgid);
-				//printf("rv is: %d\n",rv);
+				//fprintf_P(file_pri,PSTR("rv is: %d\n"),rv);								// Debug
 			}
-			//printcmd();
-			// Remove the processed command or character from the buffer
+			//_CommandPrint();			// Debug
+			// Remove the processed command or character from the buffer by shifting the data out.
 			memmove(CommandBuffer,CommandBuffer+1+i,COMMANDMAXSIZE-1-i);
 			CommandBufferPtr-=1+i;
-			//printcmd();
-			//printf("New CommandBufferPtr: %d\n",CommandBufferPtr);
+			//_CommandPrint();			// Debug
 			return rv;
 		}
 	}
-	// If we arrive at this stage: either the newline has not been read yet, or the command buffer is full.
-	// Do nothing if the newline hasn't been read yet.
+	// If we arrive at this stage: either the command separator has not been read yet, or the command buffer is full.
 	if(CommandBufferPtr<COMMANDMAXSIZE)
 	{
+		// Do nothing if the command separator has not been read yet and the buffer is not full.
 		//printf("no nr|lf yet\n");
 		return 0;
 	}
-	//printf("buff full clear\n");
+	// Here problem: the command buffer is full and no command separator has been received.
+	// This should not happen, as the command buffer is large enough compared to the command buffer.
+	// Likely gibberish is sent to the device.
+	// Choose to clear the buffer.
+	//fprintf_P(file_pri,PSTR("buff full clear\n"));
+	
 	// Clear buffer if buffer is full.
 	CommandBufferPtr=0;
+	// Return invalid message
 	return 3;	
 }
 
@@ -196,7 +242,7 @@ unsigned char CommandDecodeExec(const COMMANDPARSER *CommandParsers,unsigned cha
 		
 	buffer[size]=0;
 	
-	fprintf_P(file_pri,PSTR("Got message of len %d: '%s'\n"),size,buffer);
+	//fprintf_P(file_pri,PSTR("Got message of len %d: '%s'\n"),size,buffer);
 	
 	for(unsigned char i=0;i<CommandParsersNum;i++)
 	{
@@ -215,7 +261,10 @@ unsigned char CommandDecodeExec(const COMMANDPARSER *CommandParsers,unsigned cha
 /******************************************************************************
 	Function: CommandSet
 *******************************************************************************	
-	Sets a command (one or more, newline delimited) in the command buffer.
+	Sets commands (one or more, delimited by any of the accepted separators) 
+	in the command buffer.
+	The existing content of the command buffer is erased. 
+	
 	This can be used to set a command script to execute e.g. on startup.
 
 	Parameters:
@@ -230,6 +279,7 @@ void CommandSet(char *script,unsigned char n)
 	memcpy(CommandBuffer,script,n);
 	CommandBufferPtr=n;
 }
+
 
 
 

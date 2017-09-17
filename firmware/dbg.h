@@ -44,6 +44,7 @@ unsigned char _dbg_query_callback1(I2C_TRANSACTION *t);
 unsigned char _dbg_query_callback2(I2C_TRANSACTION *t);
 unsigned char _dbg_write_callback(I2C_TRANSACTION *t);
 
+void dbg_inquire_testspeed(void);
 
 
 #endif

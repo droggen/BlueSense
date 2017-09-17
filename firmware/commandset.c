@@ -48,7 +48,7 @@ const char help_h[] PROGMEM ="Help";
 const char help_a[] PROGMEM ="A,<hex>,<us>: ADC mode. hex: ADC channel bitmask in hex; us: sample period in microseconds";
 const char help_s[] PROGMEM ="S,<us>: test streaming/logging mode; us: sample period in microseconds";
 const char help_f[] PROGMEM ="F,<bin>,<pktctr>,<ts>,<bat>,<label>: bin: 1 for binary, 0 for text; for others: 1 to stream, 0 otherwise";
-const char help_M[] PROGMEM ="M[,<mode>] stream motion data in specified mode; use M for available modes";
+const char help_M[] PROGMEM ="M[,<mode>[,<logfile>[,<duration>]]: without parameters lists available modes, otherwise enters the specified mode.\n\t\tOptionally logs to logfile (use -1 not to log) and runs for the specified duration in seconds.";
 const char help_m[] PROGMEM ="MPU test mode";
 const char help_g[] PROGMEM ="G,<mode> enters motion recognition mode. The parameter is the sample rate/channels to acquire. Use G? to find more about modes";
 const char help_o[] PROGMEM ="O[,sec] Power off and no wakeup, or wakeup after sec seconds";
@@ -712,7 +712,6 @@ unsigned char CommandParserPowerTest(char *buffer,unsigned char size)
 		0		-		Success
 		1		-		Message execution error (message valid)
 		2		-		Message invalid 
-		
 
 ******************************************************************************/
 unsigned char CommandParserSync(char *buffer,unsigned char size)
@@ -794,30 +793,38 @@ unsigned char CommandParserMPUTest(char *buffer,unsigned char size)
 	CommandChangeMode(APP_MODE_MPUTEST);
 	return 0;
 }
+/******************************************************************************
+	function: CommandParserBootScript
+*******************************************************************************	
+	Parses the boot script command. 
+	
+	If no parameter is passed it prints the current boot script.
+	
+	If a parameter is passed, the rest of the string after the comma is stored
+	as boot script.
+	
+	Parameters:
+		buffer	-		Pointer to the command string
+		size	-		Size of the command string
+
+	Returns:
+		0		-		Success
+		1		-		Message execution error (message valid)
+		2		-		Message invalid 
+
+******************************************************************************/
 unsigned char CommandParserBootScript(char *buffer,unsigned char size)
 {
-
-	printf("size: %d\n",size);
-	if(size==0)
+	//printf("size: %d\n",size);
+	if(size!=0)
 	{
-		// Read and print script
-		char buf[CONFIG_ADDR_SCRIPTLEN];
-		ConfigLoadScript(buf);
-		// Put a null at the end
-		for(unsigned i=0;i<CONFIG_ADDR_SCRIPTLEN;i++)
-			printf("%02X ",buf[i]);
-		// Massage the script: replace newlines by semicolons
-		/*for(unsigned char i=0;i<CONFIG_ADDR_SCRIPTLEN;i++)
-			if(buf[i]=='\n') 
-				buf[i]=';';*/
-		fprintf_P(file_pri,PSTR("Boot script: '%s'\n"),buf);
-	}
-	else
-	{
+		// If the first character is not a comma return an error.
 		if(buffer[0]!=',')
 			return 2;
+		// Skip the comma, the size decreases accordingly.
 		buffer++;
 		size--;
+		// The maximum scrip length is CONFIG_ADDR_SCRIPTLEN-2, as the last byte must be NULL and the one prior must be a command delimiter
 		if(size>CONFIG_ADDR_SCRIPTLEN-2)
 		{
 			fprintf_P(file_pri,PSTR("Boot script too long\n"));
@@ -826,14 +833,17 @@ unsigned char CommandParserBootScript(char *buffer,unsigned char size)
 		// Add a terminating newline (semicolon)
 		buffer[size++]=';';
 		buffer[size++]=0;
-		// Massage the script: replace semicolons by newlines
-		/*for(unsigned char i=1;i<size;i++)
-			if(buffer[i]==';') 
-				buffer[i]='\n';*/
-		// Save the message
-		//ConfigSaveScript((char*)buffer,size+1);
+		//printf("saving %d bytes\n",size);
 		ConfigSaveScript((char*)buffer,size);
 	}
+	
+	// Read and print script
+	char buf[CONFIG_ADDR_SCRIPTLEN];
+	ConfigLoadScript(buf);
+	fprintf_P(file_pri,PSTR("Boot script: \""));
+	prettyprint_hexascii(file_pri,buf,strlen(buf),0);
+	fprintf_P(file_pri,PSTR("\"\n"));
+	
 	return 0;
 }
 unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size)

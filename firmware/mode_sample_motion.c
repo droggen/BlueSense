@@ -47,6 +47,9 @@
 #include "ltc2942.h"
 
 
+// Volatile parameter of the mode 
+MODE_SAMPLE_MOTION_PARAM mode_sample_motion_param;
+
 // If quaternions are enabled: conversion factors
 #if ENABLEQUATERNION==1
 #if FIXEDPOINTQUATERNION==1
@@ -60,7 +63,8 @@ unsigned char enableinfo;
 
 unsigned long stat_samplesendfailed;
 unsigned long stat_totsample;
-unsigned long stat_timemsstart,stat_t_cur,stat_wakeup,stat_time_laststatus;
+unsigned long stat_timems_start,stat_t_cur,stat_wakeup,stat_time_laststatus;
+unsigned long int time_lastblink,time_lastbatlog;
 
 typedef struct {
 	unsigned long t;
@@ -93,20 +97,44 @@ const COMMANDPARSER CommandParsersMotionStream[] =
 };
 const unsigned char CommandParsersMotionStreamNum=sizeof(CommandParsersMotionStream)/sizeof(COMMANDPARSER); 
 
+void mode_sample_motion_setparam(unsigned char mode, int logfile, int duration)
+{
+	mode_sample_motion_param.mode=mode;
+	mode_sample_motion_param.logfile=logfile;
+	mode_sample_motion_param.duration=duration*1000l;		// Store the duration in milliseconds
+	
+	//printf("duration: %lu\n",mode_sample_motion_param.duration);
+	//printf("mode_sample_motion_setparam: %d %d %d\n",mode_sample_motion_param.mode,mode_sample_motion_param.logfile,mode_sample_motion_param.duration);
+}
+
 void clearstat(void)
 {
 	stat_totsample=0;
 	stat_samplesendfailed=0;	
 	stat_wakeup=0;	
+	
+	time_lastbatlog = stat_t_cur = time_lastblink = stat_time_laststatus = stat_timems_start = timer_ms_get();
+	
+	batstatptr=0;	
+	// Store battery data
+	batstat[batstatptr].t = stat_t_cur-stat_timems_start;
+	batstat[batstatptr].mV = ltc2942_last_mV();
+	batstat[batstatptr].mA = ltc2942_last_mA();
+	batstat[batstatptr].mW = ltc2942_last_mW();
+	batstatptr++;
 }
 
 unsigned char CommandParserSampleLogMPU(char *buffer,unsigned char size)
 {
 	// MPU specific code to start/stop the log
 	unsigned char rv=CommandParserSampleLog(buffer,size);
-	mpu_clearstat();	// Clear MPU ISR statistics
-	mpu_clearbuffer();
-	clearstat();		// Clear statistics related to streaming/logging
+	if(!rv)
+	{
+		// If there was a successful change in logging (start, stop, etc) then reset the statistics.
+		mpu_clearstat();	// Clear MPU ISR statistics
+		mpu_clearbuffer();
+		clearstat();		// Clear statistics related to streaming/logging
+	}
 	return rv;
 }
 
@@ -118,8 +146,9 @@ unsigned char CommandParserSampleStatus(char *buffer,unsigned char size)
 
 void printbatstat(FILE *f)
 {
+	fprintf_P(f,PSTR("Battery info:\n"));
 	for(unsigned short i=0;i<batstatptr;i++)
-		fprintf_P(f,PSTR("%d %lu %d %d %d\n"),i,batstat[i].t,batstat[i].mV,batstat[i].mA,batstat[i].mW);
+		fprintf_P(f,PSTR("\t%d %lu %d %d %d\n"),i,batstat[i].t,batstat[i].mV,batstat[i].mA,batstat[i].mW);
 }
 
 unsigned char CommandParserBatBench(char *buffer,unsigned char size)
@@ -329,9 +358,9 @@ void stream_status(FILE *f,unsigned char bin)
 	{
 		// Information text
 		char str[128];
-		sprintf_P(str,PSTR("#t=%lu ms; %s"),stat_t_cur-stat_timemsstart,ltc2942_last_strstatus());
+		sprintf_P(str,PSTR("#t=%lu ms; %s"),stat_t_cur-stat_timems_start,ltc2942_last_strstatus());
 		fputbuf(f,str,strlen(str));
-		sprintf_P(str,PSTR("; wps=%lu; errbsy=%lu; errfull=%lu; spl=%lu; errsend=%lu; log=%lu KB; logmax=%lu KB; logfull=%lu %%\n"),wps,cnt_sample_errbusy,cnt_sample_errfull,stat_totsample,stat_samplesendfailed,ufat_log_getsize()>>10,ufat_log_getmaxsize()>>10,ufat_log_getsize()/(ufat_log_getmaxsize()/100l));
+		sprintf_P(str,PSTR("; wps=%lu; errbsy=%lu; errfull=%lu; errsend=%lu; spl=%lu; log=%lu KB; logmax=%lu KB; logfull=%lu %%\n"),wps,cnt_sample_errbusy,cnt_sample_errfull,stat_samplesendfailed,stat_totsample,ufat_log_getsize()>>10,ufat_log_getmaxsize()>>10,ufat_log_getsize()/(ufat_log_getmaxsize()/100l));
 		fputbuf(f,str,strlen(str));
 	}
 	else
@@ -339,7 +368,7 @@ void stream_status(FILE *f,unsigned char bin)
 		// Information packet
 		PACKET p;
 		packet_init(&p,"DII",3);
-		packet_add32_little(&p,stat_t_cur-stat_timemsstart);		
+		packet_add32_little(&p,stat_t_cur-stat_timems_start);		
 		packet_add16_little(&p,ltc2942_last_mV());
 		packet_add16_little(&p,ltc2942_last_mA());
 		packet_add16_little(&p,ltc2942_last_mW());
@@ -362,8 +391,7 @@ void stream_status(FILE *f,unsigned char bin)
 
 void stream_start(void)
 {
-	// Load the configuration
-	unsigned mode = ConfigLoadMotionMode();
+	// Load the persistent data
 	mode_stream_format_bin=ConfigLoadStreamBinary();
 	mode_stream_format_ts=ConfigLoadStreamTimestamp();
 	mode_stream_format_bat=ConfigLoadStreamBattery();
@@ -371,10 +399,8 @@ void stream_start(void)
 	mode_stream_format_label = ConfigLoadStreamLabel();
 	enableinfo = ConfigLoadEnableInfo();
 	
+	mpu_config_motionmode(mode_sample_motion_param.mode,1);	
 	
-	mpu_config_motionmode(mode,1);	
-	
-	// Load the persistent data
 	unsigned char scale;
 	scale = ConfigLoadMotionAccScale();	
 	fprintf_P(file_pri,PSTR("Acc scale: %d\n"),scale);
@@ -384,33 +410,77 @@ void stream_start(void)
 	mpu_setgyroscale(scale);
 	
 	// Clear statistics
-	mpu_clearstat();
+	mpu_clearstat();	// Clear MPU ISR statistics
+	mpu_clearbuffer();
+	clearstat();		// Clear statistics related to streaming/logging
 }
 void stream_stop(void)
 {
 	mpu_config_motionmode(MPU_MODE_OFF,0);
 }
 
+/******************************************************************************
+	function: CommandParserMotion
+*******************************************************************************	
+	Parses the Motion command: M[,mode[,logfile[,length]]
+	
+	If no parameter is passed, it prints the available motion modes.
+	Single parameter: motion mode
+	Two parameters: motion mode and logfile on which to store data
+	Three parameters: motion mode, logfile, and duration in seconds to run this mode before exiting.
+	
+	
+	Parameters:
+		buffer	-		Pointer to the command string
+		size	-		Size of the command string
 
+	Returns:
+		0		-		Success
+		1		-		Message execution error (message valid)
+		2		-		Message invalid 
+******************************************************************************/
 unsigned char CommandParserMotion(char *buffer,unsigned char size)
 {
 	unsigned char rv;
-	int mode;
+	int mode,lognum,duration;
 	
+	// Parse from the smallest number of arguments to the largest
 	rv = ParseCommaGetInt((char*)buffer,1,&mode);
 	if(rv)
 	{
-		// print help
+		// No argument - display available modes and returns successfully
 		mpu_printmotionmode(file_pri);
-		return 2;
+		return 0;
 	}
-	if(mode<0 || mode>MOTIONCONFIG_NUM)
-		return 2;
-		
-	// If mode valid then store config
-	ConfigSaveMotionMode(mode);
 	
+	// One argument - check validity
+	if(mode<0 || mode>MOTIONCONFIG_NUM)
+		return 2;	// Invalid
+
+	//printf("Mode: %d\n",mode);
+	
+	// Check if two arguments
+	rv = ParseCommaGetInt((char*)buffer,2,&mode,&lognum);
+	if(rv==0)
+	{
+		// Two arguments were parsed
+		//printf("lognum: %d\n",lognum);
+		
+		// Check if three arguments
+		rv = ParseCommaGetInt((char*)buffer,3,&mode,&lognum,&duration);
+		if(rv==0)
+		{
+			//printf("Duration: %d\n",duration);
+			mode_sample_motion_setparam(mode,lognum,duration);
+		}
+		else
+			mode_sample_motion_setparam(mode,lognum,0);
+	}
+	else
+		mode_sample_motion_setparam(mode,-1,0);
+		
 	CommandChangeMode(APP_MODE_MOTIONSTREAM);
+	
 	return 0;
 }
 
@@ -419,36 +489,34 @@ unsigned char CommandParserMotion(char *buffer,unsigned char size)
 *******************************************************************************	
 	Streaming mode loop	
 ******************************************************************************/
+// TODO: each time that a logging starts, stops, or change reset all the statistics and clear the buffers, including resetting the time since running
 void mode_motionstream(void)
 {
-	unsigned long int time_lastblink;
+	
 	unsigned char putbufrv;
-	unsigned long int time_lastbatlog;
+	
+	fprintf_P(file_pri,PSTR("SMPLMOTION>\n"));
 
 	//lcd_clear565(0);
 	//lcd_writestring("Streaming",28,0,2,0x0000,0xffff);	
 
+	// Initialise Madgwick
+	MadgwickAHRSinit();
+
+	// Initialise the sleep mode
 	set_sleep_mode(SLEEP_MODE_IDLE); 
 	sleep_enable();
 
-	mode_sample_file_log=0;
-
+	mode_sample_file_log=0;										// Initialise log to null 
+	mode_sample_startlog(mode_sample_motion_param.logfile);		// Initialise log will be initiated if needed here
 
 	stream_start();
 	
 	clearstat();
-	stat_t_cur = time_lastblink = stat_time_laststatus = stat_timemsstart = timer_ms_get();	
 	
-	
-	time_lastbatlog=stat_t_cur;
-	batstatptr=0;	
-	// Store battery data
-	batstat[batstatptr].t = stat_t_cur-stat_timemsstart;
-	batstat[batstatptr].mV = ltc2942_last_mV();
-	batstat[batstatptr].mA = ltc2942_last_mA();
-	batstat[batstatptr].mW = ltc2942_last_mW();
-	batstatptr++;
-	
+	printf("atog: %f\n",atog);
+	printf("mpu_gtorps: %f\n",mpu_gtorps);
+	printf("beta: %f\n",beta);
 	
 	
 	while(1)
@@ -456,16 +524,21 @@ void mode_motionstream(void)
 		sleep_cpu();
 		stat_wakeup++;
 		
-		// Process user commands
-		while(CommandProcess(CommandParsersMotionStream,CommandParsersMotionStreamNum));		
-		if(CommandShouldQuit())
-			break;
-		// Busy loop to 
-		//_delay_ms(1);
+		// Process user commands only if we do not run for a specified duration
+		if(mode_sample_motion_param.duration==0)
+		{
+			while(CommandProcess(CommandParsersMotionStream,CommandParsersMotionStreamNum));		
+			if(CommandShouldQuit())
+				break;
+		}
+		stat_t_cur=timer_ms_get();		// Current time
+		if(mode_sample_motion_param.duration)
+		{
+			// Check if maximum mode time is reached
+			if(stat_t_cur-stat_timems_start>=mode_sample_motion_param.duration)
+				break;			
+		}
 		
-		
-		
-		stat_t_cur=timer_ms_get();
 		// Blink
 		if(stat_t_cur-time_lastblink>1000)
 		{		
@@ -479,7 +552,7 @@ void mode_motionstream(void)
 			//if(stat_t_cur-stat_time_laststatus>2000)
 			{
 				stream_status(file_pri,mode_stream_format_bin);
-				stat_time_laststatus=stat_t_cur;
+				stat_time_laststatus=stat_time_laststatus+10000;
 				stat_wakeup=0;
 			}
 		}
@@ -492,7 +565,7 @@ void mode_motionstream(void)
 			if(batstatptr<MAXBATSTATPTR)
 			{
 				//printf_P(PSTR("Storing bat log at %d\n"),batstatptr);
-				batstat[batstatptr].t = stat_t_cur-stat_timemsstart;
+				batstat[batstatptr].t = stat_t_cur-stat_timems_start;
 				batstat[batstatptr].mV = ltc2942_last_mV();
 				batstat[batstatptr].mA = ltc2942_last_mA();
 				batstat[batstatptr].mW = ltc2942_last_mW();
@@ -569,9 +642,14 @@ void mode_motionstream(void)
 				//										0);
 				#else
 				float ax,ay,az,gx,gy,gz;
-				ax = mpumotiondata.ax*atog;
+				
+				// Acc does not need normalisation as it is normalised by Madgwick 
+				/*ax = mpumotiondata.ax*atog;
 				ay = mpumotiondata.ay*atog;
-				az = mpumotiondata.az*atog;
+				az = mpumotiondata.az*atog;*/
+				ax = mpumotiondata.ax;
+				ay = mpumotiondata.ay;
+				az = mpumotiondata.az;
 				gx = mpumotiondata.gx*mpu_gtorps;
 				gy = mpumotiondata.gy*mpu_gtorps;
 				gz = mpumotiondata.gz*mpu_gtorps;				
@@ -579,9 +657,26 @@ void mode_motionstream(void)
 				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
 				//unsigned long t1,t2;
 				//t1=timer_us_get();
-				MadgwickAHRSupdate_float(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
+				
+				float mx,my,mz;
+				mx = -mpumotiondata.my;
+				my = -mpumotiondata.mx;
+				mz = mpumotiondata.mz;
+				
+				//printf("Qpre: %f %f %f %f\n",q0,q1,q2,q3);
+				//printf("Param: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,mx,my,mz);
+				//printf("Param2: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,-mpumotiondata.my,-mpumotiondata.mx,mpumotiondata.mz);
+				MadgwickAHRSupdate_float(gx,gy,gz,ax,ay,az,mx,my,mz);
+				/*testf(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
 														-mpumotiondata.mx,
-														mpumotiondata.mz);
+														mpumotiondata.mz);*/
+				
+				//testf(gx,gy,gz,ax,ay,az,mx,my,mz);
+				
+				//testf(1,2,3,4,5,6,7,8,9);
+				//printf("Qpost: %f %f %f %f\n",q0,q1,q2,q3);
+				
+				
 				//t2=timer_us_get();
 				//printf("%lu\n",t2-t1);
 				#endif
@@ -657,13 +752,17 @@ void mode_motionstream(void)
 	unsigned long cnt_sample_errbusy, cnt_sample_errfull,toterr;
 	mpu_getstat(0, 0, 0, &cnt_sample_errbusy, &cnt_sample_errfull);
 	toterr = stat_samplesendfailed+cnt_sample_errfull+cnt_sample_errbusy;
-	fprintf_P(file_pri,PSTR("Total sampling errors: %lu on %lu samples (%lu ppm)\n"),toterr,stat_totsample,toterr*1000000l/stat_totsample);
+	fprintf_P(file_pri,PSTR("Total errors: %lu/%lu samples (%lu ppm). Err stream/log: %lu, err MPU busy: %lu, err buffer full: %lu\n"),toterr,stat_totsample,toterr*1000000l/stat_totsample,stat_samplesendfailed,cnt_sample_errbusy,cnt_sample_errfull);
 	if(toterr*1000000l/stat_totsample>10)
 		fprintf_P(file_pri,PSTR("WARNING: HIGH SAMPLING ERRORS\n"));
 
+	// Clear LED
+	system_led_off(2);
 
+	fprintf_P(file_pri,PSTR("<SMPLMOTION\n"));
 
 }
+
 
 
 

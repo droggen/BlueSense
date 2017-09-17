@@ -495,6 +495,7 @@ unsigned char ufat_available(void)
 ******************************************************************************/
 FILE *ufat_log_open(unsigned char n)
 {
+	//printf("ufat log open\n");
 	// Sanity check: fs must be initialised and lognumber available
 	if(_fsinfo.fs_available==0)
 	{
@@ -526,7 +527,6 @@ FILE *ufat_log_open(unsigned char n)
 	_log_current_sector=_logentries[n].startsector;
 	
 	
-	printf_P(PSTR("%sStreaming write at sector %lu\n"),_str_ufat,_log_current_sector);
 	// Erase file area; this seems more effective than the pre-erase command and helps reduce latency of writes
 	printf_P(PSTR("%sErase sectors %lu-%lu\n"),_str_ufat,_log_current_sector,_log_current_sector+(_fsinfo.logsizebytes>>9)-1);
 	if(sd_erase(_log_current_sector,_log_current_sector+(_fsinfo.logsizebytes>>9)-1))
@@ -537,6 +537,7 @@ FILE *ufat_log_open(unsigned char n)
 		return 0;
 	}
 	
+	printf_P(PSTR("%sStreaming write at sector %lu\n"),_str_ufat,_log_current_sector);
 	// Open stream specifying a pre-erase size
 	sd_stream_open(_log_current_sector,_fsinfo.logsizebytes>>9);
 	
@@ -554,13 +555,13 @@ FILE *ufat_log_open(unsigned char n)
 unsigned char ufat_log_close(void)
 {
 	unsigned char rv;
-	printf("ufat_log_close\n");
+	//printf("ufat_log_close\n");
 	//fdev_close(_log_file);			// ? why is this commented out?
 	
 	rv = sd_streamcache_close(0);
 	if(rv!=0)
 	{
-		printf_P(PSTR("Failed sd_write_stream_close\n"));
+		printf_P(PSTR("%sFailed sd_write_stream_close\n"),_str_ufat);
 	}
 	
 	// Must write last sector if any
@@ -570,7 +571,7 @@ unsigned char ufat_log_close(void)
 	rv = _ufat_write_root(_fsinfo.lognum);
 	if(rv)
 	{
-		printf_P(PSTR("Format: error writing root\n"));
+		printf_P(PSTR("%sError writing root\n"),_str_ufat);
 	}
 	// Two variant of the code exist. If _ufat_format_fat_log reserves only the minimum number of clusters needed for the file size then it must be called again here.
 	// Currently _ufat_format_fat_log reserves all clusters on formatting, and this does not need to be called here.
@@ -579,7 +580,7 @@ unsigned char ufat_log_close(void)
 	return 0;
 }
 /******************************************************************************
-	function: ufat_log_test
+	function: ufat_log_test2
 *******************************************************************************	
 	Test writing data to a log file.
 	The data is written in blocks using the putbuf function; bsize indicate the size
@@ -594,7 +595,7 @@ unsigned char ufat_log_close(void)
 
 
 ******************************************************************************/
-void ufat_log_test(unsigned char lognum,unsigned long size,unsigned char ch,unsigned bsize)
+/*void ufat_log_test2(unsigned char lognum,unsigned long size,unsigned char ch,unsigned bsize)
 {
 	FILE *log;
 	unsigned long t1,t2,t3;
@@ -628,46 +629,61 @@ void ufat_log_test(unsigned char lognum,unsigned long size,unsigned char ch,unsi
 	dt = t2-t1;
 	// size/1024 [KB] / dt/1000 -> size/1024*1000/dt -> size*125/128/dt
 	printf_P(PSTR("Time: %lu ms. Speed: %lu kB/s Close time: %lu ms\n"),dt,size*125/128/dt,t3-t2);
-	
-		
-}
+}*/
 /******************************************************************************
-	function: ufat_log_test2
+	function: ufat_log_test
 *******************************************************************************	
-	Test writing data to a log file.
+	Writes test data to a log file; this can be used to test write speed and 
+	consistency to validate SD cards.
 	
-	The data is being written is a fake payload of 128B, which is about
+	The data is being written is a fake payload of 192B, which is about
 	the maximum data written when logging motion sensor data.
 	
-
+	The file contains: <CurrentTime><PktCtr><NumFail><UfatLogSize><SizeWritten><AllZeros>
+	
+	Numfail indicates the number of failures in the fputbuf command. It should be zero.
+	UfatLogSize is the size reported by ufat, which should be the same as SizeWritten
+	unless there is a write error.
+	
+	The data file can be loaded for analysis of failures (should be zero) and 
+	time interval
+	
 	Parameters:
 		lognum			-	Log number to write to
 		size			-	Number of bytes to write
-
+		reportevery		-	Report average speed and status every reportevery bytes (usually 32768).
+							A lower value of reportevery (e.g. 4096) would allow to spot hiccups in write
+							speed due to SD card maintenance.
+							A larger value (32768) would report an 
 
 ******************************************************************************/
-void ufat_log_test2(unsigned char lognum,unsigned long size)
+void ufat_log_test(unsigned char lognum,unsigned long size,unsigned long reportevery)
 {
 	FILE *log;
-	char buf[128];
+	unsigned int szbuf=192;
+	char buf[szbuf];
 	unsigned long t1;
 	//unsigned long dt;
 	unsigned long cursize;
 	unsigned long pkt;
 	unsigned long numfail;
-	unsigned long lastsize;
+	unsigned long lastsize,lastspeedsize;
+	//unsigned long reportevery=65536;
+	unsigned long speedevery=4096;
+	unsigned long dtworst=0;
+	unsigned long dtworstspeed=0;
+	unsigned long tlast,tlastspeed;
 	
-	
-	memset(buf,'0',128);
-	buf[127]=0;
-	buf[126]='\n';
+	memset(buf,'0',szbuf);
+	buf[szbuf-1]=0;
+	buf[szbuf-2]='\n';
 	
 	
 	//memset(ufatblock,ch,bsize);
 	
 	//_sd_acmd23(9765);
 	
-	printf_P(PSTR("Benchmarking log %u writing 128 bytes up to %lu\n"),lognum,size);
+	printf_P(PSTR("Benchmarking log %u writing %d bytes up to %lu\n"),lognum,szbuf,size);
 	log = ufat_log_open(lognum);
 	if(!log)
 	{
@@ -679,20 +695,34 @@ void ufat_log_test2(unsigned char lognum,unsigned long size)
 	cursize=0;
 	pkt=0;
 	numfail=0;
-	lastsize=0;
-	unsigned long tlast=timer_ms_get();
+	lastsize=lastspeedsize=0;
+	
+	tlast=tlastspeed=timer_ms_get();
 	
 	while(cursize<size)
 	{
 		// Do something
 		//_delay_ms(1);
 		//_delay_us(500);
-		
-		if(cursize>=lastsize+32768)
+		if(cursize>=lastspeedsize+speedevery)
+		{
+			lastspeedsize=cursize;
+			unsigned long t=timer_ms_get();
+			unsigned long dt=t-tlastspeed;
+			if(dt>dtworstspeed)
+				dtworstspeed=dt;
+			tlastspeed=t;
+		}
+		if(cursize>=lastsize+reportevery)
 		{
 			lastsize=cursize;
 			unsigned long t=timer_ms_get();
-			fprintf_P(file_pri,PSTR("cursiz: %lu %lu\n"),cursize,t-tlast);
+			unsigned long dt=t-tlast;
+			if(dt>dtworst)
+				dtworst=dt;
+				
+			fprintf_P(file_pri,PSTR("Written: %lu. %lu ms for %lu = %lu KB/s (worst: %lu for %lu = %lu KB/s) average. "),cursize,dt,reportevery,reportevery*1000/dt/1024,dtworst,reportevery,reportevery*1000/dtworst/1024);
+			fprintf_P(file_pri,PSTR("Worst peak: %lu ms for %lu = %lu KB/s. Fail: %lu\n"),dtworstspeed,speedevery,speedevery*1000/dtworstspeed/1024,numfail);
 			tlast=t;
 			
 		}
@@ -706,13 +736,13 @@ void ufat_log_test2(unsigned char lognum,unsigned long size)
 		strptr=format1u32(strptr,ufat_log_getsize());
 		strptr=format1u32(strptr,cursize);
 				
-		if(fputbuf(log,buf,127))
+		if(fputbuf(log,buf,szbuf-1))
 		{
 			numfail++;
 		}	
 		else
 		{
-			cursize+=127;
+			cursize+=szbuf-1;
 		}
 		
 		pkt++;
@@ -1671,6 +1701,7 @@ void log_printstatus(void)
 }
 
 
+ 
  
  
  

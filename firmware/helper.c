@@ -505,26 +505,57 @@ unsigned char ParseComma(const char *str,unsigned char n,...)
 	return 0;
 }
 /******************************************************************************
+	function: ParseCommaGetNumParam
+*******************************************************************************	
+	Checks how many tokens are passed on a command.
+	
+	The input string is of the format ",45,128,-99". 
+	
+	
+	Parameters
+		-
+	Return value:
+		Number of parameters
+		
+	
+******************************************************************************/
+/*unsigned char ParseCommaGetNumParam(const char *str)
+{
+	unsigned char numtoken=0;
+	// Checks how many tokens are passed.
+	while(1)
+	{
+		// Search for a delimieter
+		char *p = strchr(str,',');
+		
+		if(!p)
+			return numtoken;
+		
+	}
+}*/
+/******************************************************************************
 	function: ParseCommaGetInt
 *******************************************************************************	
 	Identify the n tokens delimited by a comma. Decodes the tokens assuming they 
 	are ints.
+	This function doesn't verify the number of tokens passed: if there are more 
+	than n tokens, it decodes the first n and returns success.
 	
-	For example, the string "M,45,128,-99" is decoded in the tokens 45, 128, -99.
+	The input string is of the format ",45,128,-99". 
+	Here the tokens are 45, 128, -99.
 	
 	Takes as parameter as many pointers to an int that will contain the integer token.
 		
-	Warning: Modifies the passed string to have null instead of commas to facilitate further token parsing
-	
 	Return value:
 		0: 				success
-		nonzero:	parse error
+		nonzero:		parse error
 	
 ******************************************************************************/
 unsigned char ParseCommaGetInt(const char *str,int n,...)
 {
 	va_list args;	
 	int integer;
+	//const char *strinit = str;
 	
 	// Initialise the return values to null
 	va_start(args,n);
@@ -538,21 +569,30 @@ unsigned char ParseCommaGetInt(const char *str,int n,...)
 	for(unsigned char i=0;i<n;i++)
 	{
 		char *p = strchr(str,',');
-		// Not found -> return
+		
+		// Comma not found -> return
 		if(!p)
 			return 1;
-		*p=0;		
+
+		// Skip the comma
 		p++;
+
 		// End of string -> return
 		if(!*p)
 			return 1;
 
+		// Scan the number
 		if(sscanf(p,"%d",&integer)!=1)
 			return 1;
+		
+		//printf("Found %d at %d\n",integer,p-strinit);
 
+		// Store in the parameters
 		int *rv = va_arg(args,int *);
 		*rv = integer;
 		
+		
+		// Move the string pointer to the start of the current token
 		str=p;
 		
 	}
@@ -812,6 +852,34 @@ char *format4float(char *strptr,float q0,float q1,float q2,float q3)
 }
 #endif
 
+/******************************************************************************
+	function: prettyprint_hexascii
+*******************************************************************************	
+	Pretty prints a string which comprises printable characters and non-printable 
+	characters. Non-printable characters are printed in hex.
+	
+	Parameters:
+		F		-	File where to print
+		string	-	String to print
+		n		-	Number of characters to print
+		nl		-	0 for no newline, otherwise prints a newline
+
+	Returns:
+		-
+******************************************************************************/
+void prettyprint_hexascii(FILE *f,char *string,unsigned short n,unsigned char nl)
+{
+	for(unsigned short i=0;i<n;i++)
+	{
+		// Do a pretty print in ascii or in hex depending on whether printable byte.
+		if(string[i]<33 || string[i]>126)
+			fprintf_P(f,PSTR("[%02X]"),string[i]);
+		else
+			fprintf_P(f,PSTR("%c"),string[i]);
+	}
+	if(nl)
+		fprintf_P(f,PSTR("\n"));
+}
 
 
 

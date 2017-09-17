@@ -81,6 +81,10 @@ float __attribute__((naked)) FP_FixedToFloat(int32_t k) {
 	
 	Interactive test functions for the MPU9250
 */
+unsigned char CommandParserMPUTest_Bench2(char *buffer,unsigned char size);
+unsigned char CommandParserMPUTest_Bench3(char *buffer,unsigned char size);
+unsigned long __mputest_t1,__mputest_t2;
+void __mputest_bench_cb(void);
 
 const char help_mt_r[] PROGMEM="Dumps registers";
 const char help_mt_S[] PROGMEM ="S[,<mode>,<autoread>] setup motion sensor mode";
@@ -643,13 +647,20 @@ unsigned char CommandParserMPUTest_Auto(char *buffer,unsigned char size)
 unsigned long perfbench_withreadout(unsigned long mintime)
 {
 	unsigned long int t_last,t_cur;
+	//unsigned long int tms_last,tms_cur;
 	unsigned long int ctr,cps;
 	//const unsigned long int mintime=1000;
 	MPUMOTIONDATA mpumotiondata;
 		
 	ctr=0;
-	t_last=timer_ms_get();
-	while((t_cur=timer_ms_get())-t_last<mintime)
+	
+	//mintime=mintime*1000;
+	t_last=timer_s_wait();	
+	mpu_clearstat();
+	//tms_last=timer_ms_get(); 
+	//while((t_cur=timer_ms_get())-t_last<mintime)	
+	unsigned long tint1=timer_ms_get_intclk();
+	while((t_cur=timer_s_get())-t_last<mintime)
 	{
 		ctr++;
 		
@@ -660,33 +671,46 @@ unsigned long perfbench_withreadout(unsigned long mintime)
 			// Get the data from the auto read buffer; if no data available break
 			if(mpu_data_getnext_raw(mpumotiondata))
 				break;
+			//_mpu_data_rdnext();
 		}		
 	}
-	cps = ctr*1000/(t_cur-t_last);
+	unsigned long tint2=timer_ms_get_intclk();
+	//tms_cur=timer_ms_get(); 
+	//printf("Test dur: %ld ms\n",tms_cur-tms_last);
+	//cps = ctr*1000/(t_cur-t_last);
+	cps = ctr/(t_cur-t_last);
+	
+	fprintf_P(file_pri,PSTR("perfbench_withreadout: %lu perf (%lu intclk ms)\n"),cps,tint2-tint1);
 	return cps;
 }
 
 unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 {
-	long int perf,refperf,mintime=2000;
+	//long int perf,refperf,mintime=2000;
+	long int perf,refperf;
+	unsigned long int mintime=10;
 	mpu_config_motionmode(MPU_MODE_OFF,0);
 	fprintf_P(file_pri,PSTR("Benchmarking all auto acquire modes\n"));
-	refperf = main_perfbench(mintime);
-	fprintf_P(file_pri,PSTR("Reference performance: %lu\n"),refperf);
+	//refperf = main_perfbench(mintime);
+	//fprintf_P(file_pri,PSTR("Reference performance: %lu\n"),refperf);
+	
+	unsigned long p = perfbench_withreadout(mintime);
+	refperf=p;
+	fprintf_P(file_pri,PSTR("New performance: %lu\n"),p);
 	
 	unsigned char modestotest[]={
-		MPU_MODE_500HZ_GYRO_BW250, 
-		MPU_MODE_500HZ_GYRO_BW184,
-		MPU_MODE_200HZ_GYRO_BW92,
+		//MPU_MODE_500HZ_GYRO_BW250, 
+		//MPU_MODE_500HZ_GYRO_BW184,
+		//MPU_MODE_200HZ_GYRO_BW92,
 		//MPU_MODE_100HZ_GYRO_BW41,
-		MPU_MODE_1KHZ_ACC_BW460,
-		MPU_MODE_500HZ_ACC_BW184,
-		MPU_MODE_200HZ_ACC_BW92,
+		//MPU_MODE_1KHZ_ACC_BW460,
+		//MPU_MODE_500HZ_ACC_BW184,
+		//MPU_MODE_200HZ_ACC_BW92,
 		//MPU_MODE_100HZ_ACC_BW41,
-		MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250,
-		MPU_MODE_500HZ_ACC_BW184_GYRO_BW250,
-		MPU_MODE_500HZ_ACC_BW184_GYRO_BW184,
-		MPU_MODE_200HZ_ACC_BW92_GYRO_BW92,
+		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW250,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW184,
+		//MPU_MODE_200HZ_ACC_BW92_GYRO_BW92,
 		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41,
 		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_8,
 		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_8,
@@ -695,8 +719,9 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 		MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_100,
 		MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_100,
 		MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,
-		MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100
-		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100
+		MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100,
+		MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100_Q
 		};
 
 	for(unsigned char mi=0;mi<sizeof(modestotest);mi++)
@@ -706,22 +731,194 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 		char buf[96];
 		mpu_getmodename(mode,buf);
 		fprintf_P(file_pri,PSTR("Benchmarking mode %d: %s\n"),mode,buf);
-		mpu_config_motionmode(mode,1);;
+		mpu_config_motionmode(mode,1);
+		//mpu_config_motionmode(mode,0);
+		//mpu_config_motionmode(MPU_MODE_OFF,0);
 		perf = perfbench_withreadout(mintime);		
+		//perf  = main_perfbench(mintime);
 		
 		mpu_config_motionmode(MPU_MODE_OFF,0);
 		mpu_printstat(file_pri);
+		
 		
 		long load = 100-(perf*100/refperf);
 		if(load<0)
 			load=0;
 	
-		fprintf_P(file_pri,PSTR("Mode %d: %s: perf: %lu (instead of %lu). CPU load %lu %%\n"),mode,buf,perf,refperf,load);
+		fprintf_P(file_pri,PSTR("\tMode %d: %s: perf: %lu (instead of %lu). CPU load %lu %%\n"),mode,buf,perf,refperf,load);
 	}
 	
 
 	return 0;
 }
+
+unsigned char CommandParserMPUTest_Bench2(char *buffer,unsigned char size)
+{
+	//long int perf,refperf,mintime=2000;
+	long int perf,refperf,mintime=2;
+	mpu_config_motionmode(MPU_MODE_OFF,0);
+	fprintf_P(file_pri,PSTR("Benchmarking spi acq time\n"));
+	//refperf = main_perfbench(mintime);
+	//fprintf_P(file_pri,PSTR("Reference performance: %lu\n"),refperf);
+	
+	unsigned char modestotest[]={
+		//MPU_MODE_500HZ_GYRO_BW250, 
+		//MPU_MODE_500HZ_GYRO_BW184,
+		//MPU_MODE_200HZ_GYRO_BW92,
+		//MPU_MODE_100HZ_GYRO_BW41,
+		//MPU_MODE_1KHZ_ACC_BW460,
+		//MPU_MODE_500HZ_ACC_BW184,
+		//MPU_MODE_200HZ_ACC_BW92,
+		//MPU_MODE_100HZ_ACC_BW41,
+		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW250,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW184,
+		//MPU_MODE_200HZ_ACC_BW92_GYRO_BW92,
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41,
+		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_8,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_8,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_8,
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,
+		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_100,
+		MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_100,
+		MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,
+		//MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100
+		};
+	
+	char buf[96];
+	//mpu_getmodename(MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,buf);
+	//fprintf_P(file_pri,PSTR("Benchmarking mode %d: %s\n"),MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,buf);
+	//mpu_config_motionmode(MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,1);
+	mpu_config_motionmode(MPU_MODE_OFF,0);
+	
+	
+	unsigned long ttot=0,nit=0;
+	for(unsigned i=0;i<10000;i++)
+	{
+		__mputest_t1 = timer_us_get();
+		unsigned char r = mpu_readregs_int_cb_raw(59,21,__mputest_bench_cb);
+	
+		while(_mpu_ongoing);
+		if(r==0)
+		{
+			ttot+=__mputest_t2-__mputest_t1;
+			nit++;
+		}		
+	}
+	printf("nit: %ld. ttot: %ld us. us/it: %ld\n",nit,ttot,ttot/nit);
+	
+
+	return 0;
+}
+unsigned char CommandParserMPUTest_Bench3(char *buffer,unsigned char size)
+{
+	//long int perf,refperf,mintime=2000;
+	long int perf,refperf,mintime=2;
+	mpu_config_motionmode(MPU_MODE_OFF,0);
+	fprintf_P(file_pri,PSTR("Benchmarking spi acq time\n"));
+	//refperf = main_perfbench(mintime);
+	//fprintf_P(file_pri,PSTR("Reference performance: %lu\n"),refperf);
+	
+	unsigned char modestotest[]={
+		//MPU_MODE_500HZ_GYRO_BW250, 
+		//MPU_MODE_500HZ_GYRO_BW184,
+		//MPU_MODE_200HZ_GYRO_BW92,
+		//MPU_MODE_100HZ_GYRO_BW41,
+		//MPU_MODE_1KHZ_ACC_BW460,
+		//MPU_MODE_500HZ_ACC_BW184,
+		//MPU_MODE_200HZ_ACC_BW92,
+		//MPU_MODE_100HZ_ACC_BW41,
+		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW250,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW184,
+		//MPU_MODE_200HZ_ACC_BW92_GYRO_BW92,
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41,
+		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_8,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_8,
+		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_8,
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,
+		//MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_100,
+		MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_100,
+		MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,
+		//MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100
+		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100
+		};
+	
+	char buf[96];
+	//mpu_getmodename(MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,buf);
+	//fprintf_P(file_pri,PSTR("Benchmarking mode %d: %s\n"),MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,buf);
+	mpu_config_motionmode(MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,0);
+	//mpu_config_motionmode(MPU_MODE_OFF,0);
+	
+	signed short ax,ay,az,gx,gy,gz,mx,my,mz,temp;
+	unsigned char ms;
+	
+	/*while(1)
+	{
+		
+		
+		mpu_get_agmt(&ax,&ay,&az,&gx,&gy,&gz,&mx,&my,&mz,&ms,&temp);
+		printf("%d %d %d   %d %d %d   %d %d %d\n",ax,ay,az,gx,gy,gz,mx,my,mz);
+		_delay_ms(100);
+	}*/
+	
+	unsigned char spibuf[32],r=0;
+	MPUMOTIONDATA mdata;
+	
+	
+	/*while(1)
+	{
+		//mpu_get_agmt(&ax,&ay,&az,&gx,&gy,&gz,&mx,&my,&mz,&ms,&temp);
+		//printf("%d %d %d   %d %d %d   %d %d %d\n",ax,ay,az,gx,gy,gz,mx,my,mz);
+		
+		//memset(spibuf,0xff,32); mpu_readregs_int(spibuf,59,21);	
+		memset(spibuf,0xff,32); mpu_readregs_int_try_raw(spibuf,59,21);	
+		printf("r: %d\n",r);
+		for(int i=0;i<32;i++) printf("%02X ",spibuf[i]); printf("\n");
+		__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,&mdata);
+		printf("%d %d %d   %d %d %d   %d %d %d\n",mdata.ax,mdata.ay,mdata.az,mdata.gx,mdata.gy,mdata.gz,mdata.mx,mdata.my,mdata.mz);
+		
+		_delay_ms(100);
+	}*/
+	
+	
+	//mpu_readregs_int_try_raw(spibuf,59,21);
+	//mpu_readregs_int(spibuf,59,21);
+	
+	//printf("r: %d\n",r);
+	//for(int i=0;i<32;i++) printf("%02X ",spibuf[i]); printf("\n");
+	
+	
+	unsigned long ttot=0,nit=0;
+	for(unsigned i=0;i<10000;i++)
+	{
+		__mputest_t1 = timer_us_get();	
+		unsigned char r = mpu_readregs_int_try_raw(spibuf,59,21);
+		__mputest_t2 = timer_us_get();	
+	
+		if(r==0)
+		{
+			ttot+=__mputest_t2-__mputest_t1;
+			nit++;
+		}		
+	}
+	printf("nit: %ld. ttot: %ld us. us/it: %ld\n",nit,ttot,ttot/nit);
+	
+	__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,&mdata);
+	printf("%d %d %d   %d %d %d   %d %d %d\n",mdata.ax,mdata.ay,mdata.az,mdata.gx,mdata.gy,mdata.gz,mdata.mx,mdata.my,mdata.mz);
+	
+
+	return 0;
+}
+void __mputest_bench_cb(void)
+{
+	__mputest_t2=timer_us_get();
+
+	
+	_mpu_ongoing=0;		// Required when using mpu_readregs_int_cb_raw otherwise no further transactions possible
+}
+
 /******************************************************************************
 	CommandParserMPUTest_Quaternion
 *******************************************************************************

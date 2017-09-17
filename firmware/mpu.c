@@ -15,6 +15,8 @@
 #include "main.h"
 #include "motionconfig.h"
 #include "system.h"
+#include "dbg.h"
+#include "helper.h"
 
 /*
 	File: mpu
@@ -78,6 +80,7 @@
 	
 	
 	*Magnetometer*	
+	
 	Functions to handle the magnetometer - prefixed by mpu_mag_... - can only be used when the MPU is configured
 	in a mode where the magnetic field sensor is turned on; otherwise the function time-out due to the magnetic field
 	sensor being inaccessible via the internal I2C interface.
@@ -85,8 +88,59 @@
 	
 	*Interrupt Service Routine (ISR)*
 	
-	The function mpu_isr must be called on the rising edge of the MPU interrupt pin. 
+	The function mpu_isr must be called on the *falling* edge of the MPU interrupt pin. 
+	See next section for the rationale for using the falling edge.
 	
+	*Interrupt Service Routine (ISR) Internal notes*
+	
+	The MPU can be configured with register 55d (MPU_R_INTERRUPTPIN):
+		- Logic low or logic high
+		- Open-drain or push-pull
+		- Level held until cleared or generate a 50uS pulse
+		- Interrupt cleared after any read operation or after reading the INT_STATUS register
+		
+	Here 50uS pulse is used. Rationale: in the high gyro high bandwidth mode, the ODR is 8000Hz; performing a read
+	to clear the interrupt (required with the level held interrupt) is significantly more costly than doing nothing and returning from 
+	the ISR (possible in the pulse mode). 	While not tested, the overhead of checking the status register appears prohibitive.
+	Therefore, the pulse mode is more suitable.
+	
+	The ISR should react on the positive edge of the pulse. The initial approach was for the ISR checks that the pin is high and then
+	call mpu_isr. An issue arises when other interrupts may delay the pin change interrrupt by more than 50uS (553 clk): 
+	the ISR would sample the pin level as zero and would not call the mpu_isr, essentially missing the MPU interrupt.
+	
+	The alternative is to trigger mpu_isr on the falling edge of the pulse. As the pulse stays most of the time in the low
+	state, this gives a higher likelihood for the ISR to be triggered when the pin state is low. 
+	
+	In a gyro high bandwidth mode, the interrupts are triggered at ODR=8KHz or every 125 uS.
+	At 8KHz the pin would transition as follows: ...000I111-50uS111I00000-75uS00000I111-50uS111I000...
+	                                                   I<          125uS          >I
+	
+													   
+	At ODR=1KHz interrupts are triggered every 125 uS. This is the 500Hz low-bandwidth mode
+	At 1KHz the pin would transition as follows: ...000I111-50uS111I000000000-950uS000000000I111-50uS111I000...
+	                                                   I<              1000uS              >I
+	The 950uS where interrupt pin is low provides enough time for the ISR to be called, check that the pin is low
+	and call the mpu_isr. 
+	
+	Therefore, triggering the mpu_isr when the pin is low is recommended.
+	
+	Possible issue:
+			000I111-50uS111I000000000-950uS000000000I111-50uS111I000...
+			   i           i												Pin change interrupt				
+			   ...........I..C..M...R...I?									
+																			
+	I indicates when the pin change ISR is called, possibly with significant delay.
+	C indicates when the pin change ISR checks the pin state, which is now low: mpu_isr is called (M) and returns (R).
+	The interrupt pin toggles from high to low during the pin change ISR.
+	The AVR datasheet indicates about the pin change interrupt flag: "The flag is cleared when the interrupt routine is executed."
+	Interpreting this as when the interrupt is executed, the scenario above would call the mpu_isr a second time 
+	(indicated by the 2nd I) while in reality there is only one interrupt.
+	
+	This can be addressed by reading the interrupt status register in the MPU routine at a cost of overhead.
+	
+	Solution decided: clear PCIFR bit 2 to avoid superfluous calls to mpu_isr and check in mpu_isr for spurious motion interrupts.
+	
+	In practice the firmware only handles up to ODR=500Hz (500Hz LBW) without data loss.
 	
 	Todo:
 	V - Objective: this is the main file doing background acquisition of all the sensor data into in-memory structures
@@ -122,7 +176,7 @@
 unsigned char __mpu_sample_softdivider_ctr=0,__mpu_sample_softdivider_divider=0;
 
 // Data buffers
-MPUMOTIONDATA volatile mpu_data[MPU_MOTIONBUFFERSIZE];
+MPUMOTIONDATA mpu_data[MPU_MOTIONBUFFERSIZE];
 volatile unsigned long __mpu_data_packetctr_current;
 volatile unsigned char mpu_data_rdptr,mpu_data_wrptr;
 volatile MPUMOTIONDATA _mpumotiondata_test;
@@ -138,11 +192,12 @@ unsigned char _mpu_mag_correctionmode;
 // Automatic read statistic counters
 unsigned long mpu_cnt_int, mpu_cnt_sample_tot, mpu_cnt_sample_succcess, mpu_cnt_sample_errbusy, mpu_cnt_sample_errfull;
 
+unsigned long mpu_cnt_spurious;
+
 unsigned char __mpu_autoread=0;
 
 // Motion ISR
 void (*isr_motionint)(void) = 0;
-void (*isr_motionint_ds)(void) = 0;
 
 // Conversion from Gyro readings to rad/sec
 #ifdef __cplusplus
@@ -161,12 +216,28 @@ unsigned char sample_mode;
 MPU ISR   MPU ISR   MPU ISR   MPU ISR   MPU ISR   MPU ISR   MPU ISR   MPU ISR   
 *******************************************************************************
 *******************************************************************************/
-void mpu_isr(void)
+void mpu_isr_o(void)	// Non-blocking SPI read triggered by this interrupt
 {
 	// motionint always called (e.g. WoM)
 	/*if(isr_motionint!=0)
 			isr_motionint();	*/
 			
+
+	// Check if we really have an interrupt (high overhead)
+	unsigned char s[4];
+	unsigned char r=mpu_readregs_int_try_raw(s,MPU_R_INT_STATUS,1);
+	if(r)
+	{
+		mpu_cnt_spurious++;
+		//return;
+	}
+	if( (s[1]&1) == 0)
+	{
+		mpu_cnt_spurious++;
+		//return;
+	}
+
+
 	// Statistics
 	mpu_cnt_int++;
 			
@@ -187,6 +258,7 @@ void mpu_isr(void)
 			// Registers start at 59d (ACCEL_XOUT_H) until 79 (EXT_SENS_DATA_06). 
 			// The EXT_SENS_DATA_xx is populated from the magnetometer
 			unsigned char r = mpu_readregs_int_cb(0,59,21,__mpu_read_cb);
+			//unsigned char r = mpu_readregs_int_cb_raw(59,21,__mpu_read_cb);
 			if(r)
 			{
 				mpu_cnt_sample_errbusy++;
@@ -194,14 +266,110 @@ void mpu_isr(void)
 		
 		}
 	
-		// motionint_ds called after software downsampling)
-		/*if(isr_motionint_ds!=0)
-		{
-			isr_motionint_ds();	
+
+
+	}
+}
+/*
+	Tests indicate that blocking SPI read within this interrupt with an SPI clock at 5MHz (caveat: this is beyond the range for write to registers)
+	leads to lower overhead than interrupt-driven SPI read at 920KHz.
+	
+	Benchmark of mpu_isr: __mpu_sample_softdivider_divider=0; __mpu_autoread=1; no check of spurious interrupt:
+	134uS/call @ SPI=5529.6 KHz
+	231uS/call @ SPI=1382 KHz
+	300uS/call @ SPI=921.6 KHz 
+	
+	Benchmark of mpu_isr: __mpu_sample_softdivider_divider=0; __mpu_autoread=1; check of spurious interrupt:
+	150uS/call @ SPI=5529.6 KHz
+	254uS/call @ SPI=1382 KHz
+	330uS/call @ SPI=921.6 KHz 
+	
+	Benchmark of mpu_readregs_int_try_raw only:
+	87uS/call @ SPI=5529.6 KHz
+	266uS/call @ SPI=921.6 KHz 
+	
+	Choice: use check of spurious interrupts and overclock to 1382 KHz.
+	
+*/
+void mpu_isr(void)	// Blocking SPI read within this interrupt
+{
+	// motionint always called (e.g. WoM)
+	/*if(isr_motionint!=0)
+			isr_motionint();	*/
+			
+	// Check if we really have an interrupt (high overhead)
+	// Experimentally, this seems unnecessary if the PCIF interrupt is cleared after the mpu_isr returns.
+	
+	unsigned char s[4];
+	unsigned char r=mpu_readregs_int_try_raw(s,MPU_R_INT_STATUS,1);
+	if(r)
+	{
+		mpu_cnt_spurious++;
+		return;
+	}
+	if( (s[1]&1) == 0)
+	{
+		mpu_cnt_spurious++;
+		return;
+	}
+	
+	
+	// Statistics
+	mpu_cnt_int++;
+
+	
+	__mpu_sample_softdivider_ctr++;
+	if(__mpu_sample_softdivider_ctr>__mpu_sample_softdivider_divider)
+	{
+		__mpu_sample_softdivider_ctr=0;
+
+		// Statistics
+		mpu_cnt_sample_tot++;
 		
+		
+		
+		// Automatically read data
+		if(__mpu_autoread)
+		{
+			__mpu_data_packetctr_current=mpu_cnt_sample_tot;
+			// Initiate readout: 3xA+3*G+1*T+3*M+Ms = 21 bytes
+			// Registers start at 59d (ACCEL_XOUT_H) until 79 (EXT_SENS_DATA_06). 
+			// The EXT_SENS_DATA_xx is populated from the magnetometer
+			unsigned char spibuf[32];
+			unsigned char r = mpu_readregs_int_try_raw(spibuf,59,21);
+			if(r)
+			{
+				mpu_cnt_sample_errbusy++;
+				return;
+			}
+			// Discard oldest data and store new one
+			if(mpu_data_isfull())
+			{
+				_mpu_data_rdnext();
+				mpu_cnt_sample_errfull++;
+				mpu_cnt_sample_succcess--;		// This plays with the increment of mpu_cnt_sample_succcess on the last line of this function; i.e. mpu_cnt_sample_succcess does not change.
+			}
 			
+			// Pointer to memory structure
+			MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
 			
-		}*/
+			__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA
+			mdata->time=timer_ms_get();										// Fill remaining fields
+			mdata->packetctr=__mpu_data_packetctr_current;
+			
+			// correct the magnetometer
+			if(_mpu_mag_correctionmode==1)
+				mpu_mag_correct1(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);
+			if(_mpu_mag_correctionmode==2)
+				mpu_mag_correct2(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);
+						
+			// Next buffer	
+			_mpu_data_wrnext();	
+			
+			// Statistics
+			mpu_cnt_sample_succcess++;
+		
+		}
 	}
 }
 
@@ -222,6 +390,7 @@ void mpu_clearstat(void)
 		mpu_cnt_sample_succcess=0;
 		mpu_cnt_sample_errbusy=0;
 		mpu_cnt_sample_errfull=0;
+		mpu_cnt_spurious=0;
 	}
 }
 /******************************************************************************
@@ -294,17 +463,16 @@ void _mpu_disableautoread(void)
 	Callback called when the interrupt-driven MPU data acquisition completes.
 	Copies the data in the temporary _mpu_tmp_reg into the mpu_data_xx buffers.
 *******************************************************************************/
+
 void __mpu_read_cb(void)
 {
-	// Two variants: immediately return if buffer is full, keeping the oldest data; or discard the oldest data and store new one
-	
+	// Two variants: immediately return if buffer is full, keeping the oldest data; or discard the oldest data and store new one	
 	// Immediately return if the buffer is full
 	/*if(mpu_data_isfull())
 	{
 		mpu_cnt_sample_errfull++;
 		return;
-	}*/
-	
+	}*/	
 	// Discard oldest data and store new one
 	if(mpu_data_isfull())
 	{
@@ -314,56 +482,25 @@ void __mpu_read_cb(void)
 	}
 	
 	// Pointer to memory structure
-	volatile MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
+	MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
 	
-
-	// Conver the data
-	signed short ax,ay,az,gx,gy,gz,mx,my,mz,temp;
-	unsigned char ms;	
-	ax=_mpu_tmp_reg[0]; ax<<=8; ax|=_mpu_tmp_reg[1];
-	ay=_mpu_tmp_reg[2]; ay<<=8; ay|=_mpu_tmp_reg[3];
-	az=_mpu_tmp_reg[4]; az<<=8; az|=_mpu_tmp_reg[5];
-	temp=_mpu_tmp_reg[6]; temp<<=8; temp|=_mpu_tmp_reg[7];
-	gx=_mpu_tmp_reg[8]; gx<<=8; gx|=_mpu_tmp_reg[9];
-	gy=_mpu_tmp_reg[10]; gy<<=8; gy|=_mpu_tmp_reg[11];
-	gz=_mpu_tmp_reg[12]; gz<<=8; gz|=_mpu_tmp_reg[13];
-
-	mx=_mpu_tmp_reg[15]; mx<<=8; mx|=_mpu_tmp_reg[14];
-	my=_mpu_tmp_reg[17]; my<<=8; my|=_mpu_tmp_reg[16];
-	mz=_mpu_tmp_reg[19]; mz<<=8; mz|=_mpu_tmp_reg[18];
-	ms=_mpu_tmp_reg[20];
+	__mpu_copy_spibuf_to_mpumotiondata_asm(_mpu_tmp_reg,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA
+	mdata->time=timer_ms_get();										// Fill remaining fields
+	mdata->packetctr=__mpu_data_packetctr_current;
 	
 	// correct the magnetometer
-	switch(_mpu_mag_correctionmode)
-	{
-		case 0:
-			mdata->mx=mx;
-			mdata->my=my;
-			mdata->mz=mz;
-			break;
-		case 1:
-			mpu_mag_correct1(mx,my,mz,&mdata->mx,&mdata->my,&mdata->mz);
-			break;			
-		default:
-			mpu_mag_correct2(mx,my,mz,&mdata->mx,&mdata->my,&mdata->mz);
-	}
-	
-	// Fill the buffer
-	mdata->ax=ax;
-	mdata->ay=ay;
-	mdata->az=az;
-	mdata->gx=gx;
-	mdata->gy=gy;
-	mdata->gz=gz;
-	mdata->ms=ms;
-	mdata->temp=temp;
-	mdata->time=timer_ms_get();
-	mdata->packetctr=__mpu_data_packetctr_current;
-	_mpu_data_wrnext();
-	
+	if(_mpu_mag_correctionmode==1)
+		mpu_mag_correct1(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);
+	if(_mpu_mag_correctionmode==2)
+		mpu_mag_correct2(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);
+				
+	// Next buffer	
+	_mpu_data_wrnext();	
 	
 	// Statistics
 	mpu_cnt_sample_succcess++;
+	
+	//_mpu_ongoing=0;		// Required when using mpu_readregs_int_cb_raw otherwise no further transactions possible
 }
 
 
@@ -542,7 +679,7 @@ void mpu_mode_accgyro(unsigned char gdlpe,unsigned char gdlpoffhbw,unsigned char
 	unsigned char conf,gconf;
 	unsigned char gfchoice_b;
 	
-	printf_P(PSTR("mpu_mode_accgyro: %d %d %d %d %d %d\n"),gdlpe,gdlpoffhbw,gdlpbw,adlpe,adlpbw,divider);
+	//printf_P(PSTR("mpu_mode_accgyro: %d %d %d %d %d %d\n"),gdlpe,gdlpoffhbw,gdlpbw,adlpe,adlpbw,divider);
 	
 	// Sanitise
 	gdlpe=gdlpe?1:0;
@@ -598,7 +735,7 @@ void mpu_mode_gyro(unsigned char gdlpe,unsigned char gdlpoffhbw,unsigned char gd
 	unsigned char conf,gconf;
 	unsigned char gfchoice_b;
 	
-	printf_P(PSTR("mpu_mode_gyro: %d %d %d %d\n"),gdlpe,gdlpoffhbw,gdlpbw,divider);
+	//printf_P(PSTR("mpu_mode_gyro: %d %d %d %d\n"),gdlpe,gdlpoffhbw,gdlpbw,divider);
 	
 	// Sanitise
 	gdlpe=gdlpe?1:0;
@@ -642,7 +779,7 @@ void mpu_mode_gyro(unsigned char gdlpe,unsigned char gdlpoffhbw,unsigned char gd
 ******************************************************************************/
 void mpu_mode_acc(unsigned char dlpenable,unsigned char dlpbw,unsigned char divider)
 {	
-	printf_P(PSTR("mpu_mode_acc: %d %d %d\n"),dlpenable,dlpbw,divider);
+	//printf_P(PSTR("mpu_mode_acc: %d %d %d\n"),dlpenable,dlpbw,divider);
 	
 	// Sanitise
 	dlpenable=dlpenable?0:1;		// Convert to fchoice_b
@@ -668,7 +805,7 @@ void mpu_mode_acc(unsigned char dlpenable,unsigned char dlpbw,unsigned char divi
 ******************************************************************************/
 void mpu_mode_lpacc(unsigned char lpodr)
 {
-	printf_P(PSTR("mpu_mode_lpacc: %d\n"),lpodr);
+	//printf_P(PSTR("mpu_mode_lpacc: %d\n"),lpodr);
 	
 	_mpu_wakefromsleep();
 	mpu_clksel(0b000);												// Internal oscillator
@@ -1743,27 +1880,113 @@ void mpu_mag_correct1(signed short mx,signed short my,signed short mz,volatile s
 	
 	
 }
-// Magnetic correction using 
-void mpu_mag_correct2(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2)
+/******************************************************************************
+	function: mpu_mag_correct2
+*******************************************************************************	
+*******************************************************************************	
+	Magnetic correction using bias/sensitivity parameters found during calibration.
+	
+	The sensitivity is a N.7 fixed point number
+	
+	
+*******************************************************************************/
+void mpu_mag_correct2(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2)
 {
-	*mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
+	
+	/**mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
 	*my2=(my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/128;
-	*mz2=(mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;
+	*mz2=(mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;*/
+	*mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/256;
+	*my2=(my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/256;
+	*mz2=(mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/256;
+	
+	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]+64)>>7;
+	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1]+64)>>7;
+	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]+64)>>7;*/
+	
+	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0])>>7;
+	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1])>>7;
+	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2])>>7;*/
 }
+void mpu_mag_correct2b(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2)
+{
+	
+	/**mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
+	*my2=(my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/128;
+	*mz2=(mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;*/
+	
+	*mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]+64)>>7;
+	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1]+64)>>7;
+	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]+64)>>7;
+	
+	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0])>>7;
+	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1])>>7;
+	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2])>>7;*/
+}
+void mpu_mag_correct2c(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2)
+{
+	
+	/**mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
+	*my2=(my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/128;
+	*mz2=(mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;*/
+	
+	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]+64)>>7;
+	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1]+64)>>7;
+	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]+64)>>7;*/
+	
+	*mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0])>>7;
+	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1])>>7;
+	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2])>>7;
+}
+void mpu_mag_correct2d(signed short *mx,signed short *my,signed short *mz)
+{
+	
+	*mx=(*mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
+	*my=(*my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/128;
+	*mz=(*mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;
+	
+	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]+64)>>7;
+	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1]+64)>>7;
+	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]+64)>>7;*/
+	
+	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0])>>7;
+	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1])>>7;
+	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2])>>7;*/
+}
+/******************************************************************************
+	function: mpu_mag_calibrate
+*******************************************************************************	
+	Find the magnetometer calibration coefficients.
 
+	Finds a bias term to add to the magnetic data to ensure zero average.
+	Finds a sensitivity term to multiply the zero-average magnetic data to span the range [-128,128]
+	The sensitivity is a N.7 fixed-point number to multiply the integer magnetic field.
+	
+	The earth magnetic field is up to ~0.65 Gauss=65 uT. The sensitivity of the AK8963 is .15uT/LSB. 
+	Hence the maximum readout is: 65uT/.15uT=433LSB. 
+	Therefore assume readout < 450 for earth magnetic field.
+	
+	The maximum value of sens is 128*128=16384.
+		
+	Parameters:
+		-
+	Returns:
+		Stores calibration coefficients in _mpu_mag_sens
+*******************************************************************************/
 void mpu_mag_calibrate(void)
 {
 	signed m[3];
 	WAITPERIOD p=0;
 	unsigned long t1;
+	MPUMOTIONDATA data;
 
-	// Activate a magnetic mode
-	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100,1);
-	
 	// Deactivate the automatic correction
 	unsigned char _mpu_mag_correctionmode_back = _mpu_mag_correctionmode;
 	_mpu_mag_correctionmode=0;
-
+	
+	// Activate a magnetic mode
+	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100,1);
+	
 	_mpu_mag_calib_max[0]=_mpu_mag_calib_max[1]=_mpu_mag_calib_max[2]=-32768;
 	_mpu_mag_calib_min[0]=_mpu_mag_calib_min[1]=_mpu_mag_calib_min[2]=+32767;
 
@@ -1775,12 +1998,12 @@ void mpu_mag_calibrate(void)
 		if( fgetc(file_pri) != -1)
 			break;
 		timer_waitperiod_ms(10,&p);
-		
-		// BUG: this should use the new mpu_data_getnext_raw functions
-		m[0] = mpu_data[mpu_data_rdptr].mx;
-		m[1] = mpu_data[mpu_data_rdptr].my;
-		m[2] = mpu_data[mpu_data_rdptr].mz;
-		_mpu_data_rdnext();
+
+		if(mpu_data_getnext_raw(data))
+			continue;
+		m[0] = data.mx;
+		m[1] = data.my;
+		m[2] = data.mz;
 		
 		unsigned char dirty=0;
 		for(unsigned char i=0;i<3;i++)
@@ -1811,13 +2034,14 @@ void mpu_mag_calibrate(void)
 	// Restore the automatic correction
 	_mpu_mag_correctionmode=_mpu_mag_correctionmode_back;
 
+	mpu_config_motionmode(MPU_MODE_OFF,0);
 	
-	//mpu_config_motionmode(MPU_MODE_OFF,0);
-	
-	// compute the coefficients
+	// compute the calibration coefficients
 	for(unsigned char i=0;i<3;i++)
 	{
+		// Bias: term added to magnetic data to ensure zero mean
 		_mpu_mag_bias[i] = -(_mpu_mag_calib_max[i]+_mpu_mag_calib_min[i])/2;
+		// Sensitivity: N.4 number to obtain a range [-256;256]
 		if(_mpu_mag_calib_max[i]-_mpu_mag_calib_min[i]==0)
 			_mpu_mag_sens[i]=1;
 		else
@@ -2084,7 +2308,8 @@ void mpu_printstat(FILE *file)
 	fprintf_P(file,PSTR(" Samples: %lu\n"),mpu_cnt_sample_tot);
 	fprintf_P(file,PSTR(" Samples success: %lu\n"),mpu_cnt_sample_succcess);
 	fprintf_P(file,PSTR(" Errors: MPU I/O busy=%lu buffer=%lu\n"),mpu_cnt_sample_errbusy,mpu_cnt_sample_errfull);
-	fprintf_P(file,PSTR(" Buffer level: %u\n"),mpu_data_level());
+	fprintf_P(file,PSTR(" Buffer level: %u/%u\n"),mpu_data_level(),MPU_MOTIONBUFFERSIZE);
+	fprintf_P(file,PSTR(" Spurious ISR: %lu\n"),mpu_cnt_spurious);
 }
 
 
@@ -2154,3 +2379,182 @@ void mpu_printstat(FILE *file)
 
 
 
+// Try to speedup the conversion from the spi buffer to motiondata
+// In benchmarks __mpu_copy_spibuf_to_mpumotiondata_1 is faster than __mpu_copy_spibuf_to_mpumotiondata_2 which is faster than __mpu_copy_spibuf_to_mpumotiondata_3. The asm version is 50% faster.
+void __mpu_copy_spibuf_to_mpumotiondata_1(unsigned char *spibuf,unsigned char *mpumotiondata)
+{
+	spibuf++;				
+	// Acc (big endian)
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf--;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf+=3;
+	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf--;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf+=3;
+	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf--;
+	*mpumotiondata=*spibuf;
+	spibuf+=3;
+	
+	// Temp (big endian)
+	mpumotiondata+=14;	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf--;
+	*mpumotiondata=*spibuf;
+	spibuf+=3;
+	
+	// Gyr (big endian)
+	mpumotiondata-=14;	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf--;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf+=3;
+	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf--;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf+=3;
+	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf--;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	
+	// Mag
+	spibuf+=2;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf++;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf++;
+	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf++;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf++;
+	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf++;
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf++;
+	
+	*mpumotiondata=*spibuf;
+	mpumotiondata++;
+	spibuf++;
+}
+void __mpu_copy_spibuf_to_mpumotiondata_2(unsigned char *spibuf,unsigned char *mpumotiondata)
+{
+
+	spibuf++;				
+	// Acc (big endian)
+	*mpumotiondata++=*spibuf--;
+	*mpumotiondata++=*spibuf;
+	spibuf+=3;
+	
+	*mpumotiondata++=*spibuf--;
+	*mpumotiondata++=*spibuf;
+	spibuf+=3;
+	
+	*mpumotiondata++=*spibuf--;
+	*mpumotiondata=*spibuf;
+	spibuf+=3;
+	
+	// Temp (big endian)
+	mpumotiondata+=14;
+	*mpumotiondata++=*spibuf--;
+	*mpumotiondata=*spibuf;
+	spibuf+=3;
+	
+	// Gyr (big endian)
+	mpumotiondata-=14;	
+	*mpumotiondata++=*spibuf--;
+	*mpumotiondata++=*spibuf;
+	spibuf+=3;
+	
+	*mpumotiondata++=*spibuf--;
+	*mpumotiondata++=*spibuf;
+	spibuf+=3;
+	
+	*mpumotiondata++=*spibuf--;
+	*mpumotiondata++=*spibuf;
+
+	// Mag
+	spibuf+=2;
+	*mpumotiondata++=*spibuf++;
+	*mpumotiondata++=*spibuf++;
+	
+	*mpumotiondata++=*spibuf++;
+	*mpumotiondata++=*spibuf++;
+	
+	*mpumotiondata++=*spibuf++;
+	*mpumotiondata++=*spibuf++;
+
+	*mpumotiondata++=*spibuf++;
+}
+void __mpu_copy_spibuf_to_mpumotiondata_3(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata)
+{
+	signed short ax,ay,az,gx,gy,gz,mx,my,mz,temp;
+	unsigned char ms;	
+	
+	ax=spibuf[0]; ax<<=8; ax|=spibuf[1];
+	ay=spibuf[2]; ay<<=8; ay|=spibuf[3];
+	az=spibuf[4]; az<<=8; az|=spibuf[5];
+	temp=spibuf[6]; temp<<=8; temp|=spibuf[7];
+	gx=spibuf[8]; gx<<=8; gx|=spibuf[9];
+	gy=spibuf[10]; gy<<=8; gy|=spibuf[11];
+	gz=spibuf[12]; gz<<=8; gz|=spibuf[13];
+
+	mx=spibuf[15]; mx<<=8; mx|=spibuf[14];
+	my=spibuf[17]; my<<=8; my|=spibuf[16];
+	mz=spibuf[19]; mz<<=8; mz|=spibuf[18];
+	ms=spibuf[20];
+	
+	mpumotiondata->ax=ax;
+	mpumotiondata->ay=ay;
+	mpumotiondata->az=az;
+	mpumotiondata->gx=gx;
+	mpumotiondata->gy=gy;
+	mpumotiondata->gz=gz;
+	mpumotiondata->mx=mx;
+	mpumotiondata->my=my;
+	mpumotiondata->mz=mz;
+	mpumotiondata->ms=ms;
+	mpumotiondata->temp=temp;
+}
+
+void mpu_benchmark_isr(void)
+{
+	// Benchmark ISR
+	unsigned long t1,t2;
+	__mpu_sample_softdivider_divider=0;
+	__mpu_autoread=1;
+	//unsigned char spibuf[32];
+	t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		mpu_isr();
+		//unsigned char r = mpu_readregs_int_try_raw(spibuf,59,21);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);
+	
+	
+}

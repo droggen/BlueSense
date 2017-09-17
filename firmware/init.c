@@ -81,7 +81,9 @@ void init_basic(void)
 	serial_setblocking(file_usb,0);
 	
 	// Register debug callback
-	timer_register_callback(dbg_callback,1);
+	//timer_register_callback(dbg_callback,3);		// DBG at 250Hz
+	//timer_register_callback(dbg_callback,2);		// DBG at 340Hz		(good tradeoff)
+	timer_register_callback(dbg_callback,1);		// DBG at 500Hz, causes issues with cpu overhead leading to missed MPU samples
 	/////////////////////////// PRINT WORKS FROM HERE ///////////////////////////
 	
 	fprintf_P(file_usb,PSTR("BlueSense2\n"));
@@ -429,49 +431,26 @@ void init_extended(void)
 	
 	//CommandParserMPUTest_Quaternion("",0);
 	
-	// Load the configuration script and store it into the command buffer
-	/*char script[CONFIG_ADDR_SCRIPTLEN];	
-	ConfigLoadScript(script);
-	for(unsigned char i=0;i<CONFIG_ADDR_SCRIPTLEN;i++)
-	{
-		printf("%02X ",script[i]);
-	}
-	printf("\n");
-	script[0]++;
-	for(unsigned char i=1;i<CONFIG_ADDR_SCRIPTLEN;i++)
-		script[i]=script[0]+i;
-	ConfigSaveScript(script,CONFIG_ADDR_SCRIPTLEN);*/
 	
-	// copy to the command buffer
-	//script[CONFIG_ADDR_SCRIPTLEN-1]='\n';
-	//CommandSet(script,CONFIG_ADDR_SCRIPTLEN);
-	//CommandSet("b\r\n",3);
+	
+	// Load and set the boot script
 	char buf[CONFIG_ADDR_SCRIPTLEN];
 	ConfigLoadScript(buf);
-	for(unsigned i=0;i<CONFIG_ADDR_SCRIPTLEN;i++)
-		printf("%02X ",buf[i]);
-	fprintf_P(file_pri,PSTR("Boot script: '%s' (len: %d)\n"),buf,strlen(buf));
-	
-	// Massage the script: replace newlines by semicolons
-	for(unsigned char i=0;i<CONFIG_ADDR_SCRIPTLEN;i++)
-		if(buf[i]==';') 
-			buf[i]='\n';
-	
-	// set the boot script
 	CommandSet(buf,strlen(buf));
 	
-		
-	// Massage the script: replace newlines by semicolons
-	/*for(unsigned char i=0;i<CONFIG_ADDR_SCRIPTLEN;i++)
-		if(buf[i]==';') 
-			buf[i]='\n';
-	fprintf_P(file_pri,PSTR("Boot script: '%s'\n"),buf);*/
+	//fprintf_P(file_pri,PSTR("Boot script: "));
+	//void prettyprint_hexascii(file_pri,buf,CONFIG_ADDR_SCRIPTLEN);
+	
+
+
+	
+	
+	
 	
 	//system_status_ok(5);
 	
-	//_delay_ms(500);
 	
-
+	
 
 	
 }

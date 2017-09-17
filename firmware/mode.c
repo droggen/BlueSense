@@ -63,7 +63,7 @@ void mode_main(void)
 	
 	while(1)
 	{
-		fprintf_P(file_pri,PSTR("Current mode: %d\n"),system_mode);
+		//fprintf_P(file_pri,PSTR("Current mode: %d\n"),system_mode);
 		//_delay_ms(500);
 		//system_status_ok(system_mode);
 		//_delay_ms(500);

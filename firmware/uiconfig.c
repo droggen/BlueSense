@@ -140,14 +140,14 @@ unsigned char ConfigLoadEnableInfo(void)
 {
 	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_ENABLE_INFO) ? 1:0;
 }
-void ConfigSaveMotionMode(unsigned char mode)
+/*void ConfigSaveMotionMode(unsigned char mode)
 {
 	eeprom_write_byte((uint8_t*)CONFIG_ADDR_SENSORSR,mode);
 }
 unsigned char ConfigLoadMotionMode(void)
 {
 	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_SENSORSR);
-}
+}*/
 void ConfigSaveMotionAccScale(unsigned char scale)
 {
 	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ACC_SCALE,scale&0b11);
@@ -172,8 +172,10 @@ unsigned char ConfigLoadMotionGyroScale(void)
 	Load the startup configuration script from EEPROM address 
 	CONFIG_ADDR_SCRIPTSTART.
 	
-	This function reads exactly CONFIG_ADDR_SCRIPTLEN bytes and does not add
-	a null-terminating byte.
+	This function reads exactly CONFIG_ADDR_SCRIPTLEN bytes.
+	
+	This function guarantees that the last byte is null terminated (i.e. if
+	the last byte of the script wasn't a null it is lost).
 	
 	Parameters:
 		buf		-		Buffer to receive the configuration script. Buf large 
@@ -185,6 +187,7 @@ void ConfigLoadScript(char *buf)
 	{
 		buf[i] = eeprom_read_byte((uint8_t*)(CONFIG_ADDR_SCRIPTSTART+i));
 	}
+	buf[CONFIG_ADDR_SCRIPTLEN-1]=0;		// For securitz, set the last byte to null
 }
 /******************************************************************************
 	function: ConfigSaveScript
@@ -192,7 +195,10 @@ void ConfigLoadScript(char *buf)
 	Save a startup configuration script to EEPROM address 
 	CONFIG_ADDR_SCRIPTSTART.
 
-	Writes up to CONFIG_ADDR_SCRIPTLEN bytes. Does not append a null-terminating byte
+	Writes exactly CONFIG_ADDR_SCRIPTLEN bytes. 
+	
+	Does not process the string to append a null-terminating byte. The application
+	should however put a null terminating byte to indicate the script length.
 
 	Parameters:
 		buf		-		Buffer containing the configuration script.

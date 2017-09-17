@@ -44,6 +44,7 @@
 #define MPU_R_I2C_SLV4_DO		51
 #define MPU_R_I2C_SLV4_CTRL		52
 #define MPU_R_I2C_SLV4_DI 		53
+#define MPU_R_INT_STATUS		58
 
 #define MPU_R_I2C_MST_CTRL		36
 #define MPU_R_I2C_MST_STATUS	54
@@ -138,7 +139,34 @@ extern unsigned char __mpu_sample_softdivider_ctr,__mpu_sample_softdivider_divid
 
 void mpu_isr(void);
 
-// Structure for data (meant to replace data buffers)
+/*
+ Structure for MPU data
+ Memory organisation on AVR (GCC 7.2):
+ struct start: 0x40df
+	acc: 0x40df 0x40e1 0x40e3
+	gyr: 0x40e5 0x40e7 0x40e9
+	mag: 0x40eb 0x40ed 0x40ef 0x40f1
+	temp: 0x40f2
+	time: 0x40f4
+	packetctr: 0x40f8
+	
+	Offsets: 
+		ax: 0
+		ay:	2
+		az:	4
+		gx: 6
+		gy: 8
+		gz: 10
+		mx: 12
+		my: 14
+		mz: 16
+		ms: 18
+		temp: 19
+		time: 21
+		packetctr: 25
+		
+	
+*/
 typedef struct {
 	signed short ax,ay,az;
 	signed short gx,gy,gz;
@@ -151,11 +179,12 @@ typedef struct {
 
 
 // Data buffers
-// 64 buffers works on all cards which are U-1 or faster without data loss at 1KHz
+// 64 buffers works on all cards which are U-1 or faster without data loss at 500Hz HBW
 //#define MPU_MOTIONBUFFERSIZE 64		
 #define MPU_MOTIONBUFFERSIZE 8
+//#define MPU_MOTIONBUFFERSIZE 16
 //#define MPU_MOTIONBUFFERSIZE 128
-extern MPUMOTIONDATA volatile mpu_data[];
+extern MPUMOTIONDATA mpu_data[];
 extern volatile unsigned long __mpu_data_packetctr_current;
 extern volatile unsigned char mpu_data_rdptr,mpu_data_wrptr;
 
@@ -175,6 +204,7 @@ extern unsigned char __mpu_autoread;
 
 // Automatic read statistic counters
 extern unsigned long mpu_cnt_int, mpu_cnt_sample_tot, mpu_cnt_sample_succcess, mpu_cnt_sample_errbusy, mpu_cnt_sample_errfull;
+extern unsigned long mpu_cnt_spurious;
 
 
 
@@ -254,7 +284,11 @@ void mpu_mag_writereg(unsigned char reg,unsigned char val);
 void _mpu_mag_regshadow(unsigned char enable,unsigned char dly,unsigned char regstart,unsigned char numreg);
 void _mpu_mag_readasa(void);
 void mpu_mag_correct1(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2);
-void mpu_mag_correct2(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2);
+void mpu_mag_correct2(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2);
+void mpu_mag_correct2b(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2);
+void mpu_mag_correct2c(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2);
+void mpu_mag_correct2d(signed short *mx,signed short *my,signed short *mz);
+extern "C" void mpu_mag_correct2_asm(signed short *mx,signed short *my,signed short *mz);
 void mpu_mag_calibrate(void);
 void mpu_mag_storecalib(void);
 void mpu_mag_loadcalib(void);
@@ -268,5 +302,12 @@ void mpu_printextreg(FILE *file);
 void mpu_printregdesc(FILE *file);
 void mpu_printregdesc2(FILE *file);
 void mpu_printstat(FILE *file);
+
+void __mpu_copy_spibuf_to_mpumotiondata_1(unsigned char *spibuf,unsigned char *mpumotiondata);
+void __mpu_copy_spibuf_to_mpumotiondata_2(unsigned char *spibuf,unsigned char *mpumotiondata);
+void __mpu_copy_spibuf_to_mpumotiondata_3(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
+extern "C" void __mpu_copy_spibuf_to_mpumotiondata_asm(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
+
+void mpu_benchmark_isr(void);
 
 #endif

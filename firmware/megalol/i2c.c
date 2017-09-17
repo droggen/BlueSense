@@ -98,11 +98,16 @@ void i2c_init(void)
 	//TWBR = 0; TWSR = 0;		// 460.8KHz @ 7'372'800 Hz
 	#endif
 	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
-	TWBR = 6; TWSR = 0;			// 394.9KHz @ 11'059'200 Hz
+	//TWBR = 6; TWSR = 0;			// 394.9KHz @ 11'059'200 Hz		(default during development)
+	TWBR = 7; TWSR = 0;			// 368.64KHz @ 11'059'200 Hz		
 	//TWBR = 47; TWSR = 0;		// 100.5KHz @ 11'059'200 Hz
 	//TWBR = 34; TWSR = 2;		// 10KHz @ 11'059'200 Hz
 	//TWBR = 172; TWSR = 3;		// 501.9Hz @ 11'059'200 Hz
 	//TWBR = 5; TWSR = 0;		// 425.3KHz @ 11'059'200 Hz
+	//TWBR = 4; TWSR = 0;		// 460.8KHz @ 11'059'200 Hz
+	//TWBR = 2; TWSR = 0;		// 552.96KHz @ 11'059'200 Hz			(default for fast)
+	//TWBR = 1; TWSR = 0;			// 614.4KHz @ 11'059'200 Hz			(still works)
+	//TWBR = 0; TWSR = 0;			// 691.2KHz @ 11'059'200 Hz			(FTDI doesn't work)
 	#endif
 
 

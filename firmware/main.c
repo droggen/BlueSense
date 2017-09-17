@@ -234,10 +234,61 @@ ISR(PCINT2_vect)
 {
 	//dbg_fputchar_nonblock('m',0);
 	//motion_int_ctr2++;
-	// React on motion_int pin
-	if(PINC&0x20)
+	/* React on motion_int pin
+		This is the naive and correct approach: trigger mpu_isr on the rising edge.
+		An issue arises if other interrupts delay this ISR by more than 50uS where
+		the MPU interrupt pulse would be missed.
+		
+		Therefore we trigger on the falling edge as the low level lasts longer.
+		
+		This does not entirely prevent:
+		- missing interrupts: if between the moment the ISR is called and the pin readout the pin toggles to 1, which could happen if the ISR is delayed by other interrupts.
+		- or spurious mpu_isr calls: the ISR is called on the rising edge after some delay, the pin is sampled at 0 and a mpu_isr is triggered; now the pin is at 0 but the falling edge scheduled a new interrupt, which will lead to a spurious mpu_isr call.
+		
+		Spurious interrupts can be handled by clearing the PCIFR bit 2 (writing to 1) after the mpu_isr. This can lead to missing motion interrupts.
+		Alternatively, the MPU interrupt flag can be checked in the mpu_isr routine, at the cost of CPU overhead. In this case, PCIFR should not be cleared. This however can still lead to missing motion interrupts.
+		
+		Solution decided: clear PCIFR bit 2 to avoid superfluous calls to mpu_isr and check in mpu_isr for spurious motion interrupts.
+	*/
+	
+	
+	
+	//unsigned char i = PCIFR;
+	//unsigned char p = PINC;
+	//char b[16];
+	//b[0]=hex2chr((i>>4)&0xf);
+	//b[0]=hex2chr((i>>0)&0xf);
+	//b[2]=32;
+	//b[3]=hex2chr((p>>4)&0xf);
+	//b[4]=hex2chr((p>>0)&0xf);
+	//b[1]=' ';
+	
+	//for(i=0;i<3;i++)
+		//dbg_fputchar_nonblock(b[i],0);
+	
+	//dbg_fputchar_nonblock(b[i],0);
+
+
+	if(PINC&0x20)		// Do nothing if positive edge (pin high)
+	//if((PINC&0x20)==0)		// Do nothing if negative edge (pin low)
+		return;
+	
+	mpu_isr();			// Called on falling edge (PINC&0x20 should be 0 here)
+
+	PCIFR=0b0100;		// Clear pending interrupts
+	return;
+
+	/*mpu_isr();*/
+	if(PCIFR&4)
 	{
-		mpu_isr();
+		// This would be taken if the pin was toggled during the processing of the interrupt, either 0->1 or 0->1->0
+		if((PINC&0x20)==0)
+			dbg_fputchar_nonblock('x',0);		// Pin was toggled 0->1->0 or multiples
+		else
+			dbg_fputchar_nonblock('X',0);		// Pin was toggled 0->1 or multiples
+		//PCIFR=0b0100;
+		//if(PCIFR&4)
+			//dbg_fputchar_nonblock('y',0);
 	}
 }
 // Pin change: BT connect (PD7) USB connect (PD6) and RTS (PD4)
@@ -305,14 +356,39 @@ unsigned long main_perfbench(unsigned long mintime)
 {
 	unsigned long int t_last,t_cur;
 	unsigned long int ctr,cps;
-		
+	MPUMOTIONDATA mpumotiondata;
 	ctr=0;
+	/*
+	// Using millisecond timer
 	t_last=timer_ms_get();
-	while((t_cur=timer_ms_get())-t_last<mintime)
+	while((t_cur=timer_ms_get())-t_last<=mintime)
 	{
 		ctr++;
 	}
-	cps = ctr*1000/(t_cur-t_last);
+	cps = ctr*1000/(t_cur-t_last);*/
+	
+	t_last=timer_s_wait();
+	mpu_clearstat();
+	unsigned long tint1=timer_ms_get_intclk();
+	while((t_cur=timer_s_get())-t_last<mintime)
+	{
+		ctr++;
+		
+		// Simulate reading out the data from the buffers
+		unsigned char l = mpu_data_level();
+		for(unsigned char i=0;i<l;i++)
+		{
+			// Get the data from the auto read buffer; if no data available break
+			if(mpu_data_getnext_raw(mpumotiondata))
+				break;
+			//_mpu_data_rdnext();
+		}		
+	}
+	unsigned long tint2=timer_ms_get_intclk();
+	cps = ctr/(t_cur-t_last);
+	
+	fprintf_P(file_pri,PSTR("main_perfbench: %lu perf (%lu intclk ms)\n"),cps,tint2-tint1);
+	
 	return cps;
 }
 
@@ -573,6 +649,101 @@ int main(void)
 		_delay_ms(1000);
 	}
 	*/
+	
+	/*MPUMOTIONDATA t;
+	printf("struct start: %p\n",&t);
+	printf("acc: %p %p %p\n",&t.ax,&t.ay,&t.az);
+	printf("gyr: %p %p %p\n",&t.gx,&t.gy,&t.gz);
+	printf("mag: %p %p %p %p\n",&t.mx,&t.my,&t.mz,&t.ms);
+	printf("temp: %p\n",&t.temp);
+	printf("time: %p\n",&t.time);
+	printf("packetctr: %p\n",&t.packetctr);
+	
+	
+	MPUMOTIONDATA mpumotiondata;
+	unsigned char spibuf[]={0x11,0x10,0x13,0x12,0x15,0x14,		// Acc
+							0x41,0x40,	// Temp
+								0x21,0x20,0x23,0x22,0x25,0x24,	// Gyro
+								0x30,0x31,0x32,0x33,0x34,0x35, 0x3A};
+	
+		
+	__mpu_copy_spibuf_to_mpumotiondata_1(spibuf,(unsigned char*)&mpumotiondata);
+	printf("%04X %04X %04X   %04X   %04X %04X %04X   %04X %04X %04X  %02X\n",mpumotiondata.ax,mpumotiondata.ay,mpumotiondata.az,mpumotiondata.temp,mpumotiondata.gx,mpumotiondata.gy,mpumotiondata.gz,mpumotiondata.mx,mpumotiondata.my,mpumotiondata.mz,mpumotiondata.ms);
+	
+	memset(&mpumotiondata,0,sizeof(mpumotiondata));
+	
+	//__mpu_copy_spibuf_to_mpumotiondata_2(spibuf,(unsigned char*)&mpumotiondata);
+	for(int i=0;i<10;i++) printf("%02X ",spibuf[i]); printf("\n");
+	__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf,&mpumotiondata);	
+	for(int i=0;i<10;i++) printf("%02X ",spibuf[i]); printf("\n");
+	printf("%04X %04X %04X   %04X   %04X %04X %04X   %04X %04X %04X  %02X\n",mpumotiondata.ax,mpumotiondata.ay,mpumotiondata.az,mpumotiondata.temp,mpumotiondata.gx,mpumotiondata.gy,mpumotiondata.gz,mpumotiondata.mx,mpumotiondata.my,mpumotiondata.mz,mpumotiondata.ms);
+	
+	
+	
+	
+	
+	unsigned long t1,t2;
+	t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		__mpu_copy_spibuf_to_mpumotiondata_1(spibuf,(unsigned char*)&mpumotiondata);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);
+	t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		__mpu_copy_spibuf_to_mpumotiondata_2(spibuf,(unsigned char*)&mpumotiondata);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);
+	t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		__mpu_copy_spibuf_to_mpumotiondata_3(spibuf,&mpumotiondata);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);
+		t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf,&mpumotiondata);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);*/
+	
+	unsigned long t1,t2;
+	signed short mx=100,my=200,mz=300,mx2,my2,mz2;
+	/*t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		mpu_mag_correct2(mx,my,mz,&mx2,&my2,&mz2);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);
+	t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		mpu_mag_correct2b(mx,my,mz,&mx2,&my2,&mz2);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);
+	t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		mpu_mag_correct2c(mx,my,mz,&mx2,&my2,&mz2);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);
+	t1=timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+		mpu_mag_correct2d(&mx,&my,&mz);
+	t2=timer_ms_get();
+	printf("%ld\n",t2-t1);*/
+	
+	for(int i=0;i<3;i++)
+		printf("Bias %d Sens %d\n",_mpu_mag_bias[i],_mpu_mag_sens[i]);
+	mx=100; my=200; mz=300;
+	printf("%d %d %d\n",mx,my,mz);	
+	mpu_mag_correct2d(&mx,&my,&mz);
+	printf("-> %d %d %d\n",mx,my,mz);
+	
+	mx=100; my=200; mz=300;
+	printf("%d %d %d\n",mx,my,mz);	
+	mpu_mag_correct2_asm(&mx,&my,&mz);
+	printf("-> %d %d %d\n",mx,my,mz);
+	
+	timer_printcallbacks(file_usb);
+	
+	
+	
+	//mpu_benchmark_isr();
 	
 	mode_main();			// This never returns.
 	

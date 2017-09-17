@@ -42,10 +42,11 @@
 	
 	* spiusart0_init: 		setups usart0 for SPI communication	
 	* spiusart0_rw:			selects the peripheral and exchanges 1 byte. Waits for peripheral available before start, waits for completion. Do not use in interrupts.
-	* spiusart0_rwn:			selects the peripheral and exchanges n byte. Waits for peripheral available before start, waits for completion. Do not use in interrupts.
-	* spiusart0_rwn_int:		selects the peripheral and exchanges n byte using interrupt-driven transfer.  Waits for peripheral available before start, waits for completion. Do not use in interrupts.
+	* spiusart0_rwn:		selects the peripheral and exchanges n byte. Waits for peripheral available before start, waits for completion. Do not use in interrupts.
+	* spiusart0_rwn_int:	selects the peripheral and exchanges n byte using interrupt-driven transfer.  Waits for peripheral available before start, waits for completion. Do not use in interrupts.
 	* spiusart0_rwn_int_cb:	selects the peripheral and exchanges n byte using interrupt-driven transfer. Returns if peripheral not available, calls a callback on transfer completion. Interrupt safe.
 	
+
 	The only function safe to call from an interrupt routing is spiusart0_rwn_int_cb. The other functions can cause deadlocks and must not be used in interrupts.
 	
 	All functions will wait for the peripheral to be available, except spiusart0_rwn_int_cb which will return immediately with an error if the peripheral is used. This
@@ -176,11 +177,14 @@ void spiusart0_init(void)
 	//UCSR0B = 0b01011000;			// Enable TXCIE interrupts and RX TX 
 	
 	// Set baud rate
+	//UBRR0=0;				//	5529.6 KHz @ 11'059'200 Hz
 	//UBRR0=1;				//	2764 KHz @ 11'059'200 Hz
-	//UBRR0=3;				//	1382 KHz @ 11'059'200 Hz
-	UBRR0=5;				//	921.6 KHz @ 11'059'200 Hz		// Works (default)
+	UBRR0=3;				//	1382 KHz @ 11'059'200 Hz
+	//UBRR0=5;				//	921.6 KHz @ 11'059'200 Hz		// Works (default)
+	//UBRR0=9;				//	552.96 KHz @ 11'059'200 Hz		
 	//UBRR0=54;				//	100.5 KHz @ 11'059'200 Hz
 	//UBRR0=255;			//	21.6 KHz @ 11'059'200 Hz
+	
 	
 	
 	_spiusart0_ongoing=0;
@@ -222,6 +226,37 @@ void _spiusart0_waitavailandreserve(void)
 	return;
 	//while(_spiusart0_ongoing);
 }
+/******************************************************************************
+	function: _spiusart0_tryavailandreserve
+*******************************************************************************	
+	Checks availability of SPI peripheral and reserves it, otherwise returns error.
+	
+	Checks that no SPI transaction occurs (_spiusart0_ongoing=0) and 
+	immediately indicates a transaction is ongoing (_spiusart0_ongoing=1) and returns
+	success. Otherwise returns error.
+	
+	Interrupts are managed to ensure no interrupt-initiated transaction can sneak
+	in.	
+	
+	Return:
+		0:		OK, peripheral reserved
+		1:		Error reserving peripheral
+******************************************************************************/
+unsigned char _spiusart0_tryavailandreserve(void)
+{	
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		// Check if any transfer is ongoing: if yes, return error
+		if(_spiusart0_ongoing)
+		{
+			return 1;
+		}
+		// No transfer ongoing: reserve and return success.
+		_spiusart0_ongoing=1;
+	}
+	return 0;
+}
+
 
 /******************************************************************************
 	function: spiusart0_rw
@@ -269,6 +304,13 @@ unsigned char spiusart0_rw(unsigned char data)
 	and waits until completion of the transfer before returning.			
 	
 	Do not call in an interrupt routine as this can lead to a deadlock.
+	
+	Parameters:
+		ptr					-	Pointer where the data to send and receive is stored.
+		n					-	Number of bytes to exchange
+
+	Returns:
+		-
 ******************************************************************************/
 void spiusart0_rwn(unsigned char *ptr,unsigned char n)
 {
@@ -296,6 +338,54 @@ void spiusart0_rwn(unsigned char *ptr,unsigned char n)
 
 	return;				// To avoid compiler complaining
 }
+/******************************************************************************
+	function: spiusart0_rwn_try
+*******************************************************************************	
+	Read/write n bytes in the provided buffer. 
+	
+	Check if the SPI interface is available, if not returns an error.
+	If the peripheral is available, mark is as used to prevent other functions using it
+	and performs a blocking transfer. 
+	The function returns once all the data has been transferred.
+	
+	
+	Suitable for use in interrupts.
+	
+	Parameters:
+		ptr					-	Pointer where the data to send and receive is stored.
+		n					-	Number of bytes to exchange
+
+	Returns:
+		0					-	Success
+		1					-	Error, peripheral not available
+******************************************************************************/
+unsigned char spiusart0_rwn_try(unsigned char *ptr,unsigned char n)
+{
+	// Wait for end of interrupt transfer if any transfer is ongoing
+	if(_spiusart0_tryavailandreserve())
+		return 1;
+	
+	SPIUSART0_SELECT;
+	
+	while(n!=0)
+	{
+		// Put data into buffer, sends the data
+		UDR0 = *ptr;
+		
+		// Wait for data to be received
+		while ( !(UCSR0A & 0b10000000) );
+		
+		*ptr=UDR0;
+		ptr++;
+		n--;
+	}
+	
+	SPIUSART0_DESELECT;
+	
+	_spiusart0_ongoing=0;
+
+	return 0;
+}
 
 
 /******************************************************************************
@@ -307,6 +397,19 @@ void spiusart0_rwn(unsigned char *ptr,unsigned char n)
 	and waits until completion of the transfer before returning.					
 	
 	Do not call in an interrupt routine as this can lead to a deadlock.
+	
+	Parameters:
+		ptr					-	Pointer where the data to send and receive is stored.
+		n					-	Number of bytes to exchange
+		keepfirstrx			-	1 to keep the first received byte. This byte is generally meaningless.
+								0 to discard the first received byte. 
+								By default the first received byte is discarded.
+								Discarding the first received byte is a convenience function but
+								is slightly slower as additional memory copies are incurred.
+	Returns:
+		-
+	
+	
 ******************************************************************************/
 void spiusart0_rwn_int(unsigned char *ptr,unsigned char n)
 {
@@ -345,8 +448,17 @@ void spiusart0_rwn_int(unsigned char *ptr,unsigned char n)
 		
 	UDR0 = *ptr;
 	
-	// Wait completion
+	// Wait completion. BUG: this is suboptimal as an interrupt could occur and restart another transaction, making this wait longer than needed.
 	while(_spiusart0_ongoing);
+	
+	/*if(!keepfirstrx)
+	{
+		// We wish to discard the first byte - shift left by one the exchange buffer
+		for(unsigned char i=1;i<n;i++)
+			ptr[i-1]=ptr[i];
+	}*/
+	
+	
 	//_delay_ms(10);
 	//printf("done\n");
 	
@@ -438,13 +550,12 @@ unsigned char spiusart0_rwn_int_cb(unsigned char *ptr,unsigned char n,void (*cb)
 }
 
 /******************************************************************************
-	spiusart0_isongoing
+	function: spiusart0_isbusy
 *******************************************************************************	
 	Indicates if an interrupt-driven transaction is ongoing		
 ******************************************************************************/
-/*unsigned char spiusart0_isongoing(void)
+unsigned char spiusart0_isbusy(void)
 {
 	return _spiusart0_ongoing;
-}*/
-
+}
 

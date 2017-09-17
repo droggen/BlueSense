@@ -393,7 +393,7 @@ void printhist(unsigned long *hist1,unsigned long *hist10,unsigned long *hist100
 		printf("%05lu ",hist100[i]);
 	printf("\n");
 }
-//void sd_bench_write2(unsigned long startsect,unsigned long size)
+
 void sd_bench_write2(unsigned long startsect,unsigned long size)
 {
 	char buf[512];
