@@ -91,6 +91,25 @@
 #define MPU_ACC_SCALE_16	3
 
 
+// Non-volatile (EEPROM) storage
+#define CONFIG_ADDR_MAG_BIASXL (CONFIG_ADDR_MPU_SETTINGS+0)
+#define CONFIG_ADDR_MAG_BIASXH (CONFIG_ADDR_MPU_SETTINGS+1)
+#define CONFIG_ADDR_MAG_BIASYL (CONFIG_ADDR_MPU_SETTINGS+2)
+#define CONFIG_ADDR_MAG_BIASYH (CONFIG_ADDR_MPU_SETTINGS+3)
+#define CONFIG_ADDR_MAG_BIASZL (CONFIG_ADDR_MPU_SETTINGS+4)
+#define CONFIG_ADDR_MAG_BIASZH (CONFIG_ADDR_MPU_SETTINGS+5)
+#define CONFIG_ADDR_MAG_SENSXL (CONFIG_ADDR_MPU_SETTINGS+6)
+#define CONFIG_ADDR_MAG_SENSXH (CONFIG_ADDR_MPU_SETTINGS+7)
+#define CONFIG_ADDR_MAG_SENSYL (CONFIG_ADDR_MPU_SETTINGS+8)
+#define CONFIG_ADDR_MAG_SENSYH (CONFIG_ADDR_MPU_SETTINGS+9)
+#define CONFIG_ADDR_MAG_SENSZL (CONFIG_ADDR_MPU_SETTINGS+10)
+#define CONFIG_ADDR_MAG_SENSZH (CONFIG_ADDR_MPU_SETTINGS+11)
+#define CONFIG_ADDR_MAG_CORMOD (CONFIG_ADDR_MPU_SETTINGS+12)
+#define CONFIG_ADDR_ACC_SCALE (CONFIG_ADDR_MPU_SETTINGS+13)
+#define CONFIG_ADDR_GYRO_SCALE (CONFIG_ADDR_MPU_SETTINGS+14)
+
+
+
 #if HWVER==1
 #include "mpu-i2c.h"
 #endif
@@ -199,8 +218,8 @@ extern signed short _mpu_mag_bias[3];
 extern signed short _mpu_mag_sens[3];
 extern unsigned char _mpu_mag_correctionmode;
 
-
 extern unsigned char __mpu_autoread;
+extern unsigned char _mpu_current_motionmode;
 
 // Automatic read statistic counters
 extern unsigned long mpu_cnt_int, mpu_cnt_sample_tot, mpu_cnt_sample_succcess, mpu_cnt_sample_errbusy, mpu_cnt_sample_errfull;
@@ -268,7 +287,7 @@ signed short mpu_convtemp(signed short t);
 void mpu_set_interruptpin(unsigned char p);
 unsigned char mpu_getwhoami(void);
 
-void mpu_acquirecalib(void);
+void _mpu_acquirecalib(unsigned char clearbias);
 void mpu_calibrate(void);
 
 void _mpu_defaultdlpon(void);
@@ -293,6 +312,12 @@ void mpu_mag_calibrate(void);
 void mpu_mag_storecalib(void);
 void mpu_mag_loadcalib(void);
 void mpu_mag_correctionmode(unsigned char mode);
+
+// Non-volatile parameters
+unsigned char mpu_LoadAccScale(void);
+unsigned char mpu_LoadGyroScale(void);
+void mpu_setandstoregyrocale(unsigned char scale);
+void mpu_setandstoreaccscale(unsigned char scale);
 
 // Print functions
 void mpu_mag_printreg(FILE *file);

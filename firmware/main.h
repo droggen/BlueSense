@@ -78,21 +78,7 @@ extern unsigned char system_devname[];
 #define CONFIG_ADDR_STREAM_PKTCTR 25
 #define CONFIG_ADDR_ENABLE_INFO 26
 
-#define CONFIG_ADDR_MAG_BIASXL 30
-#define CONFIG_ADDR_MAG_BIASXH 31
-#define CONFIG_ADDR_MAG_BIASYL 32
-#define CONFIG_ADDR_MAG_BIASYH 33
-#define CONFIG_ADDR_MAG_BIASZL 34
-#define CONFIG_ADDR_MAG_BIASZH 35
-#define CONFIG_ADDR_MAG_SENSXL 36
-#define CONFIG_ADDR_MAG_SENSXH 37
-#define CONFIG_ADDR_MAG_SENSYL 38
-#define CONFIG_ADDR_MAG_SENSYH 39
-#define CONFIG_ADDR_MAG_SENSZL 40
-#define CONFIG_ADDR_MAG_SENSZH 41
-#define CONFIG_ADDR_MAG_CORMOD 42
-#define CONFIG_ADDR_ACC_SCALE 43
-#define CONFIG_ADDR_GYRO_SCALE 44
+
 
 // Boot script
 #define CONFIG_ADDR_SCRIPTSTART 100
@@ -111,6 +97,8 @@ extern unsigned char system_devname[];
 #define STATUS_ADDR_OFFCURRENT_MONTH 508
 #define STATUS_ADDR_OFFCURRENT_YEAR 509
 
+// MPU related settings - MPU requires ~50 bytes of non-volatile storage
+#define CONFIG_ADDR_MPU_SETTINGS 600
 
 
 extern unsigned char config_enable_id,config_enable_acceleration,config_enable_gyroscope,config_enable_checksum,config_data_format;

@@ -36,6 +36,8 @@
 */
 
 //#define DBG_DBG
+//#define DBG_BENCH
+
 
 CIRCULARBUFFER _dbg_tx_state,_dbg_rx_state;
 unsigned char _dbg_tx_buffer[DBG_BUFFER_SIZE];
@@ -54,7 +56,10 @@ unsigned char _dbg_numtxbeforerx=5;			// 5: 13743 bytes/sec @1024Hz	6880 bytes/s
 //unsigned char _dbg_numtxbeforerx=10;	// 10: 14894 bytes/sec @1024Hz	7447 bytes/sec @512Hz
 unsigned char _dbg_newnumtxbeforerx=0;
 
+
+#ifdef DBG_BENCH
 volatile unsigned long _dbg_query_callback2_time,_dbg_query_callback1_time;
+#endif
 
 /*
 	State 0: send data if any
@@ -414,8 +419,10 @@ unsigned char _dbg_write_callback(I2C_TRANSACTION *t)
 }
 unsigned char _dbg_query_callback1(I2C_TRANSACTION *t)
 {
-	_dbg_query_callback1_time = timer_us_get();
-	_dbg_query_callback1_time&=0xFFFFFFFE;		// Even value in case of success
+	#ifdef DBG_BENCH
+		_dbg_query_callback1_time = timer_us_get();
+		_dbg_query_callback1_time&=0xFFFFFFFE;		// Even value in case of success
+	#endif
 	
 	// First transaction successful -> do nothing
 	if(t->status==0)
@@ -433,15 +440,15 @@ unsigned char _dbg_query_callback1(I2C_TRANSACTION *t)
 	fputs(b,file_bt);*/
 	fputc('Q',file_bt);
 	#endif
-	
-	_dbg_query_callback1_time++;	// odd value in case of error
+
+	#ifdef DBG_BENCH	
+		_dbg_query_callback1_time++;	// odd value in case of error
+	#endif
 	
 	return 1;
 }
 unsigned char _dbg_query_callback2(I2C_TRANSACTION *t)
 {
-	//_dbg_query_callback2_time = 2;
-	
 	// Second transaction
 	if(t->status==0)
 	{
@@ -462,8 +469,10 @@ unsigned char _dbg_query_callback2(I2C_TRANSACTION *t)
 			//system_led_set(0);
 			dbg_general_state=0;
 		}
-		_dbg_query_callback2_time=timer_us_get();
-		_dbg_query_callback2_time&=0xfffffffE;
+		#ifdef DBG_BENCH
+			_dbg_query_callback2_time=timer_us_get();
+			_dbg_query_callback2_time&=0xfffffffE;
+		#endif
 		return 0;
 	}
 	// Second transaction failed
@@ -477,10 +486,12 @@ unsigned char _dbg_query_callback2(I2C_TRANSACTION *t)
 	
 	dbg_general_busy=0;
 	dbg_general_state=0;		
-	_dbg_query_callback2_time=timer_us_get();
-	_dbg_query_callback2_time&=0xfffffffE;
-	_dbg_query_callback2_time+1;
-	return 1;
+	#ifdef DBG_BENCH
+		_dbg_query_callback2_time=timer_us_get();
+		_dbg_query_callback2_time&=0xfffffffE;
+		_dbg_query_callback2_time++;
+	#endif
+	return 1;	
 }
 unsigned char _dbg_read_callback(I2C_TRANSACTION *t)
 {
@@ -569,6 +580,7 @@ void dbg_setioparam(unsigned char period,unsigned char txbeforerx)
 */
 void dbg_inquire_testspeed(void)
 {
+#ifdef DBG_BENCH
 	unsigned char r;
 	unsigned long t1,t2,tcb1,tcb2;
 	
@@ -615,7 +627,7 @@ void dbg_inquire_testspeed(void)
 	fprintf_P(file_pri,PSTR("t1-cb2: %lu t2-cb2: %lu\n"),tcb2-t1,tcb2-t2);
 	fprintf_P(file_pri,PSTR("t1-cb1: %lu t2-cb1: %lu\n"),tcb1-t1,tcb1-t2);
 	fprintf_P(file_pri,PSTR("dbg_rxlevel: %d\n"),rxl);
-	
+#endif
 }
 
 

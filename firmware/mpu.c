@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include "cpu.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
@@ -17,6 +18,7 @@
 #include "system.h"
 #include "dbg.h"
 #include "helper.h"
+#include "uiconfig.h"
 
 /*
 	File: mpu
@@ -40,15 +42,6 @@
 	
 	* mpu_data_level:			Function indicating how many samples are in the buffer
 	* mpu_data_getnext_raw:		Returns the next data in the buffer (when automatic read is active).
-	* [_mpu_data_rdnext:		Function incrementing the read pointer to access the next sample in the buffer:	
-								do not use anymore in application code, use mpu_data_getnext_raw]
-	* [Buffers: 				mpu_data_ax[],mpu_data_ay[],mpu_data_az[], mpu_data_gx[],mpu_data_gy[],mpu_data_gz[], mpu_data_mx[],mpu_data_my[],mpu_data_mz[],mpu_data_ms[], mpu_data_temp[], mpu_data_time[]:
-								do not use anymore in application code, use mpu_data_getnext_raw]
-	* [Current sample:			mpu_data_rdptr
-								do not use anymore in application code, use mpu_data_getnext_raw]
-	
-	For example, the acceleration x is accessed with mpu_data_ax[mpu_data_rdptr]. In order to access the next sample, call mpu_data_rdnext() and access the sample with mpu_data_ax[mpu_data_rdptr].
-
 	
 	In non automatic read, the functions mpu_get_a, mpu_get_g, mpu_get_agt or mpu_get_agmt must be used to acquire the MPU data. These functions can also be called in automatic
 	read, however this is suboptimal and increases CPU load as the data would be acquired in the interrupt routine and 	through this function call.
@@ -172,6 +165,8 @@
 	
 */
 
+// Various
+const char _str_mpu[] = "MPU: ";
 
 unsigned char __mpu_sample_softdivider_ctr=0,__mpu_sample_softdivider_divider=0;
 
@@ -195,6 +190,8 @@ unsigned long mpu_cnt_int, mpu_cnt_sample_tot, mpu_cnt_sample_succcess, mpu_cnt_
 unsigned long mpu_cnt_spurious;
 
 unsigned char __mpu_autoread=0;
+
+unsigned char _mpu_current_motionmode=0;
 
 // Motion ISR
 void (*isr_motionint)(void) = 0;
@@ -438,10 +435,12 @@ void mpu_clearbuffer(void)
 
 void _mpu_enableautoread(void)
 {
-	// Clear statistics counters
-	mpu_clearstat();
+	_mpu_disableautoread();		// Temporarily disable the interrupts to allow clearing the old statistics+buffer
+	_delay_ms(1);				// Wait that the last potential interrupt transfer completes
 	// Clear the software divider counter
 	__mpu_sample_softdivider_ctr=0;
+	// Clear statistics counters
+	mpu_clearstat();	
 	// Clear data buffers
 	mpu_clearbuffer();
 	// Enable automatic read
@@ -607,6 +606,11 @@ ACC GYRO CONFIG   ACC GYRO CONFIG   ACC GYRO CONFIG   ACC GYRO CONFIG   ACC GYR
 	Initialise the MPU, the interrupt driven read, the magnetometer shadowing
 	and puts the MPU and magnetometer in off mode.
 	
+	Loads the non-volatile parameters from EEPROM which are: 
+	- magnetic correction mode and user magnetic correction coefficient
+	- sensitivity of the accelerometer
+	- sensitivity of the gyroscope
+	
 *******************************************************************************/
 void mpu_init(void)
 {
@@ -639,15 +643,24 @@ void mpu_init(void)
 	mpu_mag_loadcalib();	
 	//system_led_set(0b100); _delay_ms(800);
 	mpu_mag_printcalib(file_pri);
-	// Turn off
-	//system_led_set(0b011); _delay_ms(800);
-	mpu_mode_off();
+	// Load the non-volatile acceleration and gyroscope scales
+	unsigned char scale;
+	scale = mpu_LoadAccScale();
+	mpu_setaccscale(scale);
+	fprintf_P(file_pri,PSTR("%sAcc scale: %d\n"),_str_mpu,scale);
+	scale = mpu_LoadGyroScale()&0b11;
+	mpu_setgyroscale(scale);
+	fprintf_P(file_pri,PSTR("%sGyro scale: %d\n"),_str_mpu,scale);
 	// Dump status
 	//system_led_set(0b010); _delay_ms(800);
-	mpu_printregdesc(file_pri);
-	//mpu_printregdesc(file_fb);	
-	
-
+	mpu_printregdesc(file_pri);	
+	// Turn off
+	//system_led_set(0b011); _delay_ms(800);
+	mpu_config_motionmode(MPU_MODE_OFF,0);
+	// Clear possible auto-acquire buffers, if mpu_init is called multiple times.
+	mpu_clearbuffer();	
+	// Clear statistics
+	mpu_clearstat();
 }
 
 /******************************************************************************
@@ -1026,12 +1039,22 @@ void mpu_setgyrobias(short bgx,short bgy,short bgz)
 *******************************************************************************	
 	Sets the gyro scale.
 	
+	If the MPU is off it is turned on and then back off to get the parameter.
+	
 	Parameters:
 		scale	-	One of MPU_GYR_SCALE_250, MPU_GYR_SCALE_500, MPU_GYR_SCALE_1000 or MPU_GYR_SCALE_2000
 ******************************************************************************/
 void mpu_setgyroscale(unsigned char scale)
 {
-	scale&=0b11;
+	scale&=0b11;					// Sanitise	
+	unsigned char oldmode,oldautoread;
+	
+	//printf("set gyro scale\n");
+	
+	// Save mode
+	oldmode=mpu_get_motionmode(&oldautoread);
+	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,0);
+	
 	unsigned char gconf = mpu_readreg(MPU_R_GYROCONFIG);	
 	mpu_writereg(MPU_R_GYROCONFIG,(gconf&0b11100111)|(scale<<3));
 	
@@ -1066,38 +1089,71 @@ void mpu_setgyroscale(unsigned char scale)
 			#endif
 			break;
 	}
+	// Restore
+	mpu_config_motionmode(oldmode,oldautoread);
 }
 /******************************************************************************
 	Function: mpu_getgyroscale
 *******************************************************************************	
 	Sets the gyro scale.
 	
+	If the MPU is off it is turned on and then back off to get the parameter.
+	
 	Returns:
 		One of MPU_GYR_SCALE_250, MPU_GYR_SCALE_500, MPU_GYR_SCALE_1000 or MPU_GYR_SCALE_2000
 ******************************************************************************/
 unsigned char mpu_getgyroscale(void)
 {
+	unsigned char scale;
+	unsigned char oldmode,oldautoread;
+	
+	//printf("get gyro scale\n");
+	
+	// Save mode
+	oldmode=mpu_get_motionmode(&oldautoread);
+	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,0);
+	
 	unsigned char gconf = mpu_readreg(MPU_R_GYROCONFIG);	
-	return (gconf>>3)&0b11;
+	scale = (gconf>>3)&0b11;
+	
+	// Restore
+	mpu_config_motionmode(oldmode,oldautoread);
+	
+	return scale;
 }
+
 /******************************************************************************
 	Function: mpu_setaccscale
 *******************************************************************************	
-	Sets the acceleromter scale.
+	Sets the accelerometer scale.
 	
-	Must be called when the MPU/accelerometer is activated, otherwise nothing happens.
+	If the MPU is off it is turned on and then back off to set the parameter.
 	
 	Parameters:
 		scale	-	One of MPU_ACC_SCALE_2, MPU_ACC_SCALE_4, MPU_ACC_SCALE_8, MPU_ACC_SCALE_16
 ******************************************************************************/
 void mpu_setaccscale(unsigned char scale)
 {
-	scale&=0b11;
+	scale&=0b11;					// Sanitise
+	unsigned char oldmode,oldautoread;
+	
+	//printf("set acc scale\n");
+	
+	// Save mode
+	oldmode=mpu_get_motionmode(&oldautoread);
+	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,0);
+
+	// Set the parameter
 	unsigned char aconf = mpu_readreg(MPU_R_ACCELCONFIG);	
 	aconf=(aconf&0b11100111)|(scale<<3);
 	mpu_writereg(MPU_R_ACCELCONFIG,aconf);
 	
-	/*switch(scale)
+	// Restore
+	mpu_config_motionmode(oldmode,oldautoread);
+	
+	/*
+	// Must complete code for acceleration
+	switch(scale)
 	{
 		case MPU_ACC_SCALE_2:
 			//mpu_gtorps=3.14159665k/180.0k/131.072k;
@@ -1116,15 +1172,66 @@ void mpu_setaccscale(unsigned char scale)
 /******************************************************************************
 	Function: mpu_getaccscale
 *******************************************************************************	
-	Sets the acceleromter scale.
+	Gets the acceleromter scale.
+	
+	If the MPU is off it is turned on and then back off to get the parameter.
 	
 	Returns:
 		One of MPU_ACC_SCALE_2, MPU_ACC_SCALE_4, MPU_ACC_SCALE_8, MPU_ACC_SCALE_16
 ******************************************************************************/
 unsigned char mpu_getaccscale(void)
 {
+	unsigned char scale;
+	unsigned char oldmode,oldautoread;
+	
+	//printf("get acc scale\n");
+	
+	// Save mode
+	oldmode=mpu_get_motionmode(&oldautoread);
+	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,0);
+	
+	//printf("turn on\n");
+	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,0);
+		
 	unsigned char aconf = mpu_readreg(MPU_R_ACCELCONFIG);	
-	return (aconf>>3)&0b11;
+	scale = (aconf>>3)&0b11;
+	
+	//printf("aconf: %02X\n",aconf);
+	
+	// Restore
+	mpu_config_motionmode(oldmode,oldautoread);
+		
+	return scale;
+}
+/******************************************************************************
+	Function: mpu_setandstoreaccscale
+*******************************************************************************	
+	Sets the accelerometer scale and store the parameter in non-volatile memory.
+	
+	If the MPU is off it is turned on and then back off to set the parameter.
+	
+	Parameters:
+		scale	-	One of MPU_ACC_SCALE_2, MPU_ACC_SCALE_4, MPU_ACC_SCALE_8, MPU_ACC_SCALE_16
+******************************************************************************/
+void mpu_setandstoreaccscale(unsigned char scale)
+{
+	mpu_setaccscale(scale);
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_ACC_SCALE,scale&0b11);
+}
+/******************************************************************************
+	Function: mpu_setandstoregyroscale
+*******************************************************************************	
+	Sets the gyro scale and store the parameter in non-volatile memory.
+	
+	If the MPU is off it is turned on and then back off to set the parameter.
+	
+	Parameters:
+		scale	-	One of MPU_ACC_SCALE_2, MPU_ACC_SCALE_4, MPU_ACC_SCALE_8, MPU_ACC_SCALE_16
+******************************************************************************/
+void mpu_setandstoregyrocale(unsigned char scale)
+{
+	mpu_setgyroscale(scale);
+	eeprom_write_byte((uint8_t*)CONFIG_ADDR_GYRO_SCALE,scale&0b11);
 }
 /******************************************************************************
 	mpu_setaccodr
@@ -1154,18 +1261,32 @@ void mpu_setusrctrl(unsigned char cfg)
 	mpu_writereg(106,cfg);
 }
 /******************************************************************************
-	mpu_getwhoami
+	function: mpu_getwhoami
 *******************************************************************************	
 	Returns MPU WHOAMI register
+	
+	Parameters:
+		-	
+	Returns
+		Who am I value, 0x71 for the MPU9250
 ******************************************************************************/
 unsigned char mpu_getwhoami(void)
 {
 	return mpu_readreg(MPU_R_WHOAMI);
 }
 /******************************************************************************
-	mpu_reset
+	function: mpu_reset
 *******************************************************************************	
-	Resets the MPU
+	Resets the MPU. 
+	
+	According to the datasheet, all the registers are reset to 0, except register
+	107 (PWR_MGMT_1) which is set to 1 (Auto select best available clock, PLL or 
+	internal oscillator) and register WHO_AM_I.
+	
+	Parameters:
+		-
+	Returns:
+		-
 ******************************************************************************/
 void mpu_reset(void)
 {
@@ -1463,19 +1584,38 @@ void _mpu_defaultdlpon(void)
 	//{ SAMPLE_MODE_ACCGYR,     1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0},
 	mpu_mode_accgyro(1,0,MPU_GYR_LPF_184, 1,MPU_ACC_LPF_184,1);
 }
-
-void mpu_acquirecalib(void)
-{
-	mpu_config_motionmode(MPU_MODE_500HZ_ACC_BW184_GYRO_BW184,0);
-	//mpu_config_motionmode(MPU_MODE_500HZ_GYRO_BW184,0);
+/******************************************************************************
+	function: _mpu_acquirecalib
+*******************************************************************************	
+	Acquires calibration data in the FIFO.
 	
-	_delay_ms(100);
+	Assumes the acceleration and gyroscope sensitivity are 2G and 250dps and
+	that the gyro bias registers are 0.
+	
+*******************************************************************************/
+void _mpu_acquirecalib(unsigned char clearbias)
+{
+	// Enable high speed
+	mpu_config_motionmode(MPU_MODE_500HZ_ACC_BW184_GYRO_BW184,0);	
+	
 	// Sensitivity should be 250dps and 2G
+	mpu_setaccscale(MPU_ACC_SCALE_2);
+	mpu_setgyroscale(MPU_GYR_SCALE_250);
+	
+	// Clear the gyro bias
+	if(clearbias)
+		mpu_setgyrobias(0,0,0);
+
+	// The gyro takes about 40 milliseconds to stabilise from waking up; wait 60ms.
+	_delay_ms(60);
+
+	
+	
 	mpu_fifoenable(0b01111000,1,1);			// Set FIFO for accel+gyro, enable FIFO, reset FIFO
 	//mpu_fifoenable(0b01110000,1,1);				// Set FIFO for gyro, enable FIFO, reset FIFO
-	// In Acc+Gyro: output is 12 bytes per samples. FIFO can hold 42 samples. Fills in 84ms at 500Hz. In 60ms expect 360 bytes.
+	// In Acc+Gyro: output is 12 bytes per samples. FIFO can hold 42 samples. Experimentally, 78ms delay incl. overheads acquires 492 bytes (41 samples)
 	// In Gyro: output is 6 bytes per samples. FIFO can hold 85 samples. Fills in 170ms at 500Hz. In 130ms expect 390 bytes.
-	_delay_ms(65);
+	_delay_ms(78);
 	//_delay_ms(130);
 	// Keep FIFO enabled but stop logging
 	mpu_fifoenable(0b00000000,1,0);
@@ -1483,109 +1623,103 @@ void mpu_acquirecalib(void)
 void mpu_calibrate(void)
 {
 	unsigned short n;
+	unsigned char numtries=4;
 	signed short ax,ay,az,gx,gy,gz;
-	long gyro_bias[3];
 	long acc_mean[3];
 	long acc_std[3];
-	gyro_bias[0]=gyro_bias[1]=gyro_bias[2]=acc_mean[0]=acc_mean[1]=acc_mean[2]=0;
-	acc_std[0]=acc_std[1]=acc_std[2]=0;
 	
-	/*system_led_set(0b100); _delay_ms(200);
-	system_led_set(0b000); _delay_ms(200);
-	system_led_set(0b100); _delay_ms(200);
-	system_led_set(0b000); _delay_ms(200);
-	system_led_set(0b100); _delay_ms(200);
-	system_led_set(0b000); _delay_ms(200);*/
+	long acc_totstd[numtries];
+	long gyro_bias_best[numtries][3];
 
-	//system_led_set(0b111); _delay_ms(800);
-	fprintf_P(file_pri,PSTR("MPU calibration\n"));
-	//system_led_set(0b110); _delay_ms(800);
-	mpu_acquirecalib();
-	// Transfer the data into a shared buffer in order to compute standard deviation
-	signed short *buffer = (signed short*)sharedbuffer;
-	//system_led_set(0b101); _delay_ms(800);
-	n = mpu_getfifocnt();
-	//system_led_set(0b100); _delay_ms(800);
-	fprintf_P(file_pri,PSTR(" FIFO level: %d\n"),n);
-	unsigned short ns = n/12;
-	for(unsigned short i=0;i<ns;i++)
-	{
-		mpu_fiforeadshort(&ax,1);
-		mpu_fiforeadshort(&ay,1);
-		mpu_fiforeadshort(&az,1);
-		mpu_fiforeadshort(&gx,1);
-		mpu_fiforeadshort(&gy,1);
-		mpu_fiforeadshort(&gz,1);
-		buffer[i*6+0] = ax;
-		buffer[i*6+1] = ay;
-		buffer[i*6+2] = az;
-		buffer[i*6+3] = gx;
-		buffer[i*6+4] = gy;
-		buffer[i*6+5] = gz;
-	}
-	/*n = mpu_getfifocnt();
-	fprintf_P(file_pri,PSTR("FIFO level after read: %d\n"),n);
-	// Dump the values
-	for(unsigned short i=0;i<ns;i++)
-	{
-		fprintf_P(file_pri,PSTR("%d %d %d  %d %d %d\n"),buffer[i*6+0],buffer[i*6+1],buffer[i*6+2],buffer[i*6+3],buffer[i*6+4],buffer[i*6+5]);
-	}*/
+	fprintf_P(file_pri,PSTR("MPU calibration:\n"));
 	
-	
-	// Compute mean
-	for(unsigned short i=0;i<ns;i++)
+	// Repeat calibration multiple times
+	for(unsigned char tries=0;tries<numtries;tries++)
 	{
-		acc_mean[0]+=buffer[i*6+0];
-		acc_mean[1]+=buffer[i*6+1];
-		acc_mean[2]+=buffer[i*6+2];
-		gyro_bias[0]+=buffer[i*6+3];
-		gyro_bias[1]+=buffer[i*6+4];
-		gyro_bias[2]+=buffer[i*6+5];		
-	}
-	acc_mean[0]/=ns;
-	acc_mean[1]/=ns;
-	acc_mean[2]/=ns;
-	gyro_bias[0]=gyro_bias[0]/ns;
-	gyro_bias[1]=gyro_bias[1]/ns;
-	gyro_bias[2]=gyro_bias[2]/ns;
-	// Compute standard deviation
-	for(unsigned short i=0;i<ns;i++)
-	{
-		acc_std[0]+=(buffer[i*6+0]-acc_mean[0])*(buffer[i*6+0]-acc_mean[0]);
-		acc_std[1]+=(buffer[i*6+1]-acc_mean[1])*(buffer[i*6+1]-acc_mean[1]);
-		acc_std[2]+=(buffer[i*6+2]-acc_mean[2])*(buffer[i*6+2]-acc_mean[2]);
-	}
-	acc_std[0]=sqrt(acc_std[0]/(ns-1));
-	acc_std[1]=sqrt(acc_std[1]/(ns-1));
-	acc_std[2]=sqrt(acc_std[2]/(ns-1));
-	//system_led_set(0b011); _delay_ms(800);
-	fprintf_P(file_pri,PSTR("Avg acc: %ld %ld %ld\n"),acc_mean[0],acc_mean[1],acc_mean[2]);
-	fprintf_P(file_pri,PSTR("Std acc: %ld %ld %ld\n"),acc_std[0],acc_std[1],acc_std[2]);	
-	fprintf_P(file_pri,PSTR("Avg gyro: %ld %ld %ld\n"),gyro_bias[0],gyro_bias[1],gyro_bias[2]);
-	gyro_bias[0]=-gyro_bias[0]/4;
-	gyro_bias[1]=-gyro_bias[1]/4;
-	gyro_bias[2]=-gyro_bias[2]/4;
-	//system_led_set(0b010); _delay_ms(800);
-	fprintf_P(file_pri,PSTR("Gyro bias: %ld %ld %ld\n"),gyro_bias[0],gyro_bias[1],gyro_bias[2]);
-	
-	long totstd = acc_std[0]+acc_std[1]+acc_std[2];
-	if(totstd>500)
-	{
-		/*system_led_set(0b111); _delay_ms(800);
-		system_led_set(0b000); _delay_ms(800);
-		system_led_set(0b111); _delay_ms(800);
-		system_led_set(0b000); _delay_ms(800);
-		system_led_set(0b111); _delay_ms(800);
-		system_led_set(0b000); _delay_ms(800);*/
+		// Acquire calibration clearing the bias register
+		_mpu_acquirecalib(1);
+		// Transfer the data into a shared buffer in order to compute standard deviation
+		signed short *buffer = (signed short*)sharedbuffer;
+		n = mpu_getfifocnt();
+		unsigned short ns = n/12;
+		fprintf_P(file_pri,PSTR(" %d: %02d spl. "),tries,n);
+		for(unsigned short i=0;i<ns;i++)
+		{
+			mpu_fiforeadshort(&ax,1);
+			mpu_fiforeadshort(&ay,1);
+			mpu_fiforeadshort(&az,1);
+			mpu_fiforeadshort(&gx,1);
+			mpu_fiforeadshort(&gy,1);
+			mpu_fiforeadshort(&gz,1);
+			buffer[i*6+0] = ax;
+			buffer[i*6+1] = ay;
+			buffer[i*6+2] = az;
+			buffer[i*6+3] = gx;
+			buffer[i*6+4] = gy;
+			buffer[i*6+5] = gz;
+		}
 		
-		fprintf_P(file_pri,PSTR("******************************************\n"));
-		fprintf_P(file_pri,PSTR("*TOO MUCH MOVEMENT-RISK OF MISCALIBRATION*\n"));
-		fprintf_P(file_pri,PSTR("******************************************\n"));
+		// Init variables for statistics
+		for(unsigned char axis=0;axis<3;axis++)
+		{
+			acc_mean[axis]=0;
+			acc_std[axis]=0;
+			gyro_bias_best[tries][axis]=0;
+		}
+		// Compute mean
+		for(unsigned short i=0;i<ns;i++)
+		{
+			for(unsigned char axis=0;axis<3;axis++)
+			{
+				acc_mean[axis]+=buffer[i*6+axis];
+				gyro_bias_best[tries][axis]+=buffer[i*6+3+axis];
+			}		
+		}
+		for(unsigned char axis=0;axis<3;axis++)
+		{
+			acc_mean[axis]/=ns;
+			gyro_bias_best[tries][axis]/=ns;
+		}
+		// Compute standard deviation
+		for(unsigned short i=0;i<ns;i++)
+		{
+			for(unsigned char axis=0;axis<3;axis++)
+				acc_std[axis]+=(buffer[i*6+axis]-acc_mean[axis])*(buffer[i*6+axis]-acc_mean[axis]);
+		}
+		for(unsigned char axis=0;axis<3;axis++)
+			acc_std[axis]=sqrt(acc_std[axis]/(ns-1));
+			
+		//system_led_set(0b011); _delay_ms(800);
+		//fprintf_P(file_pri,PSTR("Mean(Acc): %ld %ld %ld "),acc_mean[0],acc_mean[1],acc_mean[2]);
+		//fprintf_P(file_pri,PSTR("Std(Acc): %ld %ld %ld "),acc_std[0],acc_std[1],acc_std[2]);	
+		//fprintf_P(file_pri,PSTR("Mean(Gyro): %ld %ld %ld "),gyro_bias_best[tries][0],gyro_bias_best[tries][1],gyro_bias_best[tries][2]);
+		for(unsigned char axis=0;axis<3;axis++)
+			gyro_bias_best[tries][axis]=-gyro_bias_best[tries][axis]/4;
+		
+		//system_led_set(0b010); _delay_ms(800);
+		fprintf_P(file_pri,PSTR("Bias: %3ld %3ld %3ld "),gyro_bias_best[tries][0],gyro_bias_best[tries][1],gyro_bias_best[tries][2]);
+		
+		long totstd = acc_std[0]+acc_std[1]+acc_std[2];
+		acc_totstd[tries]=totstd;
+		printf("(std: %lu)\n",totstd);
 	}
-	//system_led_set(0b001); _delay_ms(800);
-	mpu_setgyrobias(gyro_bias[0],gyro_bias[1],gyro_bias[2]);
-	
-	
+	// Find best
+	long beststd = acc_totstd[0];
+	unsigned char best=0;
+	for(unsigned char tries=1;tries<numtries;tries++)
+	{
+		if(acc_totstd[tries]<beststd)
+		{
+			beststd=acc_totstd[tries];
+			best=tries;
+		}
+	}
+	mpu_setgyrobias(gyro_bias_best[best][0],gyro_bias_best[best][1],gyro_bias_best[best][2]);
+	fprintf_P(file_pri,PSTR(" Calibrated with bias: %d %d %d\n"),gyro_bias_best[best][0],gyro_bias_best[best][1],gyro_bias_best[best][2]);
+	if(beststd>200)
+	{
+		fprintf_P(file_pri,PSTR(" **TOO MUCH MOVEMENT-RISK OF MISCALIBRATION**\n"));
+	}
 }
 
 /******************************************************************************
@@ -2080,12 +2214,22 @@ void mpu_mag_loadcalib(void)
 		_mpu_mag_sens[i]=t;
 	}
 	_mpu_mag_correctionmode=eeprom_read_byte((uint8_t*)(CONFIG_ADDR_MAG_CORMOD));
+	if(_mpu_mag_correctionmode>2) _mpu_mag_correctionmode=2;			// Sanitise: must be 0, 1, 2
 }
 void mpu_mag_correctionmode(unsigned char mode)
 {
 	_mpu_mag_correctionmode=mode;
 	eeprom_write_byte((uint8_t*)(CONFIG_ADDR_MAG_CORMOD),mode);
 }
+unsigned char mpu_LoadAccScale(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_ACC_SCALE)&0b11;
+}
+unsigned char mpu_LoadGyroScale(void)
+{
+	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_GYRO_SCALE)&0b11;
+}
+
 
 /******************************************************************************
 *******************************************************************************

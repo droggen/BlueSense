@@ -9,7 +9,7 @@ unsigned char CommandParserMPUTest_Calibrate(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_Reset(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_Fifo(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_FifoEn(char *buffer,unsigned char size);
-unsigned char CommandParserMPUTest_Test(char *buffer,unsigned char size);
+unsigned char CommandParserMPUTest_CalibrationData(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_Magn(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_MagnMode(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_Interface(char *buffer,unsigned char size);
@@ -22,10 +22,13 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_Quaternion2(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_MagneticCalib(char *buffer,unsigned char size);
+unsigned char CommandParserMPUTest_GetMagneticCalib(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_MagneticSelfTest(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_BenchMath(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_AccScale(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_GyroScale(char *buffer,unsigned char size);
+unsigned char CommandParserMPUTest_SetGyroBias(char *buffer,unsigned char size);
+
 
 void mode_mputest(void);
 

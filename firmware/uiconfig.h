@@ -36,9 +36,7 @@ unsigned char ConfigLoadMotionMode(void);
 void ConfigSaveTSPeriod(unsigned long period);
 unsigned long ConfigLoadTSPeriod(void);
 void ConfigSaveMotionAccScale(unsigned char scale);
-unsigned char ConfigLoadMotionAccScale(void);
 void ConfigSaveMotionGyroScale(unsigned char scale);
-unsigned char ConfigLoadMotionGyroScale(void);
 void ConfigLoadScript(char *buf);
 void ConfigSaveScript(char *buf,unsigned char n);
 

@@ -403,20 +403,6 @@ void system_off(void)
 }
 #endif
 
-void system_power_low(void)
-{
-	// PWR_STBY=1 (PC3)
-	#if (HWVER!=6) && (HWVER!=7)
-	PORTC|=0b00001000;	
-	#endif
-}
-void system_power_normal(void)
-{
-	// PWR_STBY=0 (PC3)
-	#if (HWVER!=6) && (HWVER!=7)
-	PORTC&=0b11110111;	
-	#endif
-}
 
 void system_adcpu_off(void)
 {

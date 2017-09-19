@@ -54,12 +54,12 @@ const char help_g[] PROGMEM ="G,<mode> enters motion recognition mode. The param
 const char help_o[] PROGMEM ="O[,sec] Power off and no wakeup, or wakeup after sec seconds";
 const char help_coulomb[] PROGMEM ="Coulomb counter test mode";
 const char help_sd[] PROGMEM ="SD card test mode";
-const char help_power[] PROGMEM ="P,<low>: with low=1 the power supply enters low-power (max 10mA) mode; low=0 for normal operation";
 const char help_identify[] PROGMEM ="Identify device by blinking LEDs";
 const char help_annotation[] PROGMEM ="N,<number>: sets the current annotation";
 const char help_bootscript[] PROGMEM ="b[,run;a boot;script] Prints the current bootscript or sets a new one; multiple commands are delimited by a ;";
 const char help_info[] PROGMEM ="i,<ien> Prints battery and logging information when streaming/logging when ien=1";
-const char help_battery[] PROGMEM="Battery info";
+const char help_batterylong[] PROGMEM="Long-term battery info";
+const char help_battery[] PROGMEM="Short-term battery info";
 const char help_powertest[] PROGMEM="Power tests";
 
 
@@ -532,28 +532,9 @@ unsigned char CommandParserStreamFormat(char *buffer,unsigned char size)
 	return 0;
 }
 
-unsigned char CommandParserPower(char *buffer,unsigned char size)
-{
-	unsigned char rv;
-	char *p1;
-	rv = ParseComma((char*)buffer,1,&p1);
-	if(rv)
-		return 2;
-	unsigned low;
-	if(sscanf(p1,"%u",&low)!=1)
-	{
-		printf("failed low\n");
-		return 2;
-	}	
-	if(!(low==0 || low==1))
-		return 2;
-	if(low==0)
-		system_power_normal();
-	else
-		system_power_low();
-	
-	return 0;
-}
+
+
+
 /*
 	Some power tests
 	
@@ -566,15 +547,15 @@ unsigned char CommandParserPower(char *buffer,unsigned char size)
 	
 	
 */
-unsigned char CommandParserPowerTest(char *buffer,unsigned char size)
-{
-	unsigned long t1,tlast,tcur,stat_loop;
+//unsigned char CommandParserPowerTest(char *buffer,unsigned char size)
+//{
+	/*unsigned long t1,tlast,tcur,stat_loop;
 	fprintf_P(file_pri,PSTR("Power tests\n"));
 	
 	// Unregister lifesign
 	timer_unregister_slowcallback(system_lifesign);
 	// Turn off all LEDs
-	system_led_set(0b000);
+	system_led_set(0b000);*/
 
 	/*fprintf_P(file_pri,PSTR("Busy loop, LED off\n"));	
 	t1=tlast=timer_ms_get();
@@ -660,7 +641,7 @@ unsigned char CommandParserPowerTest(char *buffer,unsigned char size)
 		}
 	}*/
 
-	fprintf_P(file_pri,PSTR("Busy loop with idle sleep, LED off, analog off\n"));
+	/*fprintf_P(file_pri,PSTR("Busy loop with idle sleep, LED off, analog off\n"));
 	set_sleep_mode(SLEEP_MODE_IDLE); 		// 20mW reduction
 	fprintf_P(file_pri,PSTR("ASSR: %02X\n"),ASSR);
 	fprintf_P(file_pri,PSTR("PRR0: %02X\n"),PRR0);
@@ -690,8 +671,8 @@ unsigned char CommandParserPowerTest(char *buffer,unsigned char size)
 	
 	timer_register_slowcallback(system_lifesign,0);
 	
-	return 0;
-}
+	return 0;*/
+//}
 
 /******************************************************************************
 	function: CommandParserSync
@@ -844,6 +825,12 @@ unsigned char CommandParserBootScript(char *buffer,unsigned char size)
 	prettyprint_hexascii(file_pri,buf,strlen(buf),0);
 	fprintf_P(file_pri,PSTR("\"\n"));
 	
+	return 0;
+}
+unsigned char CommandParserBatteryInfoLong(char *buffer,unsigned char size)
+{
+	ltc2942_print_longbatstat(file_pri);
+
 	return 0;
 }
 unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size)

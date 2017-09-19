@@ -324,8 +324,7 @@ void init_extended(void)
 	
 	
 	// MPU INITIALISATION
-	//fprintf_P(file_usb,PSTR("Initialise MPU subsystem\n"));
-	fprintf_P(file_pri,PSTR("Initialise MPU subsystem\n"));
+	fprintf_P(file_pri,PSTR("Initialise MPU\n"));
 	
 	// No interrupt handling routine setup
 	//isr_motionint = 0;	
@@ -344,8 +343,7 @@ void init_extended(void)
 	//system_status_ok(2);
 
 	// Register the battery sample callback, and initiate an immediate read of the battery 
-	timer_register_slowcallback(ltc2942_backgroundgetstate,9);
-	//timer_register_slowcallback(ltc2942_backgroundgetstate,2);
+	timer_register_slowcallback(ltc2942_backgroundgetstate,9);		// Every 10 seconds
 	ltc2942_backgroundgetstate(0);
 	
 	ds3232_readtemp((signed short*)&system_temperature);

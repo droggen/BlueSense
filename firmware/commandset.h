@@ -27,12 +27,12 @@ extern const char help_g[];
 extern const char help_o[];
 extern const char help_sd[];
 extern const char help_coulomb[];
-extern const char help_power[];
 extern const char help_s[];
 extern const char help_identify[];
 extern const char help_annotation[];
 extern const char help_bootscript[];
 extern const char help_info[];
+extern const char help_batterylong[];
 extern const char help_battery[];
 extern const char help_powertest[];
 
@@ -56,7 +56,6 @@ unsigned char CommandParserIO(char *buffer,unsigned char size);
 unsigned char CommandParserSwap(char *buffer,unsigned char size);
 unsigned char CommandParserOff(char *buffer,unsigned char size);
 unsigned char CommandParserStreamFormat(char *buffer,unsigned char size);
-unsigned char CommandParserPower(char *buffer,unsigned char size);
 unsigned char CommandParserPowerTest(char *buffer,unsigned char size);
 unsigned char CommandParserSync(char *buffer,unsigned char size);
 //unsigned char CommandParserSyncFromRTC(char  *buffer,unsigned char size);
@@ -66,6 +65,7 @@ unsigned char CommandParserAnnotation(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest(char *buffer,unsigned char size);
 unsigned char CommandParserBootScript(char *buffer,unsigned char size);
 unsigned char CommandParserInfo(char *buffer,unsigned char size);
+unsigned char CommandParserBatteryInfoLong(char *buffer,unsigned char size);
 unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size);
 
 

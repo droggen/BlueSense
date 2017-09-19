@@ -75,24 +75,35 @@
 	The function ltc2942_backgroundgetstate can be called from an interrupt (typically a timer interrupt) to initiate a background
 	read of the data. All the background functions can be called from interrupts.
 	
+	*Recommended usage*
+	
+	Register ltc2942_backgroundgetstate in a periodic timer interrupt (e.g. every 10 seconds) and use the functions ltc2942_last_* in the 
+	main application.
 */
 
 
-unsigned char __ltc2942_prescaler=0;					// This variable mirrors the prescaler P set with ltc2942_setprescaler
-unsigned char __ltc2942_prescalerM=1;					// This variable mirrors the prescaler M set with ltc2942_setprescaler (M=2^P)
-I2C_TRANSACTION __ltc2942_trans_selreg;					// I2C transaction to select register for background read
-I2C_TRANSACTION __ltc2942_trans_read;					// I2C transaction to read registers for background read
-I2C_TRANSACTION __ltc2942_trans_setctr;					// I2C transaction to set counter to midrange for background read
-volatile unsigned long int _ltc2942_last_updatetime=0;	// Background read: time of read
-volatile unsigned long _ltc2942_last_charge=0;			// Background read: charge (uAh)
-volatile unsigned short _ltc2942_last_chargectr=0;		// Background read: charge counter (raw)
-volatile unsigned short _ltc2942_last_mV=0;				// Background read: voltage 
-volatile signed short _ltc2942_last_mW=0;				// Background read: average power in mW between two reads
-volatile signed short _ltc2942_last_mA=0;				// Background read: average current in mA between two reads
-volatile short _ltc2942_last_temperature;				// Background read: temperature
-unsigned char _ltc2942_previousreadexists=0;			// Flag used to indicate whether a previous background read was performed; used to compute mA and mW when two reads are available.
-char _ltc2924_batterytext[42];							// Holds a text description of the battery status.
+
+unsigned char __ltc2942_prescaler=0;						// This variable mirrors the prescaler P set with ltc2942_setprescaler
+unsigned char __ltc2942_prescalerM=1;						// This variable mirrors the prescaler M set with ltc2942_setprescaler (M=2^P)
+I2C_TRANSACTION __ltc2942_trans_selreg;						// I2C transaction to select register for background read
+I2C_TRANSACTION __ltc2942_trans_read;						// I2C transaction to read registers for background read
+I2C_TRANSACTION __ltc2942_trans_setctr;						// I2C transaction to set counter to midrange for background read
+volatile unsigned long int _ltc2942_last_updatetime=0;		// Background read: time of read
+volatile unsigned long _ltc2942_last_charge=0;				// Background read: charge (uAh)
+volatile unsigned short _ltc2942_last_chargectr=0;			// Background read: charge counter (raw)
+volatile unsigned short _ltc2942_last_mV=0;					// Background read: voltage 
+volatile signed short _ltc2942_last_mW=0;					// Background read: average power in mW between two reads
+volatile signed short _ltc2942_last_mA=0;					// Background read: average current in mA between two reads
+volatile short _ltc2942_last_temperature;					// Background read: temperature
+unsigned char _ltc2942_previousreadexists=0;				// Flag used to indicate whether a previous background read was performed; used to compute mA and mW when two reads are available.
+char _ltc2924_batterytext[42];								// Holds a text description of the battery status.
 volatile signed short _ltc2942_last_mWs[LTC2942NUMLASTMW];		// Holds the last LTC2942NUMLASTMW mW
+
+LTC2942_BATSTAT _ltc2942_batstat[LTC2942NUMLONGBATSTAT];	// Circular buffer holding battery status on long time scales (typically updated every ~150 seconds or more)
+volatile unsigned char _ltc2942_batstat_rdptr=0,_ltc2942_batstat_wrptr=0;	// Read/write pointers. This is used for fast removal of old entries avoiding memory copy
+unsigned long _ltc2942_batstat_lastupdate=0;
+const unsigned long _ltc2942_batstat_updateevery=LTC2942NUMLONGBATSTAT_UPDATEEVERY;	// Store every 3mn. 
+
 
 
 /******************************************************************************
@@ -129,6 +140,8 @@ void ltc2942_init(void)
 	_ltc2942_previousreadexists=0;
 	for(unsigned char i=0;i<LTC2942NUMLASTMW;i++)
 		_ltc2942_last_mWs[i]=0;
+		
+	ltc2942_clear_longbatstat();
 }
 
 /******************************************************************************
@@ -664,6 +677,19 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 
 	_ltc2942_previousreadexists=1;	// Indicate we have made a previous measurement of charge
 	
+	// Check whether enough time elapsed to store in long battery status. BUG: does not handle wraparound.
+	if(_ltc2942_batstat_lastupdate+_ltc2942_batstat_updateevery<=_ltc2942_last_updatetime)
+	{
+		LTC2942_BATSTAT batstat;
+		batstat.t = _ltc2942_last_updatetime;
+		batstat.mW=_ltc2942_last_mW;
+		batstat.mA=_ltc2942_last_mA;
+		batstat.mV=_ltc2942_last_mV;
+		_ltc2942_add_longbatstat(&batstat);
+		
+		_ltc2942_batstat_lastupdate=_ltc2942_last_updatetime;	// Schedule next push
+	}
+	
 	// Reset charge counter to midrange if getting close to top/bot
 	if(_ltc2942_last_chargectr<1000 || _ltc2942_last_chargectr>64535)
 	{
@@ -676,7 +702,7 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 			_ltc2942_previousreadexists=0;			// Indicate there is no valid previous measurement of charge
 	}
 	
-
+	
 	
 	return 0;
 }
@@ -698,7 +724,22 @@ char *ltc2942_last_strstatus(void)
 	return _ltc2924_batterytext;
 }
 
+/******************************************************************************
+	function: ltc2942_last_mWs
+*******************************************************************************	
+	Returns the mW power estimated during the last battery read.
+	
+	This is updated each time the battery status is read and thus offers a short
+	term view of battery usage.
 
+	For a longer term view of battery usage, use ltc2942_get_longbatstat.
+	
+	Parameters:
+		idx		-	Index of the last battery power; 0 means oldest, LTC2942NUMLASTMW-1 means most recent.
+		
+	Returns:
+		Power	-	Power in mW
+*******************************************************************************/
 signed short ltc2942_last_mWs(unsigned char idx)
 {
 	if(idx<LTC2942NUMLASTMW)
@@ -711,6 +752,154 @@ signed short ltc2942_last_mWs(unsigned char idx)
 	return 0;
 }
 
+
+/******************************************************************************
+Battery statistics notes
+
+
+*******************************************************************************/
+
+/******************************************************************************
+	function: ltc2942_get_numlongbatstat
+*******************************************************************************	
+	Returns how many long battery statistics are available.
+	
+	The number is zero, when the system is initialised, up to 
+	LTC2942NUMLONGBATSTAT-1.
+	
+	As the battery statistics are stored in an interrupt routine, there may be
+	more battery statistics available that the value returned, but there 
+	can never be less.
+	
+
+	Returns:
+		Number of battery statistics available at the time of query
+*******************************************************************************/
+unsigned char ltc2942_get_numlongbatstat()
+{
+	signed short n;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		n = _ltc2942_batstat_wrptr-_ltc2942_batstat_rdptr;
+	}
+	// n can be negative if one of the pointer wraps around. In which case correct this
+	if(n<0)
+		n+=LTC2942NUMLONGBATSTAT;
+	return n;	
+}
+/******************************************************************************
+	function: ltc2942_get_longbatstat
+*******************************************************************************	
+	Returns the long battery statistics specified by idx.
+	
+	idx should be an index between 0 and ltc2942_get_numlongbatstat()-1. 
+	If ltc2942_get_numlongbatstat() returns 0 then no battery statistics is 
+	available and ltc2942_get_longbatstat should not be called.
+	
+	As the battery statistics are stored in an interrupt routine in a circular 
+	buffer which overwrites the oldest entries, successive calls to 
+	ltc2942_get_longbatstat with incrementing indices may skip one battery
+	statistics between two successive calls.
+	Example:
+	ltc2942_get_longbatstat(0) should return the oldest battery statistic, say 
+	at t=1000 seconds. ltc2942_get_longbatstat(1) should return the one after 
+	that, say at 1=1100 seconds if battery statistics are updated every 100s.
+	However if the long battery statistics are updated between the two calls
+	and the circular buffer is full then the oldest entry is dropped and 
+	ltc2942_get_longbatstat(1) will return the battery statistics at 
+	t=1200 seconds.
+	
+	This is not deemed an issue as the battery statistics comprises a timestamp.
+	
+	Note that idx is not checked to point to a valid battery entry.
+
+	Parameters
+		idx				-	Index of the battery statistics to return
+		batstat			-	Pointer to the _LTC2942_BATSTAT structure to receive the statistics
+	Returns:
+		-
+*******************************************************************************/
+void ltc2942_get_longbatstat(unsigned char idx,LTC2942_BATSTAT *batstat)
+{
+	signed short n;
+	
+	if(idx>LTC2942NUMLONGBATSTAT-2)		// Clamp to avoid reads to other memory locations; there is a maximum of LTC2942NUMLONGBATSTAT-1 entries, from 0 to LTC2942NUMLONGBATSTAT-2
+		idx=LTC2942NUMLONGBATSTAT-2;
+		
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)	// Get the actual index and copy the data
+	{
+		n=_ltc2942_batstat_rdptr+idx;
+		if(n>=LTC2942NUMLONGBATSTAT)
+			n-=LTC2942NUMLONGBATSTAT;
+		*batstat=_ltc2942_batstat[n];
+	}	
+}
+
+/******************************************************************************
+	function: ltc2942_clear_longbatstat
+*******************************************************************************	
+	Clear the stored long battery statistics
+
+	Returns:
+		-
+*******************************************************************************/
+void ltc2942_clear_longbatstat()
+{
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		_ltc2942_batstat_wrptr=_ltc2942_batstat_rdptr=0;
+	}
+	_ltc2942_batstat_lastupdate=0;
+}
+/******************************************************************************
+	function: _ltc2942_add_longbatstat
+*******************************************************************************	
+	Adds an entry to the battery stat, erasing the oldest one if needed.
+	
+	This function is used internally in interrupts, hence no ATOMIC_BLOCK is not needed.
+
+	Returns:
+		-
+*******************************************************************************/
+void _ltc2942_add_longbatstat(LTC2942_BATSTAT *batstat)
+{
+	// Data can always be added at the write pointer
+	_ltc2942_batstat[_ltc2942_batstat_wrptr]=*batstat;
+	// Increment the write pointer and check for wraparounds
+	_ltc2942_batstat_wrptr++;
+	if(_ltc2942_batstat_wrptr>=LTC2942NUMLONGBATSTAT)
+		_ltc2942_batstat_wrptr-=LTC2942NUMLONGBATSTAT;
+	// Now check whether wrptr and rdptr equal - if yes the buffer is full and rdptr must be incremented
+	if(_ltc2942_batstat_wrptr==_ltc2942_batstat_rdptr)
+	{
+		// Increment rdptr and wrap around
+		_ltc2942_batstat_rdptr++;
+		if(_ltc2942_batstat_rdptr>=LTC2942NUMLONGBATSTAT)
+			_ltc2942_batstat_rdptr-=LTC2942NUMLONGBATSTAT;
+	}	
+}
+
+// For debugging
+void _ltc2942_dump_longbatstat()
+{
+	printf("dump longbatstat: rd: %d wr: %d\n",_ltc2942_batstat_rdptr,_ltc2942_batstat_wrptr);
+	printf("\tnum: %d\n",ltc2942_get_numlongbatstat());
+	for(unsigned char i=0;i<LTC2942NUMLONGBATSTAT;i++)
+		printf("\t%d: %lu %d %d %d\n",i,_ltc2942_batstat[i].t,_ltc2942_batstat[i].mV,_ltc2942_batstat[i].mA,_ltc2942_batstat[i].mW);	
+}
+// For debugging
+void ltc2942_print_longbatstat(FILE *f)
+{
+	LTC2942_BATSTAT b;
+	//printf("print longbatstat: rd: %d wr: %d\n",_ltc2942_batstat_rdptr,_ltc2942_batstat_wrptr);
+	fprintf_P(f,PSTR("Battery info:\n"));
+	fprintf_P(f,PSTR("\tT[ms]\t\tmV\tmA\tmW\n"));
+	for(unsigned char i=0;i<ltc2942_get_numlongbatstat();i++)
+	{
+		ltc2942_get_longbatstat(i,&b);
+		fprintf_P(f,PSTR("\t%010lu\t%04d\t%-3d\t%-3d\n"),b.t,b.mV,b.mA,b.mW);
+	}
+}
 
 
 

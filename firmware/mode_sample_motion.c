@@ -64,16 +64,7 @@ unsigned char enableinfo;
 unsigned long stat_samplesendfailed;
 unsigned long stat_totsample;
 unsigned long stat_timems_start,stat_t_cur,stat_wakeup,stat_time_laststatus;
-unsigned long int time_lastblink,time_lastbatlog;
-
-typedef struct {
-	unsigned long t;
-	signed short mW,mA,mV;
-} BATSTAT;
-#define MAXBATSTATPTR 150
-BATSTAT batstat[MAXBATSTATPTR];
-unsigned short batstatptr;
-
+unsigned long int time_lastblink;
 
 MPUMOTIONDATA mpumotiondata;
 
@@ -88,8 +79,9 @@ const COMMANDPARSER CommandParsersMotionStream[] =
 	{'F', CommandParserStreamFormat,help_f},
 	{'L', CommandParserSampleLogMPU,help_samplelog},
 	{'Z',CommandParserSync,help_z},
-	{'i',CommandParserInfo,help_info},
+	//{'i',CommandParserInfo,help_info},
 	{'N', CommandParserAnnotation,help_annotation},
+	{'Q', CommandParserBatteryInfoLong,help_batterylong},
 	{'q', CommandParserBatteryInfo,help_battery},
 	{'s', CommandParserSampleStatus,help_samplestatus},
 	{'x', CommandParserBatBench,help_batbench},
@@ -113,15 +105,9 @@ void clearstat(void)
 	stat_samplesendfailed=0;	
 	stat_wakeup=0;	
 	
-	time_lastbatlog = stat_t_cur = time_lastblink = stat_time_laststatus = stat_timems_start = timer_ms_get();
+	stat_t_cur = time_lastblink = stat_time_laststatus = stat_timems_start = timer_ms_get();
 	
-	batstatptr=0;	
-	// Store battery data
-	batstat[batstatptr].t = stat_t_cur-stat_timems_start;
-	batstat[batstatptr].mV = ltc2942_last_mV();
-	batstat[batstatptr].mA = ltc2942_last_mA();
-	batstat[batstatptr].mW = ltc2942_last_mW();
-	batstatptr++;
+	//ltc2942_clear_longbatstat();
 }
 
 unsigned char CommandParserSampleLogMPU(char *buffer,unsigned char size)
@@ -144,16 +130,9 @@ unsigned char CommandParserSampleStatus(char *buffer,unsigned char size)
 	return 0;
 }
 
-void printbatstat(FILE *f)
-{
-	fprintf_P(f,PSTR("Battery info:\n"));
-	for(unsigned short i=0;i<batstatptr;i++)
-		fprintf_P(f,PSTR("\t%d %lu %d %d %d\n"),i,batstat[i].t,batstat[i].mV,batstat[i].mA,batstat[i].mW);
-}
-
 unsigned char CommandParserBatBench(char *buffer,unsigned char size)
 {
-	printbatstat(file_pri);
+	ltc2942_print_longbatstat(file_pri);
 	return 0;
 }
 
@@ -399,15 +378,12 @@ void stream_start(void)
 	mode_stream_format_label = ConfigLoadStreamLabel();
 	enableinfo = ConfigLoadEnableInfo();
 	
+	fprintf_P(file_pri,PSTR("Acc scale: %d\n"),mpu_getaccscale());
+	fprintf_P(file_pri,PSTR("Gyro scale: %d\n"),mpu_getgyroscale());
+	
 	mpu_config_motionmode(mode_sample_motion_param.mode,1);	
 	
-	unsigned char scale;
-	scale = ConfigLoadMotionAccScale();	
-	fprintf_P(file_pri,PSTR("Acc scale: %d\n"),scale);
-	mpu_setaccscale(scale);
-	scale = ConfigLoadMotionGyroScale();
-	fprintf_P(file_pri,PSTR("Gyro scale: %d\n"),scale);
-	mpu_setgyroscale(scale);
+	
 	
 	// Clear statistics
 	mpu_clearstat();	// Clear MPU ISR statistics
@@ -514,9 +490,9 @@ void mode_motionstream(void)
 	
 	clearstat();
 	
-	printf("atog: %f\n",atog);
-	printf("mpu_gtorps: %f\n",mpu_gtorps);
-	printf("beta: %f\n",beta);
+	//printf("atog: %f\n",atog);
+	//printf("mpu_gtorps: %f\n",mpu_gtorps);
+	//printf("beta: %f\n",beta);
 	
 	
 	while(1)
@@ -555,23 +531,6 @@ void mode_motionstream(void)
 				stat_time_laststatus=stat_time_laststatus+10000;
 				stat_wakeup=0;
 			}
-		}
-		
-		// Memory logs for battery benchmarks
-	
-		if(stat_t_cur-time_lastbatlog>150000l)
-		{
-			// Store the data
-			if(batstatptr<MAXBATSTATPTR)
-			{
-				//printf_P(PSTR("Storing bat log at %d\n"),batstatptr);
-				batstat[batstatptr].t = stat_t_cur-stat_timems_start;
-				batstat[batstatptr].mV = ltc2942_last_mV();
-				batstat[batstatptr].mA = ltc2942_last_mA();
-				batstat[batstatptr].mW = ltc2942_last_mW();
-				batstatptr++;
-			}
-			time_lastbatlog=stat_t_cur;
 		}
 		
 		// Stream existing data
@@ -667,6 +626,7 @@ void mode_motionstream(void)
 				//printf("Param: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,mx,my,mz);
 				//printf("Param2: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,-mpumotiondata.my,-mpumotiondata.mx,mpumotiondata.mz);
 				MadgwickAHRSupdate_float(gx,gy,gz,ax,ay,az,mx,my,mz);
+				//MadgwickAHRSupdate_float(0,0,0,1,0,0,1,0,0);
 				/*testf(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
 														-mpumotiondata.mx,
 														mpumotiondata.mz);*/
@@ -737,14 +697,13 @@ void mode_motionstream(void)
 			{
 				//log_printstatus();
 				fprintf(mode_sample_file_log,"Battery log:\n");
-				printbatstat(mode_sample_file_log);
+				ltc2942_print_longbatstat(mode_sample_file_log);
 				fprintf(mode_sample_file_log,"Battery log end\n");
 				mode_sample_file_log=0;
 				ufat_log_close();
 			}
 		}
 	#endif 	
-	printbatstat(file_pri);
 	stream_status(file_pri,0);	
 	mpu_printstat(file_pri);
 	

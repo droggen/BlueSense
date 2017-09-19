@@ -16,7 +16,20 @@
 #include "i2c.h"
 
 #define LTC2942_ADDRESS 0x64
+
+// Short term battery status
 #define LTC2942NUMLASTMW 10
+// Long term battery status
+// The number of entries in is equal to LTC2942NUMLONGBATSTAT-1
+// The sensor has a battery life of <6 hours, hence 120 entries needed with a readout every 3mn.
+#define LTC2942NUMLONGBATSTAT 120
+//#define LTC2942NUMLONGBATSTAT_UPDATEEVERY 180000l
+#define LTC2942NUMLONGBATSTAT_UPDATEEVERY 10000l
+
+typedef struct {
+	unsigned long t;
+	signed short mW,mA,mV;
+} LTC2942_BATSTAT;
 
 extern volatile unsigned long int _ltc2942_last_updatetime;
 extern volatile unsigned short _ltc2942_last_chargectr;			// Background read: charge counter (raw)
@@ -50,6 +63,13 @@ signed short ltc2942_last_mW(void);
 signed short ltc2942_last_mA(void);
 char *ltc2942_last_strstatus(void);
 signed short ltc2942_last_mWs(unsigned char idx);
+
+void ltc2942_clear_longbatstat();
+unsigned char ltc2942_get_numlongbatstat();
+void ltc2942_get_longbatstat(unsigned char idx,LTC2942_BATSTAT *batstat);
+void _ltc2942_add_longbatstat(LTC2942_BATSTAT *batstat);
+void _ltc2942_dump_longbatstat();
+void ltc2942_print_longbatstat(FILE *f);
 
 unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t);
 

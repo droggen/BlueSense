@@ -71,6 +71,7 @@
 
 extern PGM_P const mc_options[];
 void mpu_config_motionmode(unsigned char sensorsr,unsigned char autoread);
+unsigned char mpu_get_motionmode(unsigned char *autoread);
 void mpu_getmodename(unsigned char motionmode,char *buffer);
 void mpu_printmotionmode(FILE *file);
 

@@ -143,6 +143,8 @@ PGM_P const mc_options[MOTIONCONFIG_NUM] PROGMEM =
 
 
 
+
+
 /******************************************************************************
 	config_sensorsr_settings
 *******************************************************************************	
@@ -323,8 +325,28 @@ void mpu_config_motionmode(unsigned char sensorsr,unsigned char autoread)
 	if(autoread)
 		_mpu_enableautoread();
 	//printf("return from mpu_config_motionmode\n");
+	
+	_mpu_current_motionmode = sensorsr;
 }
 
+/******************************************************************************
+	function: mpu_get_motionmode
+*******************************************************************************	
+	Gets the current motion mode, which has been previously set with 
+	mpu_config_motionmode.
+	
+	Parameters:
+		autoread		-		Pointer to a variable receiving the autoread parameter.
+								If null, then autoread is not returned.
+	Returns:
+		Current motion mode
+*******************************************************************************/			
+unsigned char mpu_get_motionmode(unsigned char *autoread)
+{
+	if(autoread)
+		*autoread=__mpu_autoread;
+	return _mpu_current_motionmode;
+}
 
 /******************************************************************************
 	function: mpu_getmodename

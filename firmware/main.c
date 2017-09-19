@@ -736,12 +736,45 @@ int main(void)
 	
 	mx=100; my=200; mz=300;
 	printf("%d %d %d\n",mx,my,mz);	
-	mpu_mag_correct2_asm(&mx,&my,&mz);
+	//mpu_mag_correct2_asm(&mx,&my,&mz);			// Bugged, leads to crash/undefined behaviour
 	printf("-> %d %d %d\n",mx,my,mz);
 	
 	timer_printcallbacks(file_usb);
 	
+	LTC2942_BATSTAT b;
+	/*_ltc2942_dump_longbatstat();	
+	_ltc2942_print_longbatstat();
 	
+	printf("Adding 2 numbers: 10,20\n");
+	b.t=10; _ltc2942_add_longbatstat(&b);
+	b.t=20; _ltc2942_add_longbatstat(&b);
+	_ltc2942_dump_longbatstat();	
+	_ltc2942_print_longbatstat();
+	printf("Adding 2 numbers: 30,40\n");
+	b.t=30; _ltc2942_add_longbatstat(&b);
+	b.t=40; _ltc2942_add_longbatstat(&b);
+	_ltc2942_dump_longbatstat();	
+	_ltc2942_print_longbatstat();
+	printf("Adding 1 numbers: 50\n");
+	b.t=50; _ltc2942_add_longbatstat(&b);
+	_ltc2942_dump_longbatstat();	
+	_ltc2942_print_longbatstat();
+	printf("Adding 1 numbers: 60\n");
+	b.t=60; _ltc2942_add_longbatstat(&b);
+	_ltc2942_dump_longbatstat();	
+	_ltc2942_print_longbatstat();
+	printf("Adding 2 numbers: 70 80\n");
+	b.t=70; _ltc2942_add_longbatstat(&b);
+	b.t=80; _ltc2942_add_longbatstat(&b);
+	_ltc2942_dump_longbatstat();	
+	_ltc2942_print_longbatstat();*/
+	/*while(1)
+	{
+		printf("Num: %d\n",ltc2942_get_numlongbatstat());
+		_ltc2942_dump_longbatstat();
+		_ltc2942_print_longbatstat();
+		_delay_ms(4000);
+	}*/
 	
 	//mpu_benchmark_isr();
 	

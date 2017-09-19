@@ -88,11 +88,11 @@ void __mputest_bench_cb(void);
 
 const char help_mt_r[] PROGMEM="Dumps registers";
 const char help_mt_S[] PROGMEM ="S[,<mode>,<autoread>] setup motion sensor mode";
-const char help_mt_c[] PROGMEM ="Calibrate acc/gyro";
+const char help_mt_C[] PROGMEM ="Calibrate acc/gyro";
+const char help_mt_c[] PROGMEM ="Acquire calibration data";
 const char help_mt_x[] PROGMEM ="Reset";
 const char help_mt_fd[] PROGMEM ="Dump FIFO content";
 const char help_mt_fe[] PROGMEM ="f,flags,en,rst: Set FIFO flags (TEMP GX GY GZ ACC SLV2 SLV1 SLV0), enable (1), reset (1)";
-const char help_mt_t[] PROGMEM ="Test acc/gyro sampling";
 const char help_mt_M[] PROGMEM ="Magnetometer registers";
 const char help_mt_m[] PROGMEM ="m,<0|1|2> magnetometer: power down|enable 8Hz|enable 100Hz";
 const char help_mt_I[] PROGMEM ="I,<0|1> disable|enable I2C";
@@ -103,24 +103,34 @@ const char help_mt_P[] PROGMEM ="Poll acc, gyr, magn, temp";
 const char help_mt_A[] PROGMEM ="A[,<mode] Auto acquire (interrupt-driven) test";
 const char help_mt_B[] PROGMEM ="Benchmark overheads of auto acquire";
 const char help_mt_Q[] PROGMEM ="Q[,<bitmap>] Quaternion test; 3-bit bitmap indicates acc|gyr|mag (mag is lsb)";
-const char help_mt_G[] PROGMEM ="G[,<mode>] Calibrate magnetometer, or 0='no correction' 1='correction w/ factory', 2='user correction'";
-const char help_mt_g[] PROGMEM ="Magnetic selt test";
+const char help_mt_G[] PROGMEM ="G[,<mode>] User magnetometer correction, or set 0='no correction' 1='correction w/ factory', 2='user correction'; persistent";
+const char help_mt_g[] PROGMEM ="g: get magnetometer calibration mode";
+const char help_mt_t[] PROGMEM ="Magnetic selt test";
 const char help_mt_b[] PROGMEM ="bench math";
 const char help_mt_L[] PROGMEM ="L[,<scale>] read or set the accelerometer full scale; 0=2G, 1=4G, 2=8G, 3=16G; persistent";
 const char help_mt_l[] PROGMEM ="l[,<scale>] read or set the gyroscope full scale; 0=250dps, 1=500dps, 2=1000dps, 3=2000dps; persistent";
+const char help_mt_o[] PROGMEM ="o,<offX>,<offY>,<offZ> Set the gyro bias";
 
 
 
 const COMMANDPARSER CommandParsersMPUTest[] =
 { 
+	// Key functions
 	{'H', CommandParserHelp,help_h},
+	{'L', CommandParserMPUTest_AccScale,help_mt_L},
+	{'l', CommandParserMPUTest_GyroScale,help_mt_l},
+	{'G', CommandParserMPUTest_MagneticCalib,help_mt_G},
+	{'g', CommandParserMPUTest_GetMagneticCalib,help_mt_g},
+	{'B', CommandParserMPUTest_Bench,help_mt_B},
+	// Test/debug
+	{'C', CommandParserMPUTest_Calibrate,help_mt_C},
+	{'c', CommandParserMPUTest_CalibrationData,help_mt_c},
+	{'o', CommandParserMPUTest_SetGyroBias,help_mt_o},
 	{'R', CommandParserMPUTest_ReadReg,help_mt_r},
-	{'S', CommandParserMPUTest_Start,help_mt_S},
-	{'C', CommandParserMPUTest_Calibrate,help_mt_c},
+	{'S', CommandParserMPUTest_Start,help_mt_S},	
 	{'X', CommandParserMPUTest_Reset,help_mt_x},
 	{'F', CommandParserMPUTest_Fifo,help_mt_fd},
-	{'f', CommandParserMPUTest_FifoEn,help_mt_fe},
-	{'T', CommandParserMPUTest_Test,help_mt_t},
+	{'f', CommandParserMPUTest_FifoEn,help_mt_fe},	
 	{'P', CommandParserMPUTest_Poll,help_mt_P},
 	{'A', CommandParserMPUTest_Auto,help_mt_A},
 	{'M', CommandParserMPUTest_Magn,help_mt_M},
@@ -129,13 +139,10 @@ const COMMANDPARSER CommandParsersMPUTest[] =
 	{'E', CommandParserMPUTest_External,help_mt_E},
 	{'W', CommandParserMPUTest_Shadow,help_mt_W},
 	{'O', CommandParserMPUTest_Off,help_mt_O},
-	{'B', CommandParserMPUTest_Bench,help_mt_B},
-	{'Q', CommandParserMPUTest_Quaternion,help_mt_Q},
-	{'G', CommandParserMPUTest_MagneticCalib,help_mt_G},
-	{'g', CommandParserMPUTest_MagneticSelfTest,help_mt_g},
+	{'Q', CommandParserMPUTest_Quaternion,help_mt_Q},	
+	{'t', CommandParserMPUTest_MagneticSelfTest,help_mt_t},
 	{'b', CommandParserMPUTest_BenchMath,help_mt_b},
-	{'L', CommandParserMPUTest_AccScale,help_mt_L},
-	{'l', CommandParserMPUTest_GyroScale,help_mt_l},
+	// Quit
 	{'!', CommandParserQuit,help_quit}
 };
 
@@ -161,16 +168,15 @@ unsigned char CommandParserMPUTest_AccScale(char *buffer,unsigned char size)
 	rv = ParseCommaGetInt((char*)buffer,1,&scale);
 	if(rv)
 	{
-		return 2;
+		return 1;
 	}
 	if(scale<0 || scale>3)
-		return 2;
+		return 1;
 	
 
-	// Set scale
-	mpu_setaccscale(scale);
-	// Store the scale persistently
-	ConfigSaveMotionAccScale(scale);
+	// Set and store the accelerometer scale
+	mpu_setandstoreaccscale(scale);
+	
 
 	return 0;
 }
@@ -195,16 +201,14 @@ unsigned char CommandParserMPUTest_GyroScale(char *buffer,unsigned char size)
 	rv = ParseCommaGetInt((char*)buffer,1,&scale);
 	if(rv)
 	{
-		return 2;
+		return 1;
 	}
 	if(scale<0 || scale>3)
-		return 2;
+		return 1;
 	
 
-	// Set scale
-	mpu_setgyroscale(scale);
-	// Store the scale persistently
-	ConfigSaveMotionGyroScale(scale);
+	// Set and store the gyro scale
+	mpu_setandstoregyrocale(scale);
 
 	return 0;
 }
@@ -297,9 +301,10 @@ unsigned char CommandParserMPUTest_FifoEn(char *buffer,unsigned char size)
 	return 0;
 }
 
-unsigned char CommandParserMPUTest_Test(char *buffer,unsigned char size)
+unsigned char CommandParserMPUTest_CalibrationData(char *buffer,unsigned char size)
 {
-	mpu_acquirecalib();
+	_mpu_acquirecalib(0);
+	
 
 	unsigned short n;
 	signed short ax,ay,az,gx,gy,gz;
@@ -314,8 +319,22 @@ unsigned char CommandParserMPUTest_Test(char *buffer,unsigned char size)
 		mpu_fiforeadshort(&gx,1);
 		mpu_fiforeadshort(&gy,1);
 		mpu_fiforeadshort(&gz,1);
-		fprintf_P(file_pri,PSTR("%d %d %d  %d %d %d\n"),ax,ay,az,gx,gy,gz);
+		fprintf_P(file_pri,PSTR("%5d %5d %5d  %5d %5d %5d\n"),ax,ay,az,gx,gy,gz);
 	}
+	return 0;
+}
+unsigned char CommandParserMPUTest_SetGyroBias(char *buffer,unsigned char size)
+{
+	unsigned char rv;
+	int ox,oy,oz;
+	
+	rv = ParseCommaGetInt(buffer,3,&ox,&oy,&oz);
+	if(rv)
+	{
+		return 1;
+	}
+	mpu_setgyrobias(ox,oy,oz);
+	
 	return 0;
 }
 unsigned char CommandParserMPUTest_Magn(char *buffer,unsigned char size)
@@ -1186,33 +1205,18 @@ unsigned char CommandParserMPUTest_MagneticCalib(char *buffer,unsigned char size
 	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100,1);
 
 	mpu_mag_calibrate();
+	
+	// Turn off
+	mpu_config_motionmode(MPU_MODE_OFF,0);
 
-	/*t1=timer_ms_get();
-	//while(timer_ms_get()-t1<10000)
-	while(1)
-	{
-		if( fgetc(file_pri) != -1)
-			break;
-		time = timer_waitperiod_ms(33,&p);
-		
-		m[0] = mpu_data_mx[mpu_data_rdptr];
-		m[1] = mpu_data_my[mpu_data_rdptr];
-		m[2] = mpu_data_mz[mpu_data_rdptr];
-		mpu_data_rdnext();
-		
-		signed short m1[3],m2[3];
-		mpu_mag_correct1(m[0],m[1],m[2],m1[0],m1[1],m1[2]);
-		mpu_mag_correct2(m[0],m[1],m[2],m2[0],m2[1],m2[2]);
-		
-		printf("%d %d %d   %d %d %d   %d %d %d\n",m[0],m[1],m[2],m1[0],m2[0],m3[0],m2[0],m2[1],m2[2]);
-	}
-	*/
-	
-	// Activate a magnetic mode
-	//mpu_config_motionmode(MPU_MODE_OFF,0);
-	
 	return 0;
 }
+unsigned char CommandParserMPUTest_GetMagneticCalib(char *buffer,unsigned char size)
+{
+	fprintf_P(file_pri,PSTR("Magnetic calibration mode: %d\n"),_mpu_mag_correctionmode);
+	return 0;
+}
+
 unsigned char CommandParserMPUTest_MagneticSelfTest(char *buffer,unsigned char size)
 {
 	unsigned char mag[7];
@@ -1244,7 +1248,9 @@ unsigned char CommandParserMPUTest_MagneticSelfTest(char *buffer,unsigned char s
 	printf("Self-test mode\n");
 	mpu_mag_writereg(0x0a,0b00011000);		// Self-test, 16-bits
 	// (4) Check Data Ready or not by polling DRDY bit of ST1 register
-	printf("Wait DRDY\n");
+	//fprintf_P(file_pri,PSTR("Wait DRDY\n"));
+	//printf("Wait DRDY\n");
+	printf_P(PSTR("Wait DRDY\n"));
 	//_delay_ms(1000);
 	while(!(mpu_mag_readreg(0x02)&1));
 	printf("ST1: %02x\n",mpu_mag_readreg(0x02));
