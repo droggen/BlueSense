@@ -591,8 +591,12 @@ void mode_motionstream(void)
 				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
 				//unsigned long t1,t2;
 				//t1=timer_us_get();
-				MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
+				/*MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
 														-mpumotiondata.mx,
+														mpumotiondata.mz);*/
+														
+				MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,mpumotiondata.mx,		// Coordinate system now rotated during acquisition
+														mpumotiondata.my,
 														mpumotiondata.mz);
 				//t2=timer_us_get();
 				//printf("%lu\n",t2-t1);
@@ -618,8 +622,12 @@ void mode_motionstream(void)
 				//t1=timer_us_get();
 				
 				float mx,my,mz;
-				mx = -mpumotiondata.my;
+				
+				/*mx = -mpumotiondata.my;
 				my = -mpumotiondata.mx;
+				mz = mpumotiondata.mz;*/
+				mx = mpumotiondata.mx;		// Coordinate system now rotated during acquisition
+				my = mpumotiondata.my;
 				mz = mpumotiondata.mz;
 				
 				//printf("Qpre: %f %f %f %f\n",q0,q1,q2,q3);

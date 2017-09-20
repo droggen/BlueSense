@@ -304,9 +304,9 @@ void _mpu_mag_regshadow(unsigned char enable,unsigned char dly,unsigned char reg
 void _mpu_mag_readasa(void);
 void mpu_mag_correct1(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2);
 void mpu_mag_correct2(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2);
+void mpu_mag_correct2_inplace(signed short *mx,signed short *my,signed short *mz);
 void mpu_mag_correct2b(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2);
 void mpu_mag_correct2c(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2);
-void mpu_mag_correct2d(signed short *mx,signed short *my,signed short *mz);
 extern "C" void mpu_mag_correct2_asm(signed short *mx,signed short *my,signed short *mz);
 void mpu_mag_calibrate(void);
 void mpu_mag_storecalib(void);
@@ -332,6 +332,7 @@ void __mpu_copy_spibuf_to_mpumotiondata_1(unsigned char *spibuf,unsigned char *m
 void __mpu_copy_spibuf_to_mpumotiondata_2(unsigned char *spibuf,unsigned char *mpumotiondata);
 void __mpu_copy_spibuf_to_mpumotiondata_3(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
 extern "C" void __mpu_copy_spibuf_to_mpumotiondata_asm(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
+extern "C" void __mpu_copy_spibuf_to_mpumotiondata_magcor_asm(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
 
 void mpu_benchmark_isr(void);
 

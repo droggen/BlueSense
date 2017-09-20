@@ -141,7 +141,7 @@ const COMMANDPARSER CommandParsersMPUTest[] =
 	{'O', CommandParserMPUTest_Off,help_mt_O},
 	{'Q', CommandParserMPUTest_Quaternion,help_mt_Q},	
 	{'t', CommandParserMPUTest_MagneticSelfTest,help_mt_t},
-	{'b', CommandParserMPUTest_BenchMath,help_mt_b},
+	//{'b', CommandParserMPUTest_BenchMath,help_mt_b},
 	// Quit
 	{'!', CommandParserQuit,help_quit}
 };
@@ -162,7 +162,7 @@ unsigned char CommandParserMPUTest_AccScale(char *buffer,unsigned char size)
 	if(strlen(buffer)==0)
 	{
 		// No scale specified: read
-		fprintf_P(file_pri,PSTR("Acc scale: %d\n"),mpu_getaccscale());
+		fprintf_P(file_pri,PSTR("Acc scale: current=%d stored=%d\n"),mpu_getaccscale(),mpu_LoadAccScale());
 		return 0;
 	}
 	rv = ParseCommaGetInt((char*)buffer,1,&scale);
@@ -195,7 +195,7 @@ unsigned char CommandParserMPUTest_GyroScale(char *buffer,unsigned char size)
 	if(strlen(buffer)==0)
 	{
 		// No scale specified: read
-		fprintf_P(file_pri,PSTR("Gyro scale: %d\n"),mpu_getgyroscale());
+		fprintf_P(file_pri,PSTR("Gyro scale: current=%d stored=%d\n"),mpu_getgyroscale(),mpu_LoadGyroScale());
 		return 0;
 	}
 	rv = ParseCommaGetInt((char*)buffer,1,&scale);
@@ -962,36 +962,17 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 	}
 	mode=mode&0x07;
 	
-	
-	/*ax=1.1;
-	ay=0.8;
-	az=-.1;
-	gx=.2;
-	gy=.9;
-	gz=-2;
-	mx=2;
-	my=-3;
-	mz=4;
-	
-	t1 = timer_ms_get();
-	for(unsigned i=0;i<1000;i++)
-	{
-		MadgwickAHRSupdate(gx,gy,gz,ax,ay,az,mx,my,mz);
-	}
-	t2 = timer_ms_get();
-	printf("Time for 1000: %ld ms\n",t2-t1);*/
-	
 	// Enable sampling
 	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100,1);
+	
+	// Set the sensitivity to lowest
+	mpu_setaccscale(MPU_ACC_SCALE_16);
+	mpu_setgyroscale(MPU_GYR_SCALE_2000);
+	
 	printf("Starting loop\n");
 	
-	float gtor=PI/180.0f/131.0f;
-	float atog=1.0/16384;
-	
-	q0 = 1.0f;
-	q1 = 0.0f;
-	q2 = 0.0f;
-	q3 = 0.0f;
+	// Initialise Madgwick
+	MadgwickAHRSinit();
 	
 	//t1 = timer_ms_get();
 	//while(timer_ms_get()-t1<2000)
@@ -1015,12 +996,12 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 			/*ax = (float)mpu_data_ax[mpu_data_rdptr]/16384.;
 			ay = (float)mpu_data_ay[mpu_data_rdptr]/16384.;
 			az = (float)mpu_data_az[mpu_data_rdptr]/16384.;*/
-			ax = (float)mpumotiondata.ax*atog;
-			ay = (float)mpumotiondata.ay*atog;
-			az = (float)mpumotiondata.az*atog;
-			gx = (float)mpumotiondata.gx*gtor;
-			gy = (float)mpumotiondata.gy*gtor;
-			gz = (float)mpumotiondata.gz*gtor;
+			ax = (float)mpumotiondata.ax;
+			ay = (float)mpumotiondata.ay;
+			az = (float)mpumotiondata.az;
+			gx = (float)mpumotiondata.gx*mpu_gtorps;
+			gy = (float)mpumotiondata.gy*mpu_gtorps;
+			gz = (float)mpumotiondata.gz*mpu_gtorps;
 			
 			mx = (float)mpumotiondata.mx;
 			my = (float)mpumotiondata.my;
@@ -1043,7 +1024,8 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 			// Sensors x (y)-axis of the accelerometer is aligned with the y (x)-axis of the magnetometer;
 			// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
 			
-			MadgwickAHRSupdate(gx,gy,gz,ax,ay,az,-my,-mx,mz);		// seems to work
+			//MadgwickAHRSupdate(gx,gy,gz,ax,ay,az,-my,-mx,mz);		// Old version when the rotation was not done during acquisition
+			MadgwickAHRSupdate(gx,gy,gz,ax,ay,az,mx,my,mz);			// Now the rotation is done during acquisition
 			
 			
 			tt2 = timer_us_get();
@@ -1774,7 +1756,7 @@ void mode_mputest(void)
 	
 	while(1)
 	{
-		while(CommandProcess(CommandParsersMPUTest,CommandParsersMPUTestNum));		
+		CommandProcess(CommandParsersMPUTest,CommandParsersMPUTestNum);
 		if(CommandShouldQuit())
 			break;
 		_delay_ms(1);		

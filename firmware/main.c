@@ -731,7 +731,7 @@ int main(void)
 		printf("Bias %d Sens %d\n",_mpu_mag_bias[i],_mpu_mag_sens[i]);
 	mx=100; my=200; mz=300;
 	printf("%d %d %d\n",mx,my,mz);	
-	mpu_mag_correct2d(&mx,&my,&mz);
+	mpu_mag_correct2_inplace(&mx,&my,&mz);
 	printf("-> %d %d %d\n",mx,my,mz);
 	
 	mx=100; my=200; mz=300;

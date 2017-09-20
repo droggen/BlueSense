@@ -350,15 +350,24 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			// Pointer to memory structure
 			MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
 			
-			__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA
-			mdata->time=timer_ms_get();										// Fill remaining fields
+			//__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,mdata);			// Copy and conver the spi buffer to MPUMOTIONDATA
+			__mpu_copy_spibuf_to_mpumotiondata_magcor_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= -my; my<= -mx)
+			/*
+			// Alternative to __mpu_copy_spibuf_to_mpumotiondata_magcor_asm: manual change
+			signed t = mdata->mx;
+			mdata->mx=-mdata->my;
+			mdata->my=-t;*/
+			
+			mdata->time=timer_ms_get();											// Fill remaining fields
 			mdata->packetctr=__mpu_data_packetctr_current;
 			
 			// correct the magnetometer
 			if(_mpu_mag_correctionmode==1)
-				mpu_mag_correct1(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);
+				//mpu_mag_correct1(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);		// This call to be used with __mpu_copy_spibuf_to_mpumotiondata_asm
+				mpu_mag_correct1(mdata->my,mdata->mx,mdata->mz,&mdata->my,&mdata->mx,&mdata->mz);		// This call to be used with __mpu_copy_spibuf_to_mpumotiondata_magcor_asm: swap mx and my to ensure the right ASA coefficients are applied
 			if(_mpu_mag_correctionmode==2)
-				mpu_mag_correct2(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);
+				mpu_mag_correct2_inplace(&mdata->mx,&mdata->my,&mdata->mz);								// Call identical regardless of __mpu_copy_spibuf_to_mpumotiondata_asm or __mpu_copy_spibuf_to_mpumotiondata_magcor_asm as calibration routine uses corrected coordinate system.
+						
 						
 			// Next buffer	
 			_mpu_data_wrnext();	
@@ -483,15 +492,22 @@ void __mpu_read_cb(void)
 	// Pointer to memory structure
 	MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
 	
-	__mpu_copy_spibuf_to_mpumotiondata_asm(_mpu_tmp_reg,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA
+	//__mpu_copy_spibuf_to_mpumotiondata_asm(_mpu_tmp_reg,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA
+	__mpu_copy_spibuf_to_mpumotiondata_magcor_asm(_mpu_tmp_reg,mdata);	// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= -my; my<= -mx)
+	/*
+	// Alternative to __mpu_copy_spibuf_to_mpumotiondata_magcor_asm: manual change
+	signed t = mdata->mx;
+	mdata->mx=-mdata->my;
+	mdata->my=-t;*/
 	mdata->time=timer_ms_get();										// Fill remaining fields
 	mdata->packetctr=__mpu_data_packetctr_current;
 	
 	// correct the magnetometer
 	if(_mpu_mag_correctionmode==1)
-		mpu_mag_correct1(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);
+		//mpu_mag_correct1(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);		// This call to be used with __mpu_copy_spibuf_to_mpumotiondata_asm
+		mpu_mag_correct1(mdata->my,mdata->mx,mdata->mz,&mdata->my,&mdata->mx,&mdata->mz);		// This call to be used with __mpu_copy_spibuf_to_mpumotiondata_magcor_asm: swap mx and my to ensure the right ASA coefficients are applied
 	if(_mpu_mag_correctionmode==2)
-		mpu_mag_correct2(mdata->mx,mdata->my,mdata->mz,&mdata->mx,&mdata->my,&mdata->mz);
+		mpu_mag_correct2_inplace(&mdata->mx,&mdata->my,&mdata->mz);								// Call identical regardless of __mpu_copy_spibuf_to_mpumotiondata_asm or __mpu_copy_spibuf_to_mpumotiondata_magcor_asm as calibration routine uses corrected coordinate system.
 				
 	// Next buffer	
 	_mpu_data_wrnext();	
@@ -638,7 +654,7 @@ void mpu_init(void)
 	//system_led_set(0b111); _delay_ms(800);
 	_mpu_mag_readasa();
 	//system_led_set(0b110); _delay_ms(800);
-	fprintf_P(file_pri,PSTR("Magnetometer ASA: %02X %02X %02X\n"),_mpu_mag_asa[0],_mpu_mag_asa[1],_mpu_mag_asa[2]);
+	fprintf_P(file_pri,PSTR("Mag ASA: %02X %02X %02X\n"),_mpu_mag_asa[0],_mpu_mag_asa[1],_mpu_mag_asa[2]);
 	//system_led_set(0b101); _delay_ms(800);
 	mpu_mag_loadcalib();	
 	//system_led_set(0b100); _delay_ms(800);
@@ -653,7 +669,7 @@ void mpu_init(void)
 	fprintf_P(file_pri,PSTR("%sGyro scale: %d\n"),_str_mpu,scale);
 	// Dump status
 	//system_led_set(0b010); _delay_ms(800);
-	mpu_printregdesc(file_pri);	
+	//mpu_printregdesc(file_pri);	
 	// Turn off
 	//system_led_set(0b011); _delay_ms(800);
 	mpu_config_motionmode(MPU_MODE_OFF,0);
@@ -1715,7 +1731,7 @@ void mpu_calibrate(void)
 		}
 	}
 	mpu_setgyrobias(gyro_bias_best[best][0],gyro_bias_best[best][1],gyro_bias_best[best][2]);
-	fprintf_P(file_pri,PSTR(" Calibrated with bias: %d %d %d\n"),gyro_bias_best[best][0],gyro_bias_best[best][1],gyro_bias_best[best][2]);
+	fprintf_P(file_pri,PSTR(" Calibrated with bias: %ld %ld %ld\n"),gyro_bias_best[best][0],gyro_bias_best[best][1],gyro_bias_best[best][2]);
 	if(beststd>200)
 	{
 		fprintf_P(file_pri,PSTR(" **TOO MUCH MOVEMENT-RISK OF MISCALIBRATION**\n"));
@@ -1984,7 +2000,20 @@ void _mpu_mag_readasa(void)
 }
 
 
-// Magnetic correction using factory parameters in fuse rom
+/******************************************************************************
+	function: mpu_mag_correct1
+*******************************************************************************	
+	Magnetic correction using factory parameters in fuse rom.
+	
+	                                (ASA-128)x0.5
+	The correction is: Hadj = H x (--------------- + 1)
+	                                    128
+	
+	With ASA=128 the output is equal to the input. 
+	Values of ASA higher than 128 imply |Hadj|>|H| (sign is preserved). 
+	Values of ASA lower than 128 imply |Hadj|<|H| (sign in preserved).
+*******************************************************************************/
+
 void mpu_mag_correct1(signed short mx,signed short my,signed short mz,volatile signed short *mx2,volatile signed short *my2,volatile signed short *mz2)
 {
 	signed long lmx,lmy,lmz;
@@ -2011,36 +2040,39 @@ void mpu_mag_correct1(signed short mx,signed short my,signed short mz,volatile s
 	*mx2=lmx;
 	*my2=lmy;
 	*mz2=lmz;
-	
-	
 }
 /******************************************************************************
 	function: mpu_mag_correct2
 *******************************************************************************	
-*******************************************************************************	
 	Magnetic correction using bias/sensitivity parameters found during calibration.
 	
-	The sensitivity is a N.7 fixed point number
+	The sensitivity is a N.7 fixed point number.
 	
+	Code size is smallest with /127, and >>7 is smaller than /127:
+		/256 123250
+		/128 123236
+		/64 123248
+		/32 123260
+		/16 123248
+		
+		>>8 123196
+		>>7 123192
+		>>6 123216
 	
 *******************************************************************************/
 void mpu_mag_correct2(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2)
 {
-	
-	/**mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
+	// For correct rounding a better version would do (expr +64)/128
+	*mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
 	*my2=(my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/128;
-	*mz2=(mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;*/
-	*mx2=(mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/256;
-	*my2=(my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/256;
-	*mz2=(mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/256;
+	*mz2=(mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;
+}
+void mpu_mag_correct2_inplace(signed short *mx,signed short *my,signed short *mz)
+{
 	
-	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]+64)>>7;
-	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1]+64)>>7;
-	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]+64)>>7;*/
-	
-	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0])>>7;
-	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1])>>7;
-	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2])>>7;*/
+	*mx=(*mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
+	*my=(*my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/128;
+	*mz=(*mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;
 }
 void mpu_mag_correct2b(signed short mx,signed short my,signed short mz,signed short *mx2,signed short *my2,signed short *mz2)
 {
@@ -2071,21 +2103,6 @@ void mpu_mag_correct2c(signed short mx,signed short my,signed short mz,signed sh
 	*mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0])>>7;
 	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1])>>7;
 	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2])>>7;
-}
-void mpu_mag_correct2d(signed short *mx,signed short *my,signed short *mz)
-{
-	
-	*mx=(*mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]/128;
-	*my=(*my+_mpu_mag_bias[1])*_mpu_mag_sens[1]/128;
-	*mz=(*mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]/128;
-	
-	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0]+64)>>7;
-	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1]+64)>>7;
-	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2]+64)>>7;*/
-	
-	/**mx2=((mx+_mpu_mag_bias[0])*_mpu_mag_sens[0])>>7;
-	*my2=((my+_mpu_mag_bias[1])*_mpu_mag_sens[1])>>7;
-	*mz2=((mz+_mpu_mag_bias[2])*_mpu_mag_sens[2])>>7;*/
 }
 /******************************************************************************
 	function: mpu_mag_calibrate
@@ -2135,6 +2152,7 @@ void mpu_mag_calibrate(void)
 
 		if(mpu_data_getnext_raw(data))
 			continue;
+			
 		m[0] = data.mx;
 		m[1] = data.my;
 		m[2] = data.mz;
@@ -2175,11 +2193,11 @@ void mpu_mag_calibrate(void)
 	{
 		// Bias: term added to magnetic data to ensure zero mean
 		_mpu_mag_bias[i] = -(_mpu_mag_calib_max[i]+_mpu_mag_calib_min[i])/2;
-		// Sensitivity: N.4 number to obtain a range [-256;256]
+		// Sensitivity: N.7 number to obtain a range [-256;256]
 		if(_mpu_mag_calib_max[i]-_mpu_mag_calib_min[i]==0)
 			_mpu_mag_sens[i]=1;
 		else
-			_mpu_mag_sens[i] = (128*128)/(_mpu_mag_calib_max[i]-_mpu_mag_calib_min[i]);
+			_mpu_mag_sens[i] = (256*128l)/(_mpu_mag_calib_max[i]-_mpu_mag_calib_min[i]);
 	}
 	mpu_mag_printcalib(file_pri);	
 	mpu_mag_storecalib();	
@@ -2432,9 +2450,9 @@ void mpu_mag_printreg(FILE *file)
 
 void mpu_mag_printcalib(FILE *f)
 {
-	fprintf_P(f,PSTR("M.bias: %d %d %d\n"),_mpu_mag_bias[0],_mpu_mag_bias[1],_mpu_mag_bias[2]);
-	fprintf_P(f,PSTR("M.sens: %d %d %d\n"),_mpu_mag_sens[0],_mpu_mag_sens[1],_mpu_mag_sens[2]);
-	fprintf_P(f,PSTR("M.corrmode: %d\n"),_mpu_mag_correctionmode);
+	fprintf_P(f,PSTR("Mag bias: %d %d %d\n"),_mpu_mag_bias[0],_mpu_mag_bias[1],_mpu_mag_bias[2]);
+	fprintf_P(f,PSTR("Mag sens: %d %d %d\n"),_mpu_mag_sens[0],_mpu_mag_sens[1],_mpu_mag_sens[2]);
+	fprintf_P(f,PSTR("Mag corrmode: %d\n"),_mpu_mag_correctionmode);
 }
 
 /******************************************************************************

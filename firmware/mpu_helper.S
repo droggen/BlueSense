@@ -114,11 +114,136 @@ __mpu_copy_spibuf_to_mpumotiondata_asm:
 	st z+,r0
 	
 	
-	
-	
-	
-
 	ret
+	
+	
+;----------------------------------------------------------------------------------
+; extern void __mpu_copy_spibuf_to_mpumotiondata_magcor_asm(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
+;
+; Copies the data from spibuf to mpumotion data, swapping mx and my and inverting the sign of mx, my
+;
+.global __mpu_copy_spibuf_to_mpumotiondata_magcor_asm
+;----------------------------------------------------------------------------------
+; Input parameters:
+; R25:R24: spibuf
+; R23:R22: mpumotiondata
+; Internal variables:
+; R31:R30(Z): mpumotiondata
+; R27:R26(X): spibuf
+; R0,R18,R19,R24,R25: working registers (can be clobbered)
+;-------------------------
+__mpu_copy_spibuf_to_mpumotiondata_magcor_asm:
+	
+	; Place mpumotiondata pointer into Z register
+	movw r30,r22
+	; Place spibuf pointer into X register
+	movw r26,r24
+	
+	; Test it works by writing data to spibuf and mpumotiondata
+	;ldi r18,12	
+	;st Z,r18	
+	;ldi r18,13	
+	;st X,r18
+	
+	; Increment spibuf to handle the big endian
+	adiw r26,2
+	 
+	; Acceleration (big endian)
+	ld r0,-x
+	st z+,r0
+	ld r0,-x
+	st z+,r0
+	
+	adiw r26,4
+	
+	ld r0,-x
+	st z+,r0
+	ld r0,-x
+	st z+,r0
+	
+	adiw r26,4
+	
+	ld r0,-x
+	st z+,r0
+	ld r0,-x
+	st z+,r0
+	
+	; Temp (big endian)
+	
+	adiw r26,4
+	adiw r30,13
+	
+	ld r0,-x
+	st z+,r0
+	ld r0,-x
+	st z+,r0
+	
+	; Gyro (big endian)
+	
+	adiw r26,4
+	sbiw r30,15
+	
+	ld r0,-x
+	st z+,r0
+	ld r0,-x
+	st z+,r0
+	
+	adiw r26,4
+	
+	ld r0,-x
+	st z+,r0
+	ld r0,-x
+	st z+,r0
+	
+	adiw r26,4
+	
+	ld r0,-x
+	st z+,r0
+	ld r0,-x
+	st z+,r0
+	
+	
+	; Magnetic (little endian)
+	
+	adiw r26,2
+	
+	ld	r18,x+	; Load MX in R19:R18
+	ld	r19,x+
+	
+	ld	r24,x+	; Load MY in R25:R24; this pair allows to use adiw below
+	ld	r25,x+
+	
+	; Negate MY by complementing and adding 1; use adiw
+	com r24
+	com r25
+	adiw r24,1
+	
+	; Negate MX by complementing and adding 1
+	com r18
+	com r19
+	subi r18,255
+	sbci r19,255
+	
+	; Store MY
+	st z+,r24
+	st z+,r25
+	
+	; Store MX
+	st z+,r18
+	st z+,r19
+	
+	ld r0,x+	; MZ
+	st z+,r0
+	ld r0,x+
+	st z+,r0
+	
+	ld r0,x+	; MS
+	st z+,r0
+	
+	
+	ret
+		
+	
 	
 ;----------------------------------------------------------------------------------
 ; extern "C" void mpu_mag_correct2_asm(signed short *mx,signed short *my,signed short *mz);
