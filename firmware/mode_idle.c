@@ -72,6 +72,7 @@ const COMMANDPARSER CommandParsersIdle[] =
 #endif
 	{'Q', CommandParserBatteryInfoLong,help_batterylong},
 	{'q', CommandParserBatteryInfo,help_battery},
+	{'c', CommandParserCallback,help_callback},
 	{'X', CommandParserSD,help_sd},
 	//{'p', CommandParserPowerTest,help_powertest},
 	{'S', CommandParserTeststream,help_s},
@@ -125,14 +126,14 @@ void mode_idle(void)
 			
 		
 		// Display debug status
-		if(timer_ms_get()-time_laststatus>750)
+		/*if(timer_ms_get()-time_laststatus>750)
 		{
 			fprintf_P(file_dbg,PSTR("Idle mode. PINA: %02X DDRA: %02X PORTA: %02X\n"),PINA,DDRA,PORTA);
 			time_laststatus = timer_ms_get();
 			
 			//fprintf_P(file_usb,PSTR("toto usb\n"));
 			//fprintf_P(file_bt,PSTR("toto bt\n"));
-		}
+		}*/
 	}
 	fprintf_P(file_pri,PSTR("<IDLE\n"));
 }

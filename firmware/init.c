@@ -63,15 +63,12 @@ void init_basic(void)
 	// I2C INITIALISATION	
 	i2c_init();	
 	
-	// DEBUG INITIALISATION
-	dbg_init();
-	
 	// Open file_usb
 	#if HWVER==1
 		// Initialize the streams
 		//file_usb = fdevopen(uart0_fputchar_int,uart0_fgetchar_int);		
 		//file_dbg=fdevopen(dbg_fputchar,0);
-#error: HWVER1 is unsupported
+		#error: HWVER1 is unsupported
 	#endif
 	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 		file_usb = serial_open(10,1);
@@ -80,11 +77,19 @@ void init_basic(void)
 	// Set IO to non-blocking
 	serial_setblocking(file_usb,0);
 	
-	// Register debug callback
-	//timer_register_callback(dbg_callback,3);		// DBG at 250Hz
-	//timer_register_callback(dbg_callback,2);		// DBG at 340Hz		(good tradeoff)
-	timer_register_callback(dbg_callback,1);		// DBG at 500Hz, causes issues with cpu overhead leading to missed MPU samples
-	/////////////////////////// PRINT WORKS FROM HERE ///////////////////////////
+	/////////////////////////// PRINT WORKS FROM HERE on USB ///////////////////////////
+	
+	// Open Bluetooth communication
+	file_bt=serial_open(1,1);
+	// Set to non-blocking
+	serial_setblocking(file_bt,0);
+	
+	
+	interface_init();
+	interface_changedetectenable(1);
+	
+	interface_signalchange(system_isbtconnected(),system_isusbconnected());
+	interface_test();
 	
 	fprintf_P(file_usb,PSTR("BlueSense2\n"));
 }
@@ -104,10 +109,7 @@ void init_extended(void)
 	system_offdeltacharge=curcharge-oldcharge;
 	ltc2942_init();																// Get 
 	
-	// Open Bluetooth communication
-	file_bt=serial_open(1,1);
-	// Set to non-blocking
-	serial_setblocking(file_bt,0);
+
 	
 	
 	fprintf_P(file_usb,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
@@ -197,21 +199,7 @@ void init_extended(void)
 		_delay_ms(100);	// Wait for text to be sent before interface update
 	#endif
 	
-	//system_status_ok2(5);
 	
-	interface_init();
-	interface_changedetectenable(1);
-	
-	//system_status_ok2(4);
-	
-	interface_signalchange(system_isbtconnected(),system_isusbconnected());
-	
-	//system_status_ok2(3);
-	
-	interface_test();
-	
-	//system_status_ok2(2);
-
 	
 
 	//while(!system_isbtconnected());

@@ -61,7 +61,7 @@ const char help_info[] PROGMEM ="i,<ien> Prints battery and logging information 
 const char help_batterylong[] PROGMEM="Long-term battery info";
 const char help_battery[] PROGMEM="Short-term battery info";
 const char help_powertest[] PROGMEM="Power tests";
-
+const char help_callback[] PROGMEM ="Lists timer callbacks";
 
 unsigned CurrentAnnotation=0;
 
@@ -840,6 +840,11 @@ unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size)
 		fprintf(file_pri,"%d ",ltc2942_last_mWs(i));
 	fprintf(file_pri,"\n");
 
+	return 0;
+}
+unsigned char CommandParserCallback(char *buffer,unsigned char size)
+{
+	timer_printcallbacks(file_pri);
 	return 0;
 }
 

@@ -35,6 +35,7 @@ extern const char help_info[];
 extern const char help_batterylong[];
 extern const char help_battery[];
 extern const char help_powertest[];
+extern const char help_callback[];
 
 extern const COMMANDPARSER CommandParsersDefault[];
 extern const unsigned char CommandParsersDefaultNum;
@@ -67,7 +68,7 @@ unsigned char CommandParserBootScript(char *buffer,unsigned char size);
 unsigned char CommandParserInfo(char *buffer,unsigned char size);
 unsigned char CommandParserBatteryInfoLong(char *buffer,unsigned char size);
 unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size);
-
+unsigned char CommandParserCallback(char *buffer,unsigned char size);
 
 
 

@@ -28,6 +28,7 @@ Use interface_changedetectenable to enable/disable change detection.
 #include "dbg.h"
 #include "serial.h"
 #include "system.h"
+#include "wait.h"
 
 
 signed char interface_bt_connected_past=0;
@@ -59,11 +60,11 @@ void interface_btdown(void)
 }
 void interface_usbup(void)
 {
-	dbg_clearbuffers();
+	dbg_init();
 }
 void interface_usbdown(void)
 {
-	dbg_clearbuffers();
+	dbg_deinit();
 }
 void interface_hellopri(void)
 {
@@ -371,3 +372,5 @@ void interface_signalchange(signed char cur_bt_connected,signed char cur_usb_con
 	
 	_interface_update(cur_bt_connected,cur_usb_connected);			
 }
+
+	

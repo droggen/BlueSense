@@ -81,6 +81,7 @@ typedef unsigned long int WAITPERIOD;					// This must be matched to the size of
 
 char timer_register_callback(unsigned char (*callback)(unsigned char),unsigned short divider);
 char timer_register_slowcallback(unsigned char (*callback)(unsigned char),unsigned short divider);
+unsigned char timer_isregistered_callback(unsigned char (*callback)(unsigned char));
 void timer_unregister_callback(unsigned char (*callback)(unsigned char));
 void timer_unregister_slowcallback(unsigned char (*callback)(unsigned char));
 void timer_printcallbacks(FILE *f);

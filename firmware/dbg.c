@@ -56,6 +56,8 @@ unsigned char _dbg_numtxbeforerx=5;			// 5: 13743 bytes/sec @1024Hz	6880 bytes/s
 //unsigned char _dbg_numtxbeforerx=10;	// 10: 14894 bytes/sec @1024Hz	7447 bytes/sec @512Hz
 unsigned char _dbg_newnumtxbeforerx=0;
 
+volatile unsigned char _dbg_flag_unregister=0;	// Set to 1 for the callback to self-unregister at the end of the state machine cycle
+
 
 #ifdef DBG_BENCH
 volatile unsigned long _dbg_query_callback2_time,_dbg_query_callback1_time;
@@ -69,6 +71,13 @@ volatile unsigned long _dbg_query_callback2_time,_dbg_query_callback1_time;
 
 void dbg_init(void)
 {
+	// In case of rapid toggling of the USB interface, dbg_init could be called immediately dbg_deinit, but before dbg_callback unregisters itself from the callback mechanism
+	// This is the case if _dbg_flag_unregister=1; here clear this flag to avoid deregistration. 
+	_dbg_flag_unregister=0;
+	// Check if the dbg_callback is registered; this can happen if dbg_init is called several time. Return immediately if teh callback is registered.
+	if(timer_isregistered_callback(dbg_callback))
+		return;
+	
 	_dbg_tx_state.buffer = _dbg_tx_buffer;
 	_dbg_tx_state.size = DBG_BUFFER_SIZE;
 	_dbg_tx_state.mask = DBG_BUFFER_SIZE-1;
@@ -95,6 +104,16 @@ void dbg_init(void)
 	// Read data transaction
 	i2c_transaction_setup(&_dbg_trans_read,DBG_ADDRESS,I2C_READ,1,0);
 	_dbg_trans_read.callback=_dbg_read_callback;
+	
+	// Register the callback
+	// Register debug callback
+	//timer_register_callback(dbg_callback,3);		// DBG at 250Hz
+	//timer_register_callback(dbg_callback,2);		// DBG at 340Hz		(good tradeoff)
+	timer_register_callback(dbg_callback,1);		// DBG at 500Hz, causes issues with cpu overhead leading to missed MPU samples
+}
+void dbg_deinit(void)
+{
+	_dbg_flag_unregister=1;
 }
 void dbg_clearbuffers(void)
 {
@@ -207,8 +226,8 @@ unsigned char dbg_callback(unsigned char p)
 	
 	// If not connected we don't run the callback at all
 	//return 0;
-	if(!system_isusbconnected())
-		return 0;
+	//if(!system_isusbconnected())			// The interface system unloads the callback, so this is not necessary
+//		return 0;
 		
 	
 	//system_led_toggle(0b100);
@@ -248,6 +267,16 @@ unsigned char dbg_callback(unsigned char p)
 		//system_led_toggle(0b100);
 		return 0;
 	}
+	
+	// Once transaction completed, check whether we where requested to deregister the callback
+	if(_dbg_flag_unregister)
+	{
+		_dbg_flag_unregister=0;
+		// Disable interrupts
+		timer_unregister_callback(dbg_callback);
+		return 0;
+	}
+	
 	//system_led_toggle(0b10);
 	//fprintf(file_bt,"s %d\n",dbg_general_state);
 	
@@ -565,11 +594,7 @@ void dbg_setioparam(unsigned char period,unsigned char txbeforerx)
 {
 //	printf("txbeforerx: %d\n",txbeforerx);
 	
-	// Unregister callback and wait for last operation to complete
-	timer_unregister_callback(dbg_callback);
-	while(dbg_general_busy);
-	// Reset state
-	dbg_general_state=0;
+	dbg_deinit();
 	// Set new parameters and register callback
 	dbg_setnumtxbeforerx(txbeforerx);
 	timer_register_callback(dbg_callback,period);

@@ -1031,7 +1031,7 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 			tt2 = timer_us_get();
 			//printf("%ld %f %f %f %f\n",tt2-tt1,q0,q1,q2,q3);
 			//printf("%f %f %f %f\n",q0,q1,q2,q3);
-			printf("%f %f %f %f %ld\n",(double)q0,(double)q1,(double)q2,(double)q3,tt2-tt1);
+			fprintf_P(file_pri,PSTR("%f %f %f %f %ld\n"),(double)q0,(double)q1,(double)q2,(double)q3,tt2-tt1);
 			
 		}
 		

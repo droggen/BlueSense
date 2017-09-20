@@ -544,6 +544,34 @@ char timer_register_slowcallback(unsigned char (*callback)(unsigned char),unsign
 	return timer_numslowcallbacks-1;
 }
 /******************************************************************************
+	function: timer_isregistered_callback
+*******************************************************************************
+	Check if the specified callback is registered at least once.
+	
+	Parameters:
+		callback		-		User callback to check for registration
+	Returns:
+		0				-		Callback is not registered
+		n 				-		Callback is registered n times
+		
+******************************************************************************/
+unsigned char timer_isregistered_callback(unsigned char (*callback)(unsigned char))
+{
+	unsigned char n=0;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		// Iterate all entries to find the callback
+		for(unsigned char i=0;i<timer_numcallbacks;i++)
+		{
+			if(timer_callbacks[i].callback==callback)
+			{
+				n++;
+			}
+		}
+	}
+	return n;
+}
+/******************************************************************************
 	function: timer_unregister_callback
 *******************************************************************************
 	Unregisters a callback.

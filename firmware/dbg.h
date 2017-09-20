@@ -21,6 +21,7 @@ extern volatile unsigned char dbg_rxlevel;
 extern unsigned char  (*dbg_rx_callback)(unsigned char);
 
 void dbg_init(void);
+void dbg_deinit(void);
 void dbg_clearbuffers(void);
 void dbg_setnumtxbeforerx(unsigned char c);
 int dbg_fputchar(char c, FILE*stream);
