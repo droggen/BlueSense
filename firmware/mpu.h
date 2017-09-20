@@ -200,7 +200,7 @@ typedef struct {
 // Data buffers
 // 64 buffers works on all cards which are U-1 or faster without data loss at 500Hz HBW
 //#define MPU_MOTIONBUFFERSIZE 64		
-#define MPU_MOTIONBUFFERSIZE 8
+#define MPU_MOTIONBUFFERSIZE 32
 //#define MPU_MOTIONBUFFERSIZE 16
 //#define MPU_MOTIONBUFFERSIZE 128
 extern MPUMOTIONDATA mpu_data[];

@@ -89,7 +89,7 @@ void init_basic(void)
 	interface_changedetectenable(1);
 	
 	interface_signalchange(system_isbtconnected(),system_isusbconnected());
-	interface_test();
+	//interface_test();
 	
 	fprintf_P(file_usb,PSTR("BlueSense2\n"));
 }
@@ -168,20 +168,10 @@ void init_extended(void)
 	// BLUETOOTH INITIALISATION
 	//cli(); uart1_rx_callback = 0; sei();															// Deactivate callback
 	//cli(); uart1_rx_callback = echo_uart1_rx_callback; sei();					// Activate callback
-	unsigned long rnt1 = timer_ms_get();
 	rn41_Setup(file_usb,file_bt,system_devname);
-	unsigned long rnt2 = timer_ms_get();
 	bluetoothrts = (PIND&0x10)?1:0;
 	//cli(); uart1_rx_callback = echo_uart1_rx_callback; sei();					// Activate callback
 	cli(); uart1_rx_callback = 0; sei();															// Deactivate callback
-	
-	//fprintf_P(file_usb,PSTR("RN41 setup: %ld ms\n"),rnt2-rnt1);
-	//_delay_ms(500);
-
-
-	//system_status_ok(7);
-	//system_status_ok(4);
-	
 	
 	
 	#if HWVER==4
@@ -424,20 +414,7 @@ void init_extended(void)
 	ConfigLoadScript(buf);
 	CommandSet(buf,strlen(buf));
 	
-	//fprintf_P(file_pri,PSTR("Boot script: "));
-	//void prettyprint_hexascii(file_pri,buf,CONFIG_ADDR_SCRIPTLEN);
 	
-
-
-	
-	
-	
-	
-	//system_status_ok(5);
-	
-	
-	
-
 	
 }
 

@@ -161,7 +161,8 @@
 void rn41_CmdEnter(FILE *fileinfo,FILE *filebt)
 {
 	// No character 1 second before and after the enter command sequence
-	_delay_ms(1100);
+	//_delay_ms(1100);
+	_delay_ms(1010);
 	rn41_CmdResp(fileinfo,filebt,"$$$");
 }
 void rn41_CmdLeave(FILE *fileinfo,FILE *filebt)
@@ -218,17 +219,11 @@ void rn41_Reset(FILE *fileinfo)
 	PORTA &= 0b11011111;
 	//fprintf_P(fileinfo,PSTR("BT hard reset: set to 0\n"));
 	//fprintf_P(fileinfo,PSTR("PIND: %02X\n"),PIND);
-	//_delay_ms(5000);
-	//_delay_ms(200);
-	_delay_ms(50);
+	_delay_ms(4);			// 4ms works  (3ms works also, 2ms doesn't)
 	//fprintf_P(fileinfo,PSTR("PIND: %02X\n"),PIND);
 	//fprintf_P(fileinfo,PSTR("BT hard reset: set to 1\n"));
 	PORTA |= 0b00100000;
-	//fprintf_P(fileinfo,PSTR("PIND: %02X\n"),PIND);
-	//fprintf_P(fileinfo,PSTR("rst4\n"));
-	//_delay_ms(5000);
-	//_delay_ms(200);
-	_delay_ms(200);
+	//_delay_ms(200);		// Works
 	#if RN41DEBUG==1
 		fprintf_P(fileinfo,PSTR("BT hard reset done\n"));
 	#endif

@@ -21,10 +21,9 @@
 #define LTC2942NUMLASTMW 10
 // Long term battery status
 // The number of entries in is equal to LTC2942NUMLONGBATSTAT-1
-// The sensor has a battery life of <6 hours, hence 120 entries needed with a readout every 3mn.
-#define LTC2942NUMLONGBATSTAT 120
-//#define LTC2942NUMLONGBATSTAT_UPDATEEVERY 180000l
-#define LTC2942NUMLONGBATSTAT_UPDATEEVERY 10000l
+// The sensor has a battery life of <6 hours, hence 144 entries needed with a readout every 2.5mn.
+#define LTC2942NUMLONGBATSTAT 150
+#define LTC2942NUMLONGBATSTAT_UPDATEEVERY 150000l
 
 typedef struct {
 	unsigned long t;
