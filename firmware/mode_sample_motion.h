@@ -3,7 +3,7 @@
 
 #include "command.h"
 
-//#define MSM_LOGBAT
+#define MSM_LOGBAT
 
 extern const char help_streamlog[] PROGMEM;
 

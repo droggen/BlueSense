@@ -16,7 +16,7 @@ void init_module(void);
 void init_spi(void);
 void init_portchangeint(void);
 void deinit_portchangeint(void);
-
+void init_powerreduce(void);
 
 #if BOOTLOADER==0
 void init_lcd(void);

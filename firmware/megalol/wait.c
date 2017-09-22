@@ -362,6 +362,58 @@ unsigned long timer_ms_get_c(void)
 	}
 	return t;
 }
+
+/******************************************************************************
+	timer_us_get_c
+*******************************************************************************
+	Return the time in microsecond since the epoch.
+	
+	TODO: this function should return an unsigned long long to allow for 
+	epochs older than 1 hour.
+	
+	This function is guaranteed to be monotonic.
+	
+	Calls to this function were benchmarked at about 14uS per call.
+	
+	Returns:
+		Time in microseconds since the epoch
+	
+******************************************************************************/
+unsigned long int timer_us_get_c(void)
+{
+	unsigned long t;
+	unsigned long tcnt;
+	
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		tcnt = TCNT1;				// Copy first as counter keeps going on
+		t=_timer_time_us_monotonic;		
+	}
+	
+	// TCNT is at 11059200Hz. Convert tcnt to uS using approximate function
+	// TCNT is [0;10799]. TCNT=10800 is 976.5625uS
+	// Need to approximate: us = TCNT/11.0592 in a way which guarantees monotonicity
+	// Option 1: uS=TCNT/12: 10800=>uS, e=-76uS, monotonic
+	// Option 2: us=TCNT/11: 1080=>uS, e=+5uS, non monotonic
+	// Option 3: us=TCNT*1.44675/16 	-> *1.375/16
+	// Option 4: us=TCNT*2.89/32		-> 2.875/32	-> (3*t-1/8*t)/32
+	
+	
+	t+=(tcnt*3-tcnt/8)/32;		// 2.875/32 * 10800 = 970.3125uS, monotonic e=-6.25uS (13uS function call)
+	
+	// Simulate too fast increment to see wraparound
+	//t+=tcnt/2;
+	
+	
+	if(t>_timer_time_us_lastreturned)
+	{
+		_timer_time_us_lastreturned=t;
+	}
+	return _timer_time_us_lastreturned;				// (14uS  function call)
+	
+	//return t;		// Return time without guarantees monotonicity
+}
+
 /******************************************************************************
 	function: timer_s_wait
 *******************************************************************************
@@ -406,56 +458,6 @@ unsigned long timer_s_get(void)
 		t=_timer_1hztimer_in_s;
 	}
 	return t;
-}
-/******************************************************************************
-	timer_us_get_c
-*******************************************************************************
-	Return the time in microsecond since the epoch.
-	
-	TODO: this function should return an unsigned long long to allow for 
-	epochs older than 1 hour.
-	
-	This function is guaranteed to be monotonic.
-	
-	Calls to this function were benchmarked at about 14uS per call.
-	
-	Returns:
-		Time in microseconds since the epoch
-	
-******************************************************************************/
-unsigned long int timer_us_get_c(void)
-{
-	unsigned long t;
-	unsigned long tcnt;
-	
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-	{
-		tcnt = TCNT1;				// Copy first as counter keeps going on
-		t=_timer_time_us_monotonic;		
-	}
-	
-	// TCNT is at 11059200Hz. Convert tcnt to uS using approximate function
-	// TCNT is [0;10799]. TCNT=10800 is 976.5625uS
-	// Need to approximate: us = TCNT/11.0592 in a way which guarantees monotonicity
-	// Option 1: uS=TCNT/12: 10800=>uS, e=-76uS, monotonic
-	// Option 2: us=TCNT/11: 1080=>uS, e=+5uS, non monotonic
-	// us=TCNT*1.44675/16 	-> *1.375/16
-	// us=TCNT*2.89/32		-> 2.875/32	-> (3*t-1/8*t)/32
-	
-	
-	t+=(tcnt*3-tcnt/8)/32;		// 2.875/32 * 10800 = 970.3125uS, monotonic e=-6.25uS (13uS)
-	
-	// Simulate too fast increment to see wraparound
-	//t+=tcnt/2;
-	
-	
-	if(t>_timer_time_us_lastreturned)
-	{
-		_timer_time_us_lastreturned=t;
-	}
-	return _timer_time_us_lastreturned;				// (14uS)*/
-	
-	//return t;		// Return time without guarantees monotonicity
 }
 
 
@@ -1016,3 +1018,44 @@ unsigned int timer_elapsed_fast(void)
 	
 
 }*/
+extern unsigned char sharedbuffer[];
+void timer_get_speedtest(void)
+{
+	// Test timer
+	unsigned long *sb=(unsigned long*)sharedbuffer;
+	
+	timer_init(100);
+	
+	
+	unsigned long t=0;
+	unsigned long t1,t2;
+	t1 = timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+			t+=timer_ms_get();
+	t2 = timer_ms_get();
+	printf("%lu (%lu)\n",t2-t1,t);
+	t1 = timer_ms_get();
+	for(unsigned i=0;i<50000;i++)
+			t+=timer_us_get_c();
+	t2 = timer_ms_get();
+	printf("%lu (%lu)\n",t2-t1,t);
+	
+	while(1)
+	{
+		for(int i=0;i<128;i++)
+			sb[i]=timer_ms_get();
+		//printf("ms: "); for(int i=0;i<128;i++) printf("%lu ",sb[i]); printf("\n");
+		printf("msdt: "); for(int i=0;i<127;i++) printf("%lu ",sb[i+1]-sb[i]); printf("\n");
+		
+
+		for(int i=0;i<128;i++)
+			sb[i]=t2=timer_us_get();
+		//printf("us: "); for(int i=0;i<128;i++) printf("%lu ",sb[i]); printf("\n");		
+		printf("usdt: "); for(int i=0;i<127;i++) printf("%lu ",sb[i+1]-sb[i]); printf("\n");
+		
+		
+			
+		printf("\n");
+		_delay_ms(1000);
+	}
+}

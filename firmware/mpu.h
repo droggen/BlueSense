@@ -198,10 +198,12 @@ typedef struct {
 
 
 // Data buffers
-// 64 buffers works on all cards which are U-1 or faster without data loss at 500Hz HBW
+// 32 buffers works on all cards which are U-1 or faster without data loss at 500Hz LBW and 500Hz HBW. Also works at 1KHz, although the effective sample rate is 800Hz.
 //#define MPU_MOTIONBUFFERSIZE 64		
 #define MPU_MOTIONBUFFERSIZE 32
 //#define MPU_MOTIONBUFFERSIZE 16
+//#define MPU_MOTIONBUFFERSIZE 8
+//#define MPU_MOTIONBUFFERSIZE 4
 //#define MPU_MOTIONBUFFERSIZE 128
 extern MPUMOTIONDATA mpu_data[];
 extern volatile unsigned long __mpu_data_packetctr_current;

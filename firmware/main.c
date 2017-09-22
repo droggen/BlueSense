@@ -580,6 +580,8 @@ int main(void)
 	init_extended();
 
 	
+
+	
 	mode_main();			// This never returns.
 	
 	while(1);

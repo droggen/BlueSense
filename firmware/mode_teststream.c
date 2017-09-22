@@ -207,10 +207,8 @@ void mode_teststream(void)
 		}*/
 		
 		// Get time from rtc
-		unsigned long trtc;
-		cli();
-		trtc=_timer_time_1_in_ms;
-		sei();
+		unsigned long trtc=timer_ms_get();
+		
 		
 		// Generate some data
 		data[0]++;

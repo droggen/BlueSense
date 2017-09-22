@@ -11,6 +11,7 @@
 #include <avr/sleep.h>
 #include <avr/power.h>
 #include <avr/eeprom.h>
+#include <avr/wdt.h>
 #include <util/delay.h>
 #include <stdio.h>
 #include <string.h>
@@ -92,6 +93,8 @@ void init_basic(void)
 	//interface_test();
 	
 	fprintf_P(file_usb,PSTR("BlueSense2\n"));
+	
+	//init_powerreduce();
 }
 void init_extended(void)
 {
@@ -627,6 +630,53 @@ void deinit_lcd(void)
 {
 	lcd_spi_deinit();
 	file_fb = 0;
+}
+
+
+void init_powerreduce(void)
+{
+	// Power reduction
+	/*
+	In idle mode, calling this during init:
+		-18 -18 -18 -18 -19 -18 -18 -18 -18 -19: 18.2mW
+
+	In idle mode, not calling this during init:
+		-19 -19 -21 -18 -21 -19 -21 -19 -19:  19.5mW
+		
+	~1mW savings.
+	*/
+	
+	// ADC should be turned off (default): ADEN=bit7=0
+	ADCSRA&=0b01111111;
+	
+	// Analog Comparator must be disabled and set not to use the Internal Voltage Reference, otherwise the internal voltage reference stays enabled
+	// By default the analog comparator is enabled.
+	// Disable Analog Comparator: ACD=bit7=1; Disable Fixed Bandgap ACBG=bit6=0
+	ACSR=0b10000000;
+	
+	// Brown out detector should be disabled. This is controlled by the fuses (not in software control)
+	
+	// Internal Voltage Reference should be disabled. The Internal voltage reference is used by the brown out detector (must be off), the analog comparator (must be off), and the ADC (must be off)
+	
+	// Watchdog timer must be disabled. If the fuses enable the watchdog nothing can be done. Otherwise, by default the watchdog timer runs even if the watchdog is not activated
+	wdt_disable();
+	
+	// Disable the digital input buffer on AIN1/0 
+	DIDR1=0b00000011;
+	
+	// Disable the digital input buffer on ADC7, ADC3-0
+	DIDR0=0b10001111;
+	
+	// On-chip debug system (OCDEN) and JTAG (JTAGEN) fuses must be unset
+
+	
+	// Power reduction register 0: PRTWI PRTIM2 PRTIM0 PRUSART1 PRTIM1 PRSPI PRUSART0 PRADC
+	// Disable: Timer2, Timer0, ADC
+	PRR0 = 0b01100001;
+	// // Power reduction register 1: PRTIM3
+	// Disable: Timer3
+	PRR1 = 0b00000001;
+	
 }
 
 
