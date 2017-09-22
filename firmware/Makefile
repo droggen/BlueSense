@@ -166,7 +166,7 @@ ASRC += mpu_helper.S
 #ASRC += lcd_spi.S
 #ASRC = softspi.S
 ASRC += spi-usart0-isr.S
-ASRC += megalol/wait_s.S
+#ASRC += megalol/wait_s.S
 
 
 # List any extra directories to look for include files here.
