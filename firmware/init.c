@@ -43,6 +43,9 @@ unsigned char init_porta;
 unsigned char init_ddrb;
 unsigned char init_portb;
 
+// Disable I2C if the I2C interface has a hardware issue preventing booting.
+#define DISABLE_I2C		0
+
 /******************************************************************************
    function: init_basic
 *******************************************************************************
@@ -54,6 +57,8 @@ unsigned char init_portb;
 ******************************************************************************/
 void init_basic(void)
 {
+//	_delay_ms(4000);
+
 	// INIT MODULE
 	init_module();
 	
@@ -61,8 +66,10 @@ void init_basic(void)
 	system_led_test();	
 	system_led_set(0b000);
 		
-	// I2C INITIALISATION	
-	i2c_init();	
+	// I2C INITIALISATION
+	#if !DISABLE_I2C
+		i2c_init();	
+	#endif
 	
 	// Open file_usb
 	#if HWVER==1
@@ -100,22 +107,24 @@ void init_extended(void)
 {
 	// Fuel gauge initialisation
 	// Get the charge
-	unsigned long curcharge = ltc2942_getcharge();
-	unsigned long oldcharge;
-	oldcharge = eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE3);
-	oldcharge<<=8;
-	oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE2);
-	oldcharge<<=8;
-	oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE1);
-	oldcharge<<=8;
-	oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE0);
-	system_offdeltacharge=curcharge-oldcharge;
-	ltc2942_init();																// Get 
-	
+	#if !DISABLE_I2C
+		unsigned long curcharge = ltc2942_getcharge();
+		unsigned long oldcharge;
+		oldcharge = eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE3);
+		oldcharge<<=8;
+		oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE2);
+		oldcharge<<=8;
+		oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE1);
+		oldcharge<<=8;
+		oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE0);
+		system_offdeltacharge=curcharge-oldcharge;
+		ltc2942_init();																// Get 
+		fprintf_P(file_usb,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
+	#endif
 
 	
 	
-	fprintf_P(file_usb,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
+	
 	
 	
 	
@@ -223,23 +232,17 @@ void init_extended(void)
 	_delay_ms(250);*/
 	
 	// RTC INITIALISATION
-	//fprintf(file_fb,"Before RTC init\n");
-	//fprintf(file_bt,"Before RTC init\n");
-	//fprintf(file_pri,"Before RTC init\n");
-	//_delay_ms(500);
-	ds3232_init();	
-	//_delay_ms(500);
-	//fprintf(file_fb,"After RTC init\n");
-	//fprintf(file_bt,"After RTC init\n");
-	//fprintf(file_pri,"After RTC init\n");
-	ds3232_printreg(file_pri);
-	//ds3232_printreg(file_fb);
+	#if !DISABLE_I2C
+		ds3232_init();	
+		ds3232_printreg(file_pri);
+	#endif
 	
 	// Initialise current time from RTC
-	if(1)
+	#if !DISABLE_I2C
 		system_settimefromrtc();
-	else
+	#else
 		timer_init(0);
+	#endif
 	
 	
 	//_delay_ms(500);
@@ -324,14 +327,21 @@ void init_extended(void)
 	//system_status_ok(2);
 
 	// Register the battery sample callback, and initiate an immediate read of the battery 
-	timer_register_slowcallback(ltc2942_backgroundgetstate,9);		// Every 10 seconds
-	ltc2942_backgroundgetstate(0);
-	
-	ds3232_readtemp((signed short*)&system_temperature);
+	#if !DISABLE_I2C
+		timer_register_slowcallback(ltc2942_backgroundgetstate,9);		// Every 10 seconds
+		ltc2942_backgroundgetstate(0);
+		
+		ds3232_readtemp((signed short*)&system_temperature);
 
-	//timer_register_slowcallback(system_sampletemperature,6);
-	timer_register_slowcallback(system_lifesign,0);
+		
+		
+		//timer_register_slowcallback(system_sampletemperature,6);
+		
+		
+	#endif
 	timer_register_callback(system_batterystat,99);		// Battery status at 100Hz
+	timer_register_slowcallback(system_lifesign,0);		// Low speed blinking
+	//timer_register_callback(system_lifesign2,99);		// High speed blinking
 	
 
 	system_status_ok(1);
@@ -435,6 +445,8 @@ void init_ports(void)
 	DDRB  = 0b10110011;
 	PORTB = 0b00011111;
 	
+	
+	
 	DDRC  = 0b10001000;
 	PORTC = 0b00010000;	        
 	
@@ -464,6 +476,95 @@ void init_ports(void)
 	//DDxn =1 : output
 	
 	
+	
+	/*PORTC=0b10000000;		// Power stays on (ddrc still input but with pull up)
+	//_delay_us(10);
+	DDRC  = 0b11001000;		// put DDRC as output
+	
+	//while(1);
+	
+	_delay_us(10);*/
+	
+	
+	/*
+		On HW8.28 PC7 drops between DDRB=init_ddrb and PORTB=init_portb
+		Attempt to identify which pin triggers the drop: PB0
+	*/
+	
+	init_ddrb = 0b10110011;
+	init_portb = 0b10111111;
+	
+	//DDRB  = init_ddrb;		// Initial
+	/*
+		DDRB = 0b10110011;
+		__builtin_avr_nops(10);
+		PORTB = ...
+		Duration: 1200ns
+		
+		2x DDRB: 1250ns
+		3x DDRB: 1350ns
+		4x DDRB: 1425ns
+		5x DDRB: 1525ns
+		
+		~100nS per DDRB
+	*/
+	/*DDRB  = 0b10110011;
+	DDRB  = 0b10110011;
+	DDRB  = 0b10110011;
+	DDRB  = 0b10110011;
+	DDRB  = 0b10110011;*/
+	
+	/* 
+		DDRB=....
+		DDRB=.... bit by bit
+		__builtin_avr_nops(10);
+		PORTB = ...
+		Drop lasts: 1800ns
+	*/
+	/*DDRB  = 0b00000001;
+	DDRB  = 0b00000011;
+	DDRB  = 0b00010011;
+	DDRB  = 0b00110011;
+	DDRB  = 0b10110011;*/
+	
+	/*
+		With this:
+		DDRB  = 0b10000000;
+		DDRB  = 0b10100000;
+		DDRB  = 0b10110000;
+		DDRB  = 0b10110010;
+		DDRB  = 0b10110011;
+		duration: 1200ns
+	*/
+	
+	//DDRB  = 0b10000000;			// 1 bit ok - does not trigger.
+	//DDRB  = 0b00100000;			// 1 bit ok - does not trigger
+	//DDRB  = 0b10100000;				// 2 bits ok - does not trigger
+	//DDRB  = 0b10110000;				// 3 bits ok - does not trigger
+	//DDRB  = 0b10110010;				// 4 bits ok - does not trigger
+	//DDRB  = 0b10110011;				// Triggers
+	//DDRB  = 0b00000001;					// Triggers - Issue is PB0 aka SCK2 (MPU clock)
+	/*while(1);
+	DDRB  = 0b10100000;
+	DDRB  = 0b10110000;
+	DDRB  = 0b10110010;
+	DDRB  = 0b10110011;*/
+	
+	
+	
+	// Potential fix: first set pull-up, then set as output
+	PORTB = init_portb;
+	DDRB  = init_ddrb;		// Initial
+	
+	//__builtin_avr_nops(10);	//
+	
+	//PORTB = init_portb;
+	
+	
+	//PORTB&=0b11111101;		// turn on a led
+	
+	//while(1);
+	
 	#if (HWVER==7)
 	// V7
 	init_ddra = 0b00110000;
@@ -471,18 +572,24 @@ void init_ports(void)
 	#else
 	// V1-V6
 	init_ddra = 0b00110000;
-	init_porta = 0b01111111;
+	init_porta = 0b01111111;;
 	#endif	
 	DDRA  = init_ddra;
 	PORTA = init_porta;
 	
 	
-	init_ddrb = 0b10110011;
-	init_portb = 0b10111111;
-	DDRB  = init_ddrb;
-	PORTB = init_portb;
+	//_delay_ms(1000);
+	//while(1);
 	
-	DDRC  = 0b11001000;		// Default
+	//_delay_ms(150);
+	
+	// Code initially set DDRC then PORTC; however this could lead to pulses....
+
+	/*
+		CRITICAL:
+		In version HW8, PC7 must be set to drive 1 before being configured as output.
+		Therefore set PORTC before setting DDRC
+	*/
 	#if (HWVER==4) 
 	PORTC = 0b11010000;		// Default for V4
 	#endif
@@ -492,6 +599,11 @@ void init_ports(void)
 	#if (HWVER==6) || (HWVER==7)
 	PORTC = 0b11011000;		// Default for V6, V7
 	#endif
+	
+	DDRC  = 0b11001000;		// Default
+	
+	
+
 	
 	
 	/////////////////////////////////
@@ -678,7 +790,25 @@ void init_powerreduce(void)
 	PRR1 = 0b00000001;
 	
 }
+ISR(WDT_vect)
+{
+    // Do something with a pin
+	static unsigned char status=0;
+	
+	//wdt_reset();
+	WDTCSR |= (1<<WDIE);			// WDT goes into system reset mode automatically; we must re-enable interrupt mode
+	system_led_toggle(1);	
+	//system_led_toggle(100);	
+}
 
-
+void init_wdt(void)
+{
+	cli();												// Disable all interrupts
+	wdt_reset();										// Needed?		
+	WDTCSR = (1<<WDCE)|(1<<WDE);						// WDT change sequence
+	WDTCSR = (1<<WDIE)|(1<<WDE)|(1<<WDP3);				// WDT interrupt mode, 8 seconds
+	//WDTCSR = (1<<WDIE)|(1<<WDE)|(1<<WDP2)|(1<<WDP1);	// WDT interrupt mode, 1 second
+	sei();												// Enable all interrupts.
+}
 
 #endif

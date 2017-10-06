@@ -221,6 +221,8 @@ ISR(PCINT0_vect)
 
 	//PORTC=(PORTC&0b11110111)|(((~PINA)&0b01000000)>>3);
 
+	//system_led_toggle(0b100);
+
 	
 	//dbg_fputchar_nonblock('1',0);
 	// Check pin state; second counter incremented on falling edge
@@ -579,7 +581,7 @@ int main(void)
 	// Initialise the rest of ito
 	init_extended();
 
-	
+	//init_wdt();
 
 	
 	mode_main();			// This never returns.

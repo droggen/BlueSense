@@ -103,7 +103,7 @@ unsigned char CommandParserTime(char *buffer,unsigned char size)
 	if(size==0)
 	{
 		// Query time
-		ds3232_readtime_conv_int(1,&h,&m,&s);	
+		ds3232_readtime_conv_int(1,&h,&m,&s);
 		fprintf_P(file_pri,PSTR("%02d:%02d:%02d\n"),h,m,s);
 		return 0;	
 	}
@@ -123,7 +123,7 @@ unsigned char CommandParserTime(char *buffer,unsigned char size)
 	m = (buffer[2]-'0')*10+(buffer[3]-'0');
 	s = (buffer[4]-'0')*10+(buffer[5]-'0');
 	
-	fprintf_P(file_dbg,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
+	fprintf_P(file_pri,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
 	
 	if(h>23 || m>59 || s>59)
 	{
@@ -161,7 +161,7 @@ unsigned char CommandParserDate(char *buffer,unsigned char size)
 	m = (buffer[2]-'0')*10+(buffer[3]-'0');
 	y = (buffer[4]-'0')*10+(buffer[5]-'0');
 	
-	fprintf_P(file_dbg,PSTR("Date: %02d.%02d.%02d\n"),d,m,y);
+	fprintf_P(file_pri,PSTR("Date: %02d.%02d.%02d\n"),d,m,y);
 	
 	if(d>31 || d<1 || m>12 || m<1 || y>99)
 	{
@@ -472,17 +472,32 @@ unsigned char CommandParserOff(char *buffer,unsigned char size)
 	}*/
 	
 	#if (HWVER==6) || (HWVER==7)
+	
+	
 	// Read the charge and store it
-	unsigned long charge = ltc2942_getcharge();
-	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE0,(charge>>0)&0xff);
-	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE1,(charge>>8)&0xff);
-	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE2,(charge>>16)&0xff);
-	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE3,(charge>>24)&0xff);
+	unsigned long charge = ltc2942_getcharge();	
+	eeprom_write_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_CHARGE0,charge);
+	// Read the voltage and store it 
+	//unsigned short voltage = ltc2942_getvoltage();
+	//eeprom_write_word((uint32_t*)STATUS_ADDR_OFFCURRENT_VOLTAGE0,voltage);
+	// Get the HMS time asynchronously and if too close to midnight wait for the next day to avoid writing erroneous date in the EEPROM
+	/*do
+	{
+		ds3232_readtime_conv_int(0,&h,&m,&s);
+	}
+	while(h==23 && m==59 && s>58);*/
+		// If too close to midnight (day would change, then delay process)
+		
+		
 	
-	// Reconfigure the DS3232M to turn off the one second oscillation
+	// Get the HMS time synchronously
+	//ds3232_readtime_conv_int(1,&h,&m,&s);
+	// Check if 
+
+
+	
+	// Setup alarm after the specified time
 	ds3232_printreg(file_pri);
-	//rtc_off();
-	
 	ds3232_alarm_in(sec);
 	
 	

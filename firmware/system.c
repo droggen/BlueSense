@@ -109,7 +109,7 @@ void system_led_toggle(unsigned char led)
 }
 void system_led_test(void)
 {
-	for(unsigned char i=0;i<4;i++)
+	//for(unsigned char i=0;i<4;i++)
 	{
 		unsigned char v=0b100;
 		for(unsigned char j=0;j<3;j++)
@@ -204,9 +204,12 @@ unsigned char system_lifesign(unsigned char sec)
 	if((sec&0b11)==00)
 		system_led_on(1);
 	else
-		system_led_off(1);
-	
-	//system_led_toggle(0b10);
+		system_led_off(1);	
+	return 0;
+}
+unsigned char system_lifesign2(unsigned char sec)
+{
+	system_led_toggle(0b10);
 	return 0;
 }
 /******************************************************************************

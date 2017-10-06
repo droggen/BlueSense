@@ -67,6 +67,8 @@ char *format4float(char *strptr,float q0,float q1,float q2,float q3);
 char *format4fract16(char *strptr,float q0,float q1,float q2,float q3);
 #endif
 
+//unsigned char eeprom_write32(unsigned short address,unsigned long data);
+
 void prettyprint_hexascii(FILE *f,char *string,unsigned short n,unsigned char nl=1);
 
 void hist_init(unsigned long *hist,unsigned short n);

@@ -528,7 +528,7 @@ FILE *ufat_log_open(unsigned char n)
 	
 	
 	// Erase file area; this seems more effective than the pre-erase command and helps reduce latency of writes
-	printf_P(PSTR("%sErase sectors %lu-%lu\n"),_str_ufat,_log_current_sector,_log_current_sector+(_fsinfo.logsizebytes>>9)-1);
+	fprintf_P(file_pri,PSTR("%sErase sectors %lu-%lu\n"),_str_ufat,_log_current_sector,_log_current_sector+(_fsinfo.logsizebytes>>9)-1);
 	if(sd_erase(_log_current_sector,_log_current_sector+(_fsinfo.logsizebytes>>9)-1))
 	{
 		#ifdef UFATDBG
@@ -537,7 +537,7 @@ FILE *ufat_log_open(unsigned char n)
 		return 0;
 	}
 	
-	printf_P(PSTR("%sStreaming write at sector %lu\n"),_str_ufat,_log_current_sector);
+	fprintf_P(file_pri,PSTR("%sStreaming write at sector %lu\n"),_str_ufat,_log_current_sector);
 	// Open stream specifying a pre-erase size
 	sd_stream_open(_log_current_sector,_fsinfo.logsizebytes>>9);
 	

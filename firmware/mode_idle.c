@@ -43,6 +43,23 @@
 #include "mode_sd.h"
 #include "mode_teststream.h"
 
+const char help_x[] PROGMEM ="x";
+
+unsigned char CommandParserx(char *buffer,unsigned char size)
+{
+	
+	
+	// Pulse on PWR_ON (PC7) - for HW8
+	//PINC=0x80;
+	//PINC=0x80;
+	
+	// PC7=0 - for HW7
+	PINC=0x80;
+		
+	return 0;
+}
+
+
 
 const COMMANDPARSER CommandParsersIdle[] =
 { 
@@ -77,7 +94,8 @@ const COMMANDPARSER CommandParsersIdle[] =
 	//{'p', CommandParserPowerTest,help_powertest},
 	{'S', CommandParserTeststream,help_s},
 	{'b', CommandParserBootScript,help_bootscript},
-	{'?', CommandParserIdentify,help_identify}
+	{'?', CommandParserIdentify,help_identify},
+	{'x', CommandParserx,help_x}
 };
 const unsigned char CommandParsersIdleNum=sizeof(CommandParsersIdle)/sizeof(COMMANDPARSER);
 
@@ -112,11 +130,29 @@ void mode_idle(void)
 	
 	
 	set_sleep_mode(SLEEP_MODE_IDLE); 
+	//set_sleep_mode(SLEEP_MODE_PWR_DOWN); 
 	sleep_enable();
 	
 	time_laststatus=stat_timemsstart = timer_ms_get();
 	while(1)
 	{
+		//_delay_ms(1000);
+		// Check connections
+		/*if(!system_isbtconnected() && !system_isusbconnected())
+		{
+			//_delay_ms(10);	// Do something still
+			//_delay_ms(2);	// Do something still
+			_delay_us(250);	// Do something still
+			// No active connections - go in deeper sleep
+			set_sleep_mode(SLEEP_MODE_PWR_DOWN); 				// Problem of deeper sleeps: time is lost and must be recovered from the RTC
+			//set_sleep_mode(SLEEP_MODE_IDLE); 		
+		}
+		else
+		{
+			// Some connection - go in idle
+			set_sleep_mode(SLEEP_MODE_IDLE); 
+		}*/
+				
 		sleep_cpu();
 	//	fprintf_P(file_pri,PSTR("Some ADC stuff: %d. period: %d. mask: %02X. pri: %p dbg: %p\n"),ctr,mode_adc_period,mode_adc_mask,file_pri,file_dbg);
 
@@ -124,6 +160,7 @@ void mode_idle(void)
 		if(CommandShouldQuit())
 			break;
 			
+		
 		
 		// Display debug status
 		/*if(timer_ms_get()-time_laststatus>750)

@@ -273,29 +273,29 @@ unsigned char CommandParserSDRead(char *buffer,unsigned char size)
 	unsigned long sector;
 	if(sscanf(p1,"%lu",&sector)!=1)
 	{
-		printf("failed sector\n");
+		fprintf_P(file_pri,PSTR("failed sector\n"));
 		return 2;
 	}	
 		
-	printf("Read sector %lu\n",sector);
+	fprintf_P(file_pri,PSTR("Read sector %lu\n"),sector);
 	char block[512];
 	rv = sd_block_read(sector,block);
-	printf("Read result: %d\n",rv);
+	fprintf_P(file_pri,PSTR("Read result: %d\n"),rv);
 	for(unsigned i=0;i<32;i++)
 	{
 		for(unsigned j=0;j<16;j++)
 		{
-			printf("%02X ",block[i*16+j]);
+			fprintf_P(file_pri,PSTR("%02X "),block[i*16+j]);
 		}
 		for(unsigned j=0;j<16;j++)
 		{
 			unsigned char c = block[i*16+j];
 			if(c>32 && c<127)
-				printf("%c",c);
+				fprintf_P(file_pri,PSTR("%c"),c);
 			else
-				printf(".");
+				fprintf_P(file_pri,PSTR("."));
 		}
-		printf("\n");
+		fprintf_P(file_pri,PSTR("\n"));
 	}
 	
 	return 0;

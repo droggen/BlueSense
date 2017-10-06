@@ -18,6 +18,8 @@ void init_portchangeint(void);
 void deinit_portchangeint(void);
 void init_powerreduce(void);
 
+void init_wdt(void);
+
 #if BOOTLOADER==0
 void init_lcd(void);
 void deinit_lcd(void);

@@ -639,6 +639,8 @@ void mpu_init(void)
 	// Deactivates the I2C interface (only SPI communication from now on)
 	//system_led_set(0b101); _delay_ms(800);
 	mpu_writereg(MPU_R_USR_CTRL,0x10);
+	// Optionally print register content
+	mpu_printreg(file_pri);	
 	// Initialize the mpu interrupt 'style'	
 	//system_led_set(0b100); _delay_ms(800);
 	mpu_set_interruptpin(0x00);

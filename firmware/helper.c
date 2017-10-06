@@ -853,10 +853,34 @@ char *format4float(char *strptr,float q0,float q1,float q2,float q3)
 #endif
 
 /******************************************************************************
+	function: eeprom_write32
+*******************************************************************************	
+	Writes a 32-bit number to EEPROM in little endian format.
+	
+	Parameters:
+		address		-	Address where the first byte is stored, the following
+						bytes are stored at address+1 up to address+3
+		data		-	32-bit value to store
+
+	Returns:
+		0			-	Success
+		nonzero		-	Error
+******************************************************************************/
+/*unsigned char eeprom_write32(unsigned short address,unsigned long data)
+{
+	eeprom_write_byte((uint8_t*)(address+0),(data>>0)&0xff);
+	eeprom_write_byte((uint8_t*)(address+1),(data>>8)&0xff);
+	eeprom_write_byte((uint8_t*)(address+2),(data>>16)&0xff);
+	eeprom_write_byte((uint8_t*)(address+3),(data>>24)&0xff);
+}*/
+
+
+/******************************************************************************
 	function: prettyprint_hexascii
 *******************************************************************************	
 	Pretty prints a string which comprises printable characters and non-printable 
-	characters. Non-printable characters are printed in hex.
+	characters. Non-printable characters are printed in hex enclosed in square 
+	brackets.
 	
 	Parameters:
 		F		-	File where to print
