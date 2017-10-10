@@ -179,7 +179,7 @@ void system_blink_led(unsigned char n,unsigned char timeon,unsigned char timeoff
 }
 void system_status_ok(unsigned char status)
 {
-	system_blink_led(status,150,150,0);
+	system_blink_led(status,150,150,1);
 }
 void system_status_ok2(unsigned char status)
 {
@@ -215,14 +215,18 @@ unsigned char system_lifesign2(unsigned char sec)
 /******************************************************************************
 	function: system_batterystat
 *******************************************************************************
-	Blinks the red LED to indicate battery level.
+	Uses the red LED (led0) to indicate battery level and whether the power-button 
+	is pressed.
 	
-	Must be called from a timer callback at 100Hz.
+	Must be called from a timer callback at 10Hz.
 	
-	Every 4 seconds, either does not blink (battery on the full side), or blinks
-	1, 2 or 3 times to indicate how low the battery is.
+	If the power button is pressed, turn on the red LED. 
+	If the power button is not pressed, then every 4 seconds:
+	- either does not blink (battery on the full side)
+	- or blinks 1, 2 or 3 times to indicate how low the battery is.
 	
 	Requires the ltc2942_last_mV function to return the battery voltage.
+	
 	
 	Parameters:
 		unused	-	Unused parameter passed by the timer callback
@@ -235,6 +239,34 @@ unsigned char system_batterystat(unsigned char unused)
 	// Counter counts from 0 to 999 hundredth of seconds and wraps around (10 second period).
 	static unsigned char counter=0;
 	static unsigned char nblinks;
+#if HWVER==7
+	static unsigned char lastpc=0;
+	unsigned char newpc;
+#endif
+	
+	
+#if HWVER==7
+	newpc = PINC;
+	// Check if pin has changed state and update LED accordingly
+	if( (newpc^lastpc)&0b00010000)
+	{
+		// If push button is pressed, turn on the LED, otherwise off.
+		if((newpc&0b00010000)==0)
+		{
+			system_led_on(0);
+		}
+		else
+		{
+			system_led_off(0);
+		}
+		
+		lastpc=newpc;
+		counter=9;	// Reset the counter to somewhere after the blinks
+	}
+	// If the push button is pressed, do not do the battery display
+	if((newpc&0b00010000)==0)
+		return 0;
+#endif
 	
 	if(counter==0)
 	{
@@ -243,7 +275,7 @@ unsigned char system_batterystat(unsigned char unused)
 		nblinks=0;
 		unsigned short mv = ltc2942_last_mV();
 		
-		//mv=3550;
+		//mv = BATTERY_VERYVERYLOW-1;
 		
 		nblinks=0;
 		if(mv<BATTERY_LOW)

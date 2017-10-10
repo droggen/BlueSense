@@ -339,7 +339,7 @@ void init_extended(void)
 		
 		
 	#endif
-	timer_register_callback(system_batterystat,99);		// Battery status at 100Hz
+	timer_register_callback(system_batterystat,99);		// Battery status at 10Hz
 	timer_register_slowcallback(system_lifesign,0);		// Low speed blinking
 	//timer_register_callback(system_lifesign2,99);		// High speed blinking
 	
@@ -637,7 +637,7 @@ void init_portchangeint(void)
 		
 	// Interrupt on change on PC5 (Motion int)
 	// PC5 is PCINT21
-	PCMSK2 = 0b00100000;			// Mask to select interrupt PC5
+	PCMSK2 = 0b00100000;			// Mask to select motion_int (PC5)
 	
 	#if HWVER==4 	
 	// Interrupt on change on PD7 (Bluetooth connect) and PD4 (Bluetooth RTS)
@@ -667,7 +667,8 @@ void deinit_portchangeint(void)
 
 void init_timers(void)
 {
-	// Timer 0: CPU
+	// Timer 1: CPU
+	/*
 	TCCR1A = 0x00;									// Clear timer on compare
 	TCCR1B = 0x08|0x01;								// Clear timer on compare, prescaler 1
 	TIMSK1 = (1<<OCIE1A);							// Output compare match A interrupt enable
@@ -677,11 +678,23 @@ void init_timers(void)
 	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 	OCR1A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
 	#endif
+	*/
+	// Use timer 3 for internal clocking.
+	TCCR3A = 0x00;									// Clear timer on compare
+	TCCR3B = 0x08|0x01;								// Clear timer on compare, prescaler 1
+	TIMSK3 = (1<<OCIE3A);							// Output compare match A interrupt enable
+	#if HWVER==1
+	OCR3A = 7199;									// Top value: divides by OCR1A+1; 7199 leads to divide by 7200
+	#endif
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	OCR3A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
+	#endif
 }
 void deinit_timers(void)
 {
-	// Deinitialise timer 0
-	TIMSK1 = 0;
+	
+	//TIMSK1 = 0;		// Deinitialise timer 1
+	TIMSK3 = 0;		// Deinitialise timer 3
 }
 
 void init_module(void)

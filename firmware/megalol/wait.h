@@ -26,6 +26,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // Maximum number of user callbacks
 #define TIMER_NUMCALLBACKS 6
 
+// Define which timer to use - only TCNT and TIFR1 are used which must be defined to TCNT1 or TCNT3
+//#define WAIT_TCNT TCNT1
+//#define WAIT_TIFR TIFR1
+#define WAIT_TCNT TCNT3
+#define WAIT_TIFR TIFR3
+
+
 
 extern unsigned char timer_numcallbacks;
 // Callback data structure

@@ -198,7 +198,7 @@ signed short system_offdeltacharge;
 	Timer interrupt vectors
 ******************************************************************************/
 // CPU 1024Hz
-ISR(TIMER1_COMPA_vect)
+ISR(TIMER3_COMPA_vect)
 {
 	// check whether higher priority interrupts are there.
 	/*if(UCSR1A&(1<<RXC1))
@@ -235,9 +235,10 @@ ISR(PCINT0_vect)
 ISR(PCINT2_vect)
 {
 	//dbg_fputchar_nonblock('m',0);
+	
 	//motion_int_ctr2++;
 	/* React on motion_int pin
-		This is the naive and correct approach: trigger mpu_isr on the rising edge.
+		The naive but technically correct approach is: trigger mpu_isr on the rising edge of motion_int.
 		An issue arises if other interrupts delay this ISR by more than 50uS where
 		the MPU interrupt pulse would be missed.
 		
@@ -271,17 +272,16 @@ ISR(PCINT2_vect)
 	//dbg_fputchar_nonblock(b[i],0);
 
 
-	if(PINC&0x20)		// Do nothing if positive edge (pin high)
-	//if((PINC&0x20)==0)		// Do nothing if negative edge (pin low)
-		return;
+
+
+	if((PINC&0x20)==0)			// MPU ISR on falling edge; hack to avoid missing interrupts
+		mpu_isr();				
+	//if(PINC&0x20)			// MPU ISR on rising edge; technically correct but misses interrupts.
+	//	mpu_isr();
 	
-	mpu_isr();			// Called on falling edge (PINC&0x20 should be 0 here)
-
 	PCIFR=0b0100;		// Clear pending interrupts
-	return;
 
-	/*mpu_isr();*/
-	if(PCIFR&4)
+	/*if(PCIFR&4)
 	{
 		// This would be taken if the pin was toggled during the processing of the interrupt, either 0->1 or 0->1->0
 		if((PINC&0x20)==0)
@@ -291,7 +291,8 @@ ISR(PCINT2_vect)
 		//PCIFR=0b0100;
 		//if(PCIFR&4)
 			//dbg_fputchar_nonblock('y',0);
-	}
+	}*/
+
 }
 // Pin change: BT connect (PD7) USB connect (PD6) and RTS (PD4)
 ISR(PCINT3_vect)
@@ -320,8 +321,10 @@ ISR(PCINT3_vect)
 		//char buf[16]="rts 0\n";
 		//buf[4]='0'+rts;
 		//fputbuf(file_usb,buf,5);
-		PORTC&=0b10111111;
-		PORTC|=(rts<<6);
+		//if(rts)
+			//system_led_on(0);
+		//PORTC&=0b10111111;
+		//PORTC|=(rts<<6);
 	}
 	bluetoothrts = rts;		
 
@@ -582,6 +585,15 @@ int main(void)
 	init_extended();
 
 	//init_wdt();
+
+	/*timer_get_speedtest();
+
+	while(1)
+	{
+		unsigned long t=timer_ms_get();
+		printf("%ld\n",t);
+		_delay_ms(25);
+	}*/
 
 	
 	mode_main();			// This never returns.

@@ -125,6 +125,7 @@ volatile unsigned long _timer_time_us_lastreturned=0;		// Last returned microsec
 
 // State
 unsigned char _timer_time_1024to1000_divider=0;				// This variable is used by _timer_tick_1024hz to generate a 1000Hz update from a 1024Hz clock and to approximate the 976.5625uS increment of the uS counter
+unsigned char _timer_time_1hzupdatectr=0;					// Used to indicate when to correct the internal timer 
 
 // Timer callbacks: fixed-number of callbacks
 unsigned char timer_numcallbacks=0;
@@ -170,6 +171,9 @@ void timer_init(unsigned long epoch_sec)
 		// Reset the dividers 1024 to 1000 and uS dividers
 		_timer_time_1024to1000_divider=0;
 		
+		// Reset the 1hz correction counter
+		_timer_time_1hzupdatectr=0;
+		
 		
 		// Clear counter and interrupt flags
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
@@ -183,8 +187,8 @@ void timer_init(unsigned long epoch_sec)
 			{
 				timer_callbacks[i].counter=0;
 			}
-			TCNT1=0;				// Clear counter, and in case the timer generated an interrupt during this initialisation process clear the interrupt flag manually
-			TIFR1=0b00100111;		// Clear all interrupt flags
+			WAIT_TCNT=0;				// Clear counter, and in case the timer generated an interrupt during this initialisation process clear the interrupt flag manually
+			WAIT_TIFR=0b00100111;		// Clear all interrupt flags
 		}
 	}
 }
@@ -201,33 +205,49 @@ void timer_init(unsigned long epoch_sec)
 ******************************************************************************/
 void _timer_tick_hz(void)
 {
-	TCNT1=0;				// Clear counter, and in case the timer generated an interrupt during this initialisation process clear the interrupt flag manually
-	TIFR1=0b00100111;		// Clear all interrupt flags
-
 	// Increment the time updated on the 1Hz tick
 	_timer_1hztimer_in_s++;
-	_timer_1hztimer_in_ms+=1000;
-	_timer_1hztimer_in_us+=1000000l;
-
-	// Update the current time. Note that _timer_time_ms and _timer_time_us can jump back or forward in time if the internal clock is respectively too fast or too slow.
-	_timer_time_ms=_timer_1hztimer_in_ms;	
-	_timer_time_us=_timer_1hztimer_in_us;
 	
-	// Pre-compute the monotonic time
-	// If the current time is higher than the monotonic, update the monotonic to current time. Otherwise do nothing, and eventually the current time will be higher than the monotonic.
-	if(_timer_time_ms>_timer_time_ms_monotonic)			
+	// Increment the 1hz update correction counter.
+	_timer_time_1hzupdatectr++;
+
+	// Updating the internal time every 10s leads to ~100uS time difference with a 10ppm clock or 300uS with a 30ppm clock. 300uS may be too large (1/3 of ms)
+	// Updating the internal time every 5s leads to 50uS or 150uS with 10 or 30ppm clock respectively. This seems a good compromise.
+	if(_timer_time_1hzupdatectr>=5)
+	//if(_timer_time_1hzupdatectr>=1)
 	{
-		_timer_time_ms_monotonic=_timer_time_ms;
+		_timer_time_1hzupdatectr=0;
+		
+		// Correct the TCNT
+		WAIT_TCNT=0;				// Clear counter, and in case the timer generated an interrupt during this initialisation process clear the interrupt flag manually
+		WAIT_TIFR=0b00100111;		// Clear all interrupt flags
+	
+		//_timer_1hztimer_in_ms+=1000;
+		//_timer_1hztimer_in_us+=1000000l;
+		// Must adjust accordingly
+		_timer_1hztimer_in_ms+=5000;
+		_timer_1hztimer_in_us+=5000000l;
+
+		// Update the current time. Note that _timer_time_ms and _timer_time_us can jump back or forward in time if the internal clock is respectively too fast or too slow.
+		_timer_time_ms=_timer_1hztimer_in_ms;	
+		_timer_time_us=_timer_1hztimer_in_us;
+		
+		// Pre-compute the monotonic time
+		// If the current time is higher than the monotonic, update the monotonic to current time. Otherwise do nothing, and eventually the current time will be higher than the monotonic.
+		if(_timer_time_ms>_timer_time_ms_monotonic)			
+		{
+			_timer_time_ms_monotonic=_timer_time_ms;
+		}
+		if(_timer_time_us>_timer_time_us_monotonic)
+		{
+			_timer_time_us_monotonic=_timer_time_us;
+		}
+
+
+
+		// Reset the dividers
+		_timer_time_1024to1000_divider=0;
 	}
-	if(_timer_time_us>_timer_time_us_monotonic)
-	{
-		_timer_time_us_monotonic=_timer_time_us;
-	}
-
-
-
-	// Reset the dividers
-	_timer_time_1024to1000_divider=0;
 	
 
 	// Process the callbacks
@@ -239,7 +259,7 @@ void _timer_tick_hz(void)
 			timer_slowcallbacks[i].counter=0;
 			timer_slowcallbacks[i].callback(_timer_1hztimer_in_s);
 		}		
-	}	
+	}
 }
 
 
@@ -386,7 +406,7 @@ unsigned long int timer_us_get_c(void)
 	
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		tcnt = TCNT1;				// Copy first as counter keeps going on
+		tcnt = WAIT_TCNT;				// Copy first as counter keeps going on
 		t=_timer_time_us_monotonic;		
 	}
 	
@@ -422,8 +442,7 @@ unsigned long int timer_us_get_c(void)
 	
 	This function requires the  _timer_tick_hz callback to be called at 1Hz.
 	
-	As this function synchronises the time with changes to the 	
-	
+		
 	
 	Returns:
 		Time in seconds since the epoch	
@@ -437,7 +456,6 @@ unsigned long timer_s_wait(void)
 		t2=timer_s_get();
 	}
 	while(t1==t2);
-	//printf("t1: %ld t2: %ld\n",t1,t2);
 	return t2;
 }
 /******************************************************************************
@@ -887,16 +905,16 @@ void wait_ms(unsigned int ms)
 		ms=65500/12;
 	ocr = 12*ms;
 
-	TCNT1H = 0;
-	TCNT1L = 0;
+	WAIT_TCNTH = 0;
+	WAIT_TCNTL = 0;
 
 	TIMSK1 = 0x00;		// no interrupt
 	TCCR1B = 0x05;		// normal, prescaler=1024, start timer
 
 	while(counter<ocr)
 	{
-		countL = TCNT1L;
-		countH = TCNT1H;
+		countL = WAIT_TCNTL;
+		countH = WAIT_TCNTH;
 		counter = (((unsigned int)countH) << 8) | (unsigned int)countL;
 	}
 	TCCR1B = 0x00;  	// disable timer
@@ -910,8 +928,8 @@ void timer_start(void)
 {
 	TCCR1A = 0x00;
 
-	TCNT1H = 0;
-	TCNT1L = 0;
+	WAIT_TCNTH = 0;
+	WAIT_TCNTL = 0;
 
 	TIMSK1 = 0x00;		// no interrupt
 	TCCR1B = 0x05;		// normal, prescaler=1024, start timer	
@@ -925,8 +943,8 @@ unsigned int timer_elapsed(void)
 {
 	unsigned char countL, countH;
 	unsigned int counter;
-	countL = TCNT1L;
-	countH = TCNT1H;
+	countL = WAIT_TCNTL;
+	countH = WAIT_TCNTH;
 	counter = (((unsigned int)countH) << 8) | (unsigned int)countL;
 	return counter/12;	
 }
@@ -940,8 +958,8 @@ void timer_start_fast(void)
 {
 	TCCR1A = 0x00;
 
-	TCNT1H = 0;
-	TCNT1L = 0;
+	WAIT_TCNTH = 0;
+	WAIT_TCNTL = 0;
 
 	TIMSK1 = 0x00;		// no interrupt
 	TCCR1B = 0x01;		// normal, prescaler=1024, start timer	
@@ -955,8 +973,8 @@ unsigned int timer_elapsed_fast(void)
 {
 	unsigned char countL, countH;
 	unsigned int counter;
-	countL = TCNT1L;
-	countH = TCNT1H;
+	countL = WAIT_TCNTL;
+	countH = WAIT_TCNTH;
 	counter = (((unsigned int)countH) << 8) | (unsigned int)countL;
 	return counter;	
 }
@@ -980,8 +998,8 @@ unsigned int timer_elapsed_fast(void)
 {
 	unsigned char countL, countH;
 	unsigned int counter;
-	countL = TCNT1L;
-	countH = TCNT1H;
+	countL = WAIT_TCNTL;
+	countH = WAIT_TCNTH;
 	counter = (((unsigned int)countH) << 8) | (unsigned int)countL;
 	return counter/8;	
 }

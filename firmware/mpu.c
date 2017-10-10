@@ -92,7 +92,8 @@
 		- Level held until cleared or generate a 50uS pulse
 		- Interrupt cleared after any read operation or after reading the INT_STATUS register
 		
-	Here 50uS pulse is used. Rationale: in the high gyro high bandwidth mode, the ODR is 8000Hz; performing a read
+	Here "logic high", "push pull" and "50uS" is used. 
+	Rationale: in the high gyro high bandwidth mode, the ODR is 8000Hz; performing a read
 	to clear the interrupt (required with the level held interrupt) is significantly more costly than doing nothing and returning from 
 	the ISR (possible in the pulse mode). 	While not tested, the overhead of checking the status register appears prohibitive.
 	Therefore, the pulse mode is more suitable.
@@ -350,13 +351,32 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			// Pointer to memory structure
 			MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
 			
-			//__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,mdata);			// Copy and conver the spi buffer to MPUMOTIONDATA
-			__mpu_copy_spibuf_to_mpumotiondata_magcor_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= -my; my<= -mx)
-			/*
+			__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,mdata);			// Copy and conver the spi buffer to MPUMOTIONDATA
+			//__mpu_copy_spibuf_to_mpumotiondata_magcor_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= -my; my<= -mx)
+			
 			// Alternative to __mpu_copy_spibuf_to_mpumotiondata_magcor_asm: manual change
-			signed t = mdata->mx;
+			/*signed t = mdata->mx;
 			mdata->mx=-mdata->my;
 			mdata->my=-t;*/
+			
+			signed t = mdata->mx;
+			mdata->mx=mdata->my;
+			mdata->my=t;
+			mdata->mz=-mdata->mz;
+			
+			//mdata->mz=0;
+			
+			/*mdata->gx=0;
+			mdata->gy=0;
+			mdata->gz=0;*/
+			
+			//mdata->mx=0;
+			//mdata->my=0;
+			//mdata->mz=0;
+			
+			
+			
+			
 			
 			mdata->time=timer_ms_get();											// Fill remaining fields
 			mdata->packetctr=__mpu_data_packetctr_current;
