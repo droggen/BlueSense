@@ -52,6 +52,7 @@ unsigned char ltc2942_getprescaler(void);
 void ltc2942_printreg(FILE *file);
 //signed long ltc2942_deltaQ(unsigned short q1,unsigned short q2);
 signed short ltc2942_getavgpower(unsigned long c1,unsigned long c2,unsigned short voltage,unsigned long ms);
+signed long ltc2942_getavgpower2(unsigned long c1,unsigned long c2,unsigned short voltage1,unsigned short voltage2,unsigned long s);
 unsigned char ltc2942_backgroundgetstate(unsigned char);
 unsigned long ltc2942_last_updatetime(void);
 unsigned short ltc2942_last_chargectr(void);
@@ -69,6 +70,7 @@ void ltc2942_get_longbatstat(unsigned char idx,LTC2942_BATSTAT *batstat);
 void _ltc2942_add_longbatstat(LTC2942_BATSTAT *batstat);
 void _ltc2942_dump_longbatstat();
 void ltc2942_print_longbatstat(FILE *f);
+unsigned long ltc2942_chargectr_to_charge(unsigned long chargectr,unsigned char prescalerm);
 
 unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t);
 

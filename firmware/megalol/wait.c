@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	_timer_tick_1024hz	-	This function must be called from an interrupt running at 1024Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.
 	[_timer_tick_1000hz	-	This function must be called from an interrupt running at 1000Hz. _timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: it is mandatory to call one or the other, but not both.]
 	_timer_tick_hz		-	Optionally, this may be called once per second if a high-accuracy RTC with second resolution is available.
+	_timer_tick_50Hz	-	Optionally, this may be called at 50Hz; this is solely used for the "50Hz" callbacks.
 		
 	The overall time is composed of the highly accurate second counter (if available), combined with the less 1024Hz timer for millisecond accuracy.
 	
@@ -132,7 +133,8 @@ unsigned char timer_numcallbacks=0;
 TIMER_CALLBACK timer_callbacks[TIMER_NUMCALLBACKS];
 unsigned char timer_numslowcallbacks=0;
 TIMER_CALLBACK timer_slowcallbacks[TIMER_NUMCALLBACKS];
-
+unsigned char timer_num50hzcallbacks=0;
+TIMER_CALLBACK timer_50hzcallbacks[TIMER_NUMCALLBACKS];
 
 
 /******************************************************************************
@@ -325,9 +327,27 @@ void _timer_tick_1024hz(void)
 		}		
 	}	
 }
-
-
-extern unsigned long cpu_time;
+/******************************************************************************
+	function: _timer_tick_50hz
+*******************************************************************************
+	This function can be called from an interrupt routine at 50Hz.
+	
+	This is solely used to issue the 50Hz callbacks.
+	
+******************************************************************************/
+void _timer_tick_50hz(void)
+{
+	// Process the callbacks
+	for(unsigned char i=0;i<timer_num50hzcallbacks;i++)
+	{
+		timer_50hzcallbacks[i].counter++;
+		if(timer_50hzcallbacks[i].counter>timer_50hzcallbacks[i].top)
+		{
+			timer_50hzcallbacks[i].counter=0;
+			timer_50hzcallbacks[i].callback(0);
+		}		
+	}
+}
 
 /******************************************************************************
 	function: timer_ms_get_intclk
@@ -546,6 +566,41 @@ char timer_register_slowcallback(unsigned char (*callback)(unsigned char),unsign
 	return timer_numslowcallbacks-1;
 }
 /******************************************************************************
+	function: timer_register_50hzcallback
+*******************************************************************************
+	                                             50Hz
+	Register a callback that will be called at --------- Hz.
+	                                           divider+1
+
+	Slow callbacks are only available if the 50Hz tick is available (_timer_tick_50hz), 
+	otherwise use timer_register_callback.
+
+	Parameters:
+		callback		-	User callback
+		divider			-	How often the callback must be called, i.e. 50Hz/(divider+1) Hz.
+
+
+	Returns:
+		-1				-	Can't register callback
+		otherwise		-	Callback ID
+	
+******************************************************************************/
+char timer_register_50hzcallback(unsigned char (*callback)(unsigned char),unsigned short divider)
+{
+	//printf("Register\n");
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		if(timer_num50hzcallbacks>=TIMER_NUMCALLBACKS)
+			return -1;
+		timer_50hzcallbacks[timer_num50hzcallbacks].callback=callback;
+		timer_50hzcallbacks[timer_num50hzcallbacks].counter=0;
+		timer_50hzcallbacks[timer_num50hzcallbacks].top=divider;
+		timer_num50hzcallbacks++;
+		//printf("Now %d callbacks\n",timer_numcallbacks);
+	}
+	return timer_num50hzcallbacks-1;
+}
+/******************************************************************************
 	function: timer_isregistered_callback
 *******************************************************************************
 	Check if the specified callback is registered at least once.
@@ -640,6 +695,39 @@ void timer_unregister_slowcallback(unsigned char (*callback)(unsigned char))
 	//printf("Num callbacks: %d\n",timer_numcallbacks);
 }
 /******************************************************************************
+	function: timer_unregister_50hzcallback
+*******************************************************************************
+	Unregisters a 50Hz callback.
+	
+	Parameters:
+		callback		-		User callback to unregister	
+******************************************************************************/
+void timer_unregister_50hzcallback(unsigned char (*callback)(unsigned char))
+{
+	//printf("Unregister cb %p\n",callback);
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		// Iterate all entries to find the callback
+		for(unsigned char i=0;i<timer_num50hzcallbacks;i++)
+		{
+			//printf("check %d: %p == %p?\n",i,timer_callbacks[i],callback);
+			if(timer_50hzcallbacks[i].callback==callback)
+			{
+				//printf("found callback %d\n",i);
+				// Found the callback - shift up the other callbacks
+				for(unsigned char j=i;j<timer_num50hzcallbacks-1;j++)
+				{
+					//printf("Move %d <- %d\n",j,j+1);
+					timer_50hzcallbacks[j]=timer_50hzcallbacks[j+1];
+				}
+				timer_num50hzcallbacks--;
+				break;
+			}
+		}
+	}
+	//printf("Num callbacks: %d\n",timer_numcallbacks);
+}
+/******************************************************************************
 	function: timer_printcallbacks
 *******************************************************************************
 	Prints the list of registered callbacks.
@@ -649,10 +737,15 @@ void timer_unregister_slowcallback(unsigned char (*callback)(unsigned char))
 ******************************************************************************/
 void timer_printcallbacks(FILE *f)
 {
-	fprintf_P(f,PSTR("Number of callbacks %d/%d\n"),timer_numcallbacks,TIMER_NUMCALLBACKS);
+	fprintf_P(f,PSTR("Number of KHz callbacks %d/%d\n"),timer_numcallbacks,TIMER_NUMCALLBACKS);
 	for(unsigned char i=0;i<timer_numcallbacks;i++)
 	{
 		fprintf_P(f,PSTR("CB %d @%p %d/%d\n"),i,timer_callbacks[i].callback,timer_callbacks[i].counter,timer_callbacks[i].top);
+	}
+	fprintf_P(f,PSTR("Number of 50Hz callbacks %d/%d\n"),timer_num50hzcallbacks,TIMER_NUMCALLBACKS);
+	for(unsigned char i=0;i<timer_num50hzcallbacks;i++)
+	{
+		fprintf_P(f,PSTR("CB %d @%p %d/%d\n"),i,timer_50hzcallbacks[i].callback,timer_50hzcallbacks[i].counter,timer_50hzcallbacks[i].top);
 	}
 	fprintf_P(f,PSTR("Number of slow callbacks %d/%d\n"),timer_numslowcallbacks,TIMER_NUMCALLBACKS);
 	for(unsigned char i=0;i<timer_numslowcallbacks;i++)

@@ -188,18 +188,31 @@ unsigned short ltc2942_getchargectr(void)
 unsigned long ltc2942_getcharge(void)
 {
 	unsigned short charge;	// charge counter
-	unsigned long charge2;	// charge in uAh
-	
-	// Conversion formula:
-	// qLSB=0.085mAh*M/128 with M the prescaler
 	
 	charge = ltc2942_getchargectr();
-	//charge2 = (85*(1<<__ltc2942_prescaler)*(unsigned long)charge)/128;			// charge2: charge in uAh
-	charge2 = (85*__ltc2942_prescalerM*(unsigned long)charge)/128;			// charge2: charge in uAh
-	
-	return charge2;
-}
+	return ltc2942_chargectr_to_charge(charge,__ltc2942_prescalerM);
 
+}
+/******************************************************************************
+	function: ltc2942_chargectr_to_charge
+*******************************************************************************	
+	Converts a charge count into a charge in uAh.
+	
+	The maximum value that this function returns is 5'570'475.
+	
+	Parameters:
+		chargectr		-	Charge counter
+		prescaler		-	Prescaler M (M=2^P)
+	Returns:
+		Charge	-	Charge in uAh
+*******************************************************************************/
+unsigned long ltc2942_chargectr_to_charge(unsigned long chargectr,unsigned char prescalerm)
+{
+	// Conversion formula:
+	// qLSB=0.085mAh*M/128 with M the prescaler	
+	unsigned long charge = (85l*prescalerm*(unsigned long)chargectr)/128;
+	return charge;
+}
 
 /******************************************************************************
 	function: ltc2942_setchargectr
@@ -437,7 +450,7 @@ void ltc2942_printreg(FILE *file)
 		ms			-	Time interval between first and second charge readings
 	
 	Returns:
-		dq			-	Average power in mW
+		Average power in mW
 *******************************************************************************/
 signed short ltc2942_getavgpower(unsigned long c1,unsigned long c2,unsigned short voltage,unsigned long ms)
 {
@@ -452,6 +465,42 @@ signed short ltc2942_getavgpower(unsigned long c1,unsigned long c2,unsigned shor
 	return (signed short)pwr;
 }
 
+/******************************************************************************
+	function: ltc2942_getavgpower2
+*******************************************************************************	
+	Computes the average power consumption in uW between two readings of 
+	the charge and voltage done after a time interval s.
+	
+	This function is designed for long-duration intervals and low power (uW),
+	such as measuring current during off or long-duration sleeps. 
+	
+	This function assumes the voltage changes linearly between the two
+	measurement points.
+	
+	Parameters:				
+		c1			-	First charge reading in uAh (at a previous time)
+		c2			-	Second charge reading in uAh (at current time)
+		voltage1	-	First voltage reading in millivolts
+		voltage2	-	Second voltage reading in millivolts
+		s			-	Time interval between first and second charge readings
+	
+	Returns:
+		Average power in uW
+*******************************************************************************/
+signed long ltc2942_getavgpower2(unsigned long c1,unsigned long c2,unsigned short voltage1,unsigned short voltage2,unsigned long s)
+{
+	unsigned short voltage=(voltage1+voltage2)/2;		// Average voltage, assumes linear discharge
+	
+	signed long dq = c2-c1;	// delta uAh
+
+	signed long den;
+	signed long pwr;
+	
+	den = dq*voltage;						// delta energy nWh
+	pwr = den*36/10/((signed long)s);		// power in uW
+	
+	return pwr;
+}
 
 /******************************************************************************
 	function: ltc2942_backgroundgetstate
@@ -641,11 +690,9 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 	_ltc2942_last_chargectr<<=8;
 	_ltc2942_last_chargectr|=__ltc2942_trans_read.data[1];
 	
-	// Charge counter in uAh
-	// Conversion formula: qLSB=0.085mAh*M/128 with M the prescaler
+	// Charge counter to uAh
 	unsigned long lastcharge=_ltc2942_last_charge;
-	//_ltc2942_last_charge = (85*(1<<__ltc2942_prescaler)*(unsigned long)_ltc2942_last_chargectr)/128;			// charge2: charge in uAh
-	_ltc2942_last_charge = (85*__ltc2942_prescalerM*(unsigned long)_ltc2942_last_chargectr)/128;			// charge2: charge in uAh
+	_ltc2942_last_charge = ltc2942_chargectr_to_charge(_ltc2942_last_chargectr,__ltc2942_prescalerM);		// _ltc2942_last_charge: charge in uAh
 	
 	
 	// Temperature: requires a 32-bit temp

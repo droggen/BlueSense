@@ -205,16 +205,16 @@ float invSqrtf(float x) {
 	//printf("invsqrt %f ",x);
 
 
-	/*float halfx = 0.5f * x;
+	float halfx = 0.5f * x;
 	float y = x;
 	long i = *(long*)&y;
 	i = 0x5f3759df - (i>>1);
 	y = *(float*)&i;
-	y = y * (1.5f - (halfx * y * y));*/
+	y = y * (1.5f - (halfx * y * y));
 	
 	
 	
-	float y = 1.0/sqrt(x);     // No need to save computation here
+	//float y = 1.0/sqrt(x);     // No need to save computation here
 	
 	//printf("%f\n",y);
 	return y;

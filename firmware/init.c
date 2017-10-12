@@ -43,6 +43,7 @@ unsigned char init_porta;
 unsigned char init_ddrb;
 unsigned char init_portb;
 
+
 // Disable I2C if the I2C interface has a hardware issue preventing booting.
 #define DISABLE_I2C		0
 
@@ -57,14 +58,22 @@ unsigned char init_portb;
 ******************************************************************************/
 void init_basic(void)
 {
-//	_delay_ms(4000);
+	_delay_ms(2000);
 
 	// INIT MODULE
 	init_module();
 	
+	
+	//system_led_on(1);
+	//_delay_ms(2000);
+	
 	// LED Test
 	system_led_test();	
+	
+	
 	system_led_set(0b000);
+	
+	//_delay_ms(2000);
 		
 	// I2C INITIALISATION
 	#if !DISABLE_I2C
@@ -105,21 +114,62 @@ void init_basic(void)
 }
 void init_extended(void)
 {
+	// Get number of boots
+	unsigned long numboot = eeprom_read_dword((uint32_t*)STATUS_ADDR_NUMBOOT0);
+	fprintf_P(file_pri,PSTR("Boot %lu\n"),numboot);
+	eeprom_write_dword((uint32_t*)STATUS_ADDR_NUMBOOT0,numboot+1);
+	
+
+
 	// Fuel gauge initialisation
 	// Get the charge
 	#if !DISABLE_I2C
-		unsigned long curcharge = ltc2942_getcharge();
-		unsigned long oldcharge;
-		oldcharge = eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE3);
-		oldcharge<<=8;
-		oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE2);
-		oldcharge<<=8;
-		oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE1);
-		oldcharge<<=8;
-		oldcharge |= eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_CHARGE0);
-		system_offdeltacharge=curcharge-oldcharge;
-		ltc2942_init();																// Get 
-		fprintf_P(file_usb,PSTR("Delta charge while off: %d\n"),system_offdeltacharge);
+		// Read current data
+		_poweruse_off.oncharge = ltc2942_getcharge();
+		_poweruse_off.onvoltage = ltc2942_getvoltage();
+		ds3232_readdatetime_conv_int(0,&_poweruse_off.onh,&_poweruse_off.onm,&_poweruse_off.ons,&_poweruse_off.onday,&_poweruse_off.onmonth,&_poweruse_off.onyear);
+
+		// Read data stored during last soft-off
+		_poweruse_off.valid = eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID);
+		_poweruse_off.offcharge = eeprom_read_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_CHARGE0);
+		_poweruse_off.offvoltage = eeprom_read_word((uint16_t*)STATUS_ADDR_OFFCURRENT_VOLTAGE0);
+		_poweruse_off.offh=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_H);
+		_poweruse_off.offm=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_M);
+		_poweruse_off.offs=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_S);
+		_poweruse_off.offday=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_DAY);
+		_poweruse_off.offmonth=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_MONTH);
+		_poweruse_off.offyear=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_YEAR);
+		
+		// Mark the data as now invalid
+		eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID,0);
+		
+		// Render info
+		for(unsigned char i=0;i<5;i++)
+			_poweruse_off.str[0][0]=0;
+		if(_poweruse_off.valid)
+		{
+			sprintf(_poweruse_off.str[0],"Soft off at: %02d.%02d.%02d %02d:%02d:%02d Q: %lu V: %u\n",_poweruse_off.offday,_poweruse_off.offmonth,_poweruse_off.offyear,_poweruse_off.offh,_poweruse_off.offm,_poweruse_off.offs,_poweruse_off.offcharge,_poweruse_off.offvoltage);
+			sprintf(_poweruse_off.str[1],"Power on at: %02d.%02d.%02d %02d:%02d:%02d Q: %lu V: %u\n",_poweruse_off.onday,_poweruse_off.onmonth,_poweruse_off.onyear,_poweruse_off.onh,_poweruse_off.onm,_poweruse_off.ons,_poweruse_off.oncharge,_poweruse_off.onvoltage);
+			
+			// Compute delta-T in seconds; does not work if the measurement is across one month
+			unsigned long toff = _poweruse_off.offday*86400l + _poweruse_off.offh * 3600l + _poweruse_off.offm * 60l + _poweruse_off.offs;
+			unsigned long ton = _poweruse_off.onday*86400l + _poweruse_off.onh * 3600l + _poweruse_off.onm * 60l + _poweruse_off.ons;
+			
+			sprintf(_poweruse_off.str[2],"Delta T: %lus\n",ton-toff);
+			
+			// Compute power
+			signed short pwr1 = ltc2942_getavgpower(_poweruse_off.offcharge,_poweruse_off.oncharge,_poweruse_off.onvoltage,(ton-toff)*1000l);
+			signed long pwr2 = ltc2942_getavgpower2(_poweruse_off.offcharge,_poweruse_off.oncharge,_poweruse_off.offvoltage,_poweruse_off.onvoltage,ton-toff);
+			sprintf(_poweruse_off.str[3],"pwr1: %d mW pwr2: %ld uW\n",pwr1,pwr2);
+		}
+		else
+			sprintf(_poweruse_off.str[1],"No off-power data\n");
+		// Display info		
+		for(unsigned char i=0;i<5;i++)
+			fputs(_poweruse_off.str[i],file_pri);
+		
+		ltc2942_init();
+		
 	#endif
 
 	
@@ -339,7 +389,8 @@ void init_extended(void)
 		
 		
 	#endif
-	timer_register_callback(system_batterystat,99);		// Battery status at 10Hz
+	//timer_register_callback(system_batterystat,99);		// Battery status at 10Hz
+	timer_register_50hzcallback(system_batterystat,4);		// Battery status at 10Hz
 	timer_register_slowcallback(system_lifesign,0);		// Low speed blinking
 	//timer_register_callback(system_lifesign2,99);		// High speed blinking
 	
@@ -679,7 +730,7 @@ void init_timers(void)
 	OCR1A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
 	#endif
 	*/
-	// Use timer 3 for internal clocking.
+	// Use timer 3 for internal clocking, no prescaler
 	TCCR3A = 0x00;									// Clear timer on compare
 	TCCR3B = 0x08|0x01;								// Clear timer on compare, prescaler 1
 	TIMSK3 = (1<<OCIE3A);							// Output compare match A interrupt enable
@@ -689,6 +740,18 @@ void init_timers(void)
 	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
 	OCR3A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
 	#endif
+	
+	// Use timer 2 for internal clocking at 20mS intervals
+	TCCR2A = 0b00000010;							// Clear timer on compare
+	TCCR2B = 0b00000111;							// Prescaler 1024
+	TIMSK2 = 0b00000010;							// Output compare match A interrupt enable
+	#if HWVER==1
+	OCR2A = 143;									// Divides by 243+1 -> 20ms period.
+	#endif
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	OCR2A = 215;									// Divides by 215+1 -> 20ms period.
+	#endif
+
 }
 void deinit_timers(void)
 {
@@ -806,7 +869,7 @@ void init_powerreduce(void)
 ISR(WDT_vect)
 {
     // Do something with a pin
-	static unsigned char status=0;
+	//static unsigned char status=0;
 	
 	//wdt_reset();
 	WDTCSR |= (1<<WDIE);			// WDT goes into system reset mode automatically; we must re-enable interrupt mode

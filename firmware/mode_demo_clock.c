@@ -85,7 +85,7 @@ char demo_clock(unsigned long int dt)
 		
 		
 		// Read DS3232
-		ds3232_readtime_conv(&hour,&min,&sec);		
+		ds3232_readdatetime_conv_int(0,&hour,&min,&sec,0,0,0);
 		// Prepare string
 		sprintf(str,"%02d:%02d:%02d",hour,min,sec);		
 		// Write

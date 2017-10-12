@@ -485,14 +485,6 @@ unsigned char system_getrtcint(void)
 	set the current time, as returned by timer_ms_get, to indicate the number 
 	of milliseconds elapsed from midnight.
 	
-	Note that timer_us_get is not updated as it has a maximum span of about 1hr.
-	
-	As the second counter is incremented on the falling edge of the RTC interrupt pin, 
-	the logic for the update is as follows:
-	- Wait for the rising edge of the RTC interrupt pin (this gives 500ms to setup the update)
-	- Read the current time from the RTC
-	- Set the epoch using timer_init(epoch)
-	- Wait for the falling edge and verify reading the RTC and the ms.
 	
 	Parameters:
 
@@ -502,54 +494,53 @@ unsigned char system_getrtcint(void)
 void system_settimefromrtc(void)
 {
 	unsigned char h,m,s;		// hour, minutes, seconds
-	unsigned char pc,pn;		// pc: current pin state, pn: new pin state
+	unsigned char day,month,year;
 	unsigned long t1;
 	
 	fprintf_P(file_pri,PSTR("Setting time from RTC... "));
 	
-	// Wait for the rising edge of the RTC int. 
-	// This gives 500ms to setup the time before the seconds update, which occurs on the falling edge
-	pc=system_getrtcint();
-	while( !( ((pn=system_getrtcint())!=pc) && pn==1) )		// Loop until pn!=pc and pn==1 (quit loop when pn!=pc and pn==1)
-		pc=pn;
-	
-	// From here 500ms to set-up the current time into the timer_ms_get variables
-	ds3232_readtime_conv(&h,&m,&s);
+	ds3232_readdatetime_conv_int(1,&h,&m,&s,&day,&month,&year);
 	unsigned long ts = h*3600l+m*60l+s;
 	timer_init(ts);
-	
-	// Wait for the falling edge of the RTC int, and verify
-	pc=system_getrtcint();
-	while( !( ((pn=system_getrtcint())!=pc) && pn==0) )		// Loop until pn!=pc and pn==0
-		pc=pn;
-	// Verify
-	t1 = timer_ms_get();
-	ds3232_readtime_conv(&h,&m,&s);
-	fprintf_P(file_pri,PSTR("done: %02d:%02d:%02d = %lu ms\n"),h,m,s,t1);
+	t1=timer_ms_get();
+	fprintf_P(file_pri,PSTR("done: %02d.%02d.%02d %02d:%02d:%02d = %lu ms\n"),day,month,year,h,m,s,t1);
 
-	//	Wait rising edge
-	/*printf("Wait raising edge\n");
-	pc=system_getrtcint();
-	while( !( ((pn=system_getrtcint())!=pc) && pn==1) )		// Loop until pn!=pc and pn==1 (quit loop when pn!=pc and pn==1)
-		pc=pn;
-
-	t1 = timer_ms_get();
-	ds3232_readtime_conv(&h,&m,&s);
-	printf("Current time: %02d:%02d:%02d INT#/SQW: %d. ms: %lu\n",h,m,s,system_getrtcint(),t1);
-
-	// Wait for the falling edge, and verify
-	printf("Wait falling edge\n");
-	pc=system_getrtcint();
-	while( !( ((pn=system_getrtcint())!=pc) && pn==0) )		// Loop until pn!=pc and pn==0
-		pc=pn;
-	// Verify
-	t1 = timer_ms_get();
-	ds3232_readtime_conv(&h,&m,&s);
-	printf("Current time: %02d:%02d:%02d INT#/SQW: %d. ms: %lu\n",h,m,s,system_getrtcint(),t1);
-	*/
-
-	
 }
+/******************************************************************************
+	function: system_storepoweroffdata
+*******************************************************************************	
+	Store the current power/voltate/date/time to EEPROM. This is used before 
+	powering off the system to compute the power used in off mode.
+	
+	
+	Parameters:
 
+	Returns:
 
+******************************************************************************/
+void system_storepoweroffdata(void)
+{
+	// Read time synchronously
+	unsigned char h,m,s,day,month,year;
+	ds3232_readdatetime_conv_int(1,&h,&m,&s,&day,&month,&year);
+	// Set the charge counter at mid-point
+	ltc2942_setchargectr(32768);	// Set charge counter at mid-point
+	// Read the voltage and charge	
+	unsigned long charge = ltc2942_getcharge();	
+	unsigned long chargectr = ltc2942_getchargectr();
+	unsigned short voltage = ltc2942_getvoltage();
+	
+	//printf("charge: %lu chargectr: %lu voltage: %u\n",charge,chargectr,voltage);
+	
+	// Store charge, voltage and time
+	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID,1);
+	eeprom_write_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_CHARGE0,charge);
+	eeprom_write_word((uint16_t*)STATUS_ADDR_OFFCURRENT_VOLTAGE0,voltage);
+	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_H,h);
+	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_M,m);
+	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_S,s);
+	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_DAY,day);
+	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_MONTH,month);
+	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_YEAR,year);	
+}
 

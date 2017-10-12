@@ -356,6 +356,8 @@ LDFLAGS += -Wl,-gc-sections
 # AVRDUDE_PROGRAMMER = stk500v2
 AVRDUDE_PROGRAMMER = avrispmkii
 
+AVRDUDE_WRITE_BIT_CLOCK = 2.5MHz
+
 # com1 = serial port. Use lpt1 to connect to parallel port.
 AVRDUDE_PORT = usb	   # programmer connected to serial device
 #AVRDUDE_PORT = com1    # programmer connected to serial device
@@ -380,7 +382,7 @@ AVRDUDE_NO_VERIFY = -V
 # to submit bug reports.
 #AVRDUDE_VERBOSE = -v -v
 
-AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER) -B $(AVRDUDE_WRITE_BIT_CLOCK)
 AVRDUDE_FLAGS += $(AVRDUDE_NO_VERIFY)
 AVRDUDE_FLAGS += $(AVRDUDE_VERBOSE)
 AVRDUDE_FLAGS += $(AVRDUDE_ERASE_COUNTER)

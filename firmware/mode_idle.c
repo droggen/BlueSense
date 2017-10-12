@@ -47,14 +47,13 @@ const char help_x[] PROGMEM ="x";
 
 unsigned char CommandParserx(char *buffer,unsigned char size)
 {
+
+	/*for(unsigned char i=0;i<5;i++)
+	{
+		fputs(_poweruse_off.str[i],file_pri);
+	}*/
 	
 	
-	// Pulse on PWR_ON (PC7) - for HW8
-	//PINC=0x80;
-	//PINC=0x80;
-	
-	// PC7=0 - for HW7
-	PINC=0x80;
 		
 	return 0;
 }
@@ -81,7 +80,8 @@ const COMMANDPARSER CommandParsersIdle[] =
 	{'m', CommandParserMPUTest,help_m},
 	//{'G', CommandParserMotionRecog,help_g},
 	{'W', CommandParserSwap,help_w},
-	{'O', CommandParserOff,help_o},
+	{'O', CommandParserOff,help_O},
+	{'o', CommandParserOffPower,help_o},
 	{'F', CommandParserStreamFormat,help_f},
 	{'i', CommandParserInfo,help_info},
 #if ENABLEMODECOULOMB==1	
@@ -95,6 +95,7 @@ const COMMANDPARSER CommandParsersIdle[] =
 	{'S', CommandParserTeststream,help_s},
 	{'b', CommandParserBootScript,help_bootscript},
 	{'?', CommandParserIdentify,help_identify},
+	{'~', CommandParserClearBootCounter,help_clearbootctr},
 	{'x', CommandParserx,help_x}
 };
 const unsigned char CommandParsersIdleNum=sizeof(CommandParsersIdle)/sizeof(COMMANDPARSER);
@@ -119,9 +120,9 @@ void mode_idle(void)
 {
 	//char valid;
 	//int c;	
-	unsigned long stat_timemsstart=0;
+	//unsigned long stat_timemsstart=0;
 	//unsigned long stat_timemsend=0;
-	unsigned long time_laststatus=0;
+	//unsigned long time_laststatus=0;
 	
 	lcd_clear565(0);
 	lcd_writestring("Idle",48,0,2,0x0000,0xffff);	
@@ -133,7 +134,7 @@ void mode_idle(void)
 	//set_sleep_mode(SLEEP_MODE_PWR_DOWN); 
 	sleep_enable();
 	
-	time_laststatus=stat_timemsstart = timer_ms_get();
+	//time_laststatus=stat_timemsstart = timer_ms_get();
 	while(1)
 	{
 		//_delay_ms(1000);

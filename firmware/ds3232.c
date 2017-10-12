@@ -25,7 +25,7 @@
 	The key functions are:
 	
 		* ds3232_init:		Initialisation of the DS3232
-		* ?:	??
+		* ds3232_readtimeregisters:	Read the DS3232 date/time registers immediately (registers 0-6).
 		
 	*DS3232 specifics*
 	
@@ -70,6 +70,31 @@ void ds3232_init(void)
 }
 
 
+/******************************************************************************
+	function: ds3232_readtimeregisters
+*******************************************************************************	
+	Read the DS3232 date/time registers immediately (registers 0-6).
+	
+	Parameters:
+		time		-	Pointer to a buffer of 7 bytes which will hold the raw time registers
+	
+	Returns:
+		0			-	Success
+		1			-	Error
+******************************************************************************/
+unsigned char ds3232_readtimeregisters(unsigned char *regs)
+{
+	unsigned char r;
+	
+	// Perform read.
+	r = i2c_readregs(DS3232_ADDRESS,0,7,regs);
+	if(r!=0)
+	{
+		memset(regs,0,7);
+	}
+	return 0;
+}
+
 /*
 
 
@@ -80,7 +105,7 @@ void ds3232_init(void)
 	
 	Return:			zero in case of success, nonzero for i2c error
 */
-unsigned char ds3232_readtime_sync(unsigned char *time)
+/*unsigned char ds3232_readtime_sync(unsigned char *time)
 {
 	unsigned char r;
 	unsigned char val1[7];
@@ -105,7 +130,7 @@ unsigned char ds3232_readtime_sync(unsigned char *time)
 	} 
 	while(val1[0] == time[0]);
 	return 0;
-}
+}*/
 /*
 	Returns the time from DS3232 at the instant the second register changes.
 	This can be used to initialise local timers.
@@ -118,7 +143,7 @@ unsigned char ds3232_readtime_sync(unsigned char *time)
 	
 	Return:			zero in case of success, nonzero for i2c error
 */
-extern unsigned long rtc_time_sec;
+/*extern unsigned long rtc_time_sec;
 unsigned char ds3232_readtime_sqwsync(unsigned char *time)
 {
 	unsigned char r;
@@ -132,30 +157,9 @@ unsigned char ds3232_readtime_sqwsync(unsigned char *time)
 	// Read the time	
 	r = i2c_readregs(DS3232_ADDRESS,0,7,time);
 	return r;
-}
+}*/
 
-/******************************************************************************
-	ds3232_readtime
-*******************************************************************************	
-	Same as ds3232_readtime_sync but without synchronisation to second	
-	
-	Return value:
-		0:			success
-		1:			error
-******************************************************************************/
-unsigned char ds3232_readtime(unsigned char *time)
-{
-	unsigned char r;
-	
-	// Perform read.
-	r = i2c_readregs(DS3232_ADDRESS,0,7,time);
-	if(r!=0)
-	{
-		memset(time,0,7);
-		return r;
-	}
-	return 0;
-}
+
 
 
 
@@ -167,7 +171,7 @@ unsigned char ds3232_readtime(unsigned char *time)
 		0:			success
 		1:			error
 ******************************************************************************/
-unsigned char ds3232_readtime_conv(unsigned char *hour,unsigned char *min,unsigned char *sec)
+/*unsigned char ds3232_readtime_conv(unsigned char *hour,unsigned char *min,unsigned char *sec)
 {
 	unsigned char val[7];
 	unsigned char r;
@@ -179,77 +183,102 @@ unsigned char ds3232_readtime_conv(unsigned char *hour,unsigned char *min,unsign
 	ds3232_convtime(val,hour,min,sec);
 
 	return 0;
-}
+}*/
+
+
 
 /******************************************************************************
-	ds3232_readtime_int
+	function: ds3232_sync_fall
 *******************************************************************************	
-	Same as ds3232_readtime_sync but without synchronisation to second	
+	Waits until a falling edge of the DS3232 SQW pin. 
 	
-	Interrupt-driven
+	The DS3232 time registers are updated on the falling edge.
 	
-	OBSOLETE: now i2c_readregs is automatically either using interrupt or polling
+	Waiting for a falling edge leaves 1 second to read the time info before the 
+	time registers change again.
 	
-	Return value:
-		0:			success
-		1:			error
+	Parameters:
+		-
+
+	Returns:
+		-
+
 ******************************************************************************/
-unsigned char ds3232_readtime_int(unsigned char *time)
+void ds3232_sync_fall(void)
 {
-	unsigned char r;
-	
-	// Perform read.
-	r = i2c_readregs_int(DS3232_ADDRESS,0,7,time);
-	if(r!=0)
-	{
-		memset(time,0,7);
-		return r;
-	}
-	return 0;
+	unsigned char pc,pn;		// pc: current pin state, pn: new pin state
+	// Wait for the falling edge of the RTC int
+	pc=system_getrtcint();
+	while( !( ((pn=system_getrtcint())!=pc) && pn==0) )		// Loop until pn!=pc and pn==0
+		pc=pn;
 }
+/******************************************************************************
+	function: ds3232_sync_rise
+*******************************************************************************	
+	Waits until a rising edge of the DS3232 SQW pin. 
+	
+	The DS3232 time registers are updated on the falling edge.
+	
+	Waiting for a rising edge leaves 500ms to read the time info before the time
+	registers change.
+			
+	Parameters:
+		-
 
+	Returns:
+		-
 
+******************************************************************************/
+void ds3232_sync_rise(void)
+{
+	unsigned char pc,pn;		// pc: current pin state, pn: new pin state
+	// Wait for the rising edge of the RTC int
+	pc=system_getrtcint();
+	while( !( ((pn=system_getrtcint())!=pc) && pn==1) )		// Loop until pn!=pc and pn==1
+		pc=pn;
+	return;
+}
 
 /******************************************************************************
 	function: ds3232_readtime_conv_int
 *******************************************************************************	
 	Returns the DS3232 time in hh:mm.ss format, optionally with synchronising return.
 	
-	In synchronised mode (sync=1), this function waits for a change of second and then reads and returns the time.
-	In immediate mode (sync=0) this function immediately reads and returns the time.
+	In synchronised mode (sync=1), this function waits for a change of second and then reads and returns the date/time.
+	In immediate mode (sync=0) this function immediately reads and returns the date/time.
 	
 	Use the synchronised mode when the precise moment at which the time is read is important. This
 	mode introduces a latency of up to one second, as it must wait for a second change before returning.
+	
+	If a pointer to the variables receiving the return values is null that value is not returned.
 		
 	Parameters:
 		sync		-	0: to read and return the time immediately, 1 to read and return the time at a change of seconds.
-		hour		-	Pointer to the variable holding the returned hours
-		min			-	Pointer to the variable holding the returned min
-		sec			-	Pointer to the variable holding the returned sec
+		hour		-	Pointer to the variable holding the returned hours (pass 0 if not needed)
+		min			-	Pointer to the variable holding the returned min (pass 0 if not needed)
+		sec			-	Pointer to the variable holding the returned sec (pass 0 if not needed)
+		day			-	Pointer to the variable holding the returned day (pass 0 if not needed)
+		month		-	Pointer to the variable holding the returned month (pass 0 if not needed)
+		year		-	Pointer to the variable holding the returned year (pass 0 if not needed)
 
 	Returns:
 		0			-	Success, the returned time is provided in the variables hour, min, sec.
 		1			-	Error
 ******************************************************************************/
-unsigned char ds3232_readtime_conv_int(unsigned char sync, unsigned char *hour,unsigned char *min,unsigned char *sec)
+unsigned char ds3232_readdatetime_conv_int(unsigned char sync, unsigned char *hour,unsigned char *min,unsigned char *sec,unsigned char *day,unsigned char *month,unsigned char *year)
 {
-	unsigned char pc,pn;		// pc: current pin state, pn: new pin state
-	
+	unsigned char regs[7];
 	
 	if(sync)
 	{
 		// Wait for the falling edge of the RTC int
-		pc=system_getrtcint();
-		while( !( ((pn=system_getrtcint())!=pc) && pn==0) )		// Loop until pn!=pc and pn==0
-			pc=pn;
-		// Read time
-		ds3232_readtime_conv(hour,min,sec);
+		ds3232_sync_fall();
 	}
-	else
-	{
-		ds3232_readtime_conv(hour,min,sec);
-	}
-	
+	// Read time
+	ds3232_readtimeregisters(regs);
+	ds3232_convtime(regs,hour,min,sec);
+	ds3232_convdate(regs,day,month,year);
+		
 	return 0;
 }
 
@@ -337,28 +366,72 @@ unsigned char ds3232_bcd2dec(unsigned char bcd)
 }
 
 /******************************************************************************
-	ds3232_convtime
+	function:	ds3232_convtime
 *******************************************************************************
-	Convert the time (register 0-2) of DS3232 into h,m,s.
+	Convert the time (register 0-2) of DS3232 into hours, minutes and seconds.
+	
+	The pointers to the return variable can be null, in which case the corresponding
+	parameters is not returned.
+	
+	
+	Parameters:
+		val			-		Pointer to register 0-6 of date/time
+		hour		-		Pointer to the variable receiving the hours, or 0 if unneeded
+		min			-		Pointer to the variable receiving the minutes, or 0 if unneeded
+		sec			-		Pointer to the variable receiving the seconds, or 0 if unneeded
+		
+	Returns:
+		-
 ******************************************************************************/
-
 void ds3232_convtime(unsigned char *val,unsigned char *hour,unsigned char *min,unsigned char *sec)
 {
 	// Do the conversion
-	*sec = ds3232_bcd2dec(val[0]);
-	*min = ds3232_bcd2dec(val[1]);
-	if(val[2]&0x40)
+	if(sec)
+		*sec = ds3232_bcd2dec(val[0]);
+	if(min)
+		*min = ds3232_bcd2dec(val[1]);
+	if(hour)
 	{
-		// 12hr
-		*hour = (val[2]&0xf);
-		if(val[2]&0x20)
-			*hour+=12;
+		if(val[2]&0x40)
+		{
+			// 12hr
+			*hour = (val[2]&0xf);
+			if(val[2]&0x20)
+				*hour+=12;
+		}
+		else
+		{
+			// 24hr
+			*hour = ds3232_bcd2dec(val[2]);
+		}
 	}
-	else
-	{
-		// 24hr
-		*hour = ds3232_bcd2dec(val[2]);
-	}
+}
+/******************************************************************************
+	function:	ds3232_convdate
+*******************************************************************************
+	Convert the date (register 3-6) of DS3232 into day, month, year.
+	
+	The pointers to the return variable can be null, in which case the corresponding
+	parameters is not returned.
+		
+	Parameters:
+		val			-		Pointer to register 0-6 of date/time
+		day			-		Pointer to the variable receiving the day, or 0 if unneeded
+		month		-		Pointer to the variable receiving the month, or 0 if unneeded
+		year		-		Pointer to the variable receiving the year, or 0 if unneeded
+		
+	Returns:
+		-
+******************************************************************************/
+void ds3232_convdate(unsigned char *val,unsigned char *day,unsigned char *month,unsigned char *year)
+{
+	if(day)
+		*day = ds3232_bcd2dec(val[4]);
+	if(month)
+		*month = ds3232_bcd2dec(val[5]);
+	if(year)
+		*year = ds3232_bcd2dec(val[6]);
+	
 }
 
 
@@ -434,14 +507,7 @@ unsigned char ds3232_readtemp_int_cb_cb(I2C_TRANSACTION *t)
 	cb(t->status,temp);
 	return 0;	
 }
-/******************************************************************************
-	ds3232_convtimedate
-*******************************************************************************
-	Convert the time and date (register 0-6) of DS3232 into year,month,day,hour,minute,second, 
-******************************************************************************/
-/*
-Not implemented!
-*/
+
 
 
 /*
@@ -469,31 +535,13 @@ unsigned char ds3232_write_status(unsigned char val)
 
 void ds3232_printreg(FILE *file)
 {
-		unsigned char r1;
-		
-		unsigned char data[0x15];
-		
-		
-		/*fprintf_P(PSTR("DS3232 registers:\n"));
-		r1=i2c_writestart(address);
-		r2=i2c_writedata(0);				// Address0
-		r3=i2c_readstart(address);		
-		for(int i=0;i<0x14;i++)
-		{		
-			r4=i2c_readdata(&c,i==0x13?0:1);
-			data[i] = c;
-			//r4=i2c_readdata(&c,1,0);
-			//fprintf_P(file,PSTR("%02x: (%02x,%02x,%02x,%02x) %02X\n"),i,r1,r2,r3,r4,c);
-		}
-		i2c_stop();
-		for(int i=0;i<0x14;i++)
-		{		
-			fprintf_P(file,PSTR(" %02x: %02X\n"),i,data[i]);
-		}*/
-		
+		unsigned char r1 __attribute__((unused));
+		unsigned char data[32];
+	
 		fprintf_P(file,PSTR("DS3232 registers:"));
 		
-		r1 = i2c_readregs(DS3232_ADDRESS,0,0x15,data);
+		r1 = i2c_readregs(DS3232_ADDRESS,0,16,data);
+		r1 = i2c_readregs(DS3232_ADDRESS,16,16,data+16);
 		//fprintf_P(file,PSTR("readregs return: %d\n"),r1);
 		
 		// Pretty print as 2 rows of 16 registers
@@ -508,6 +556,7 @@ void ds3232_printreg(FILE *file)
 		fprintf_P(file,PSTR("\n"));
 
 }
+
 
 
 /******************************************************************************
@@ -696,9 +745,8 @@ void ds3232_alarm_in(unsigned short insec)
 	sec=0;
 	
 	
-	r = ds3232_readdate_conv_int(&date,&month,&year);
-	r = ds3232_readtime_conv_int(0,&hour,&min,&sec);
-	
+	r = ds3232_readdatetime_conv_int(0,&hour,&min,&sec,&date,&month,&year);
+		
 	fprintf_P(file_pri,PSTR("Cur: %02d.%02d.%02d %02d:%02d:%02d\n"),date,month,year,hour,min,sec);
 	
 	day = TimeAddSeconds(hour,min,sec,insec,&hour2,&min2,&sec2);

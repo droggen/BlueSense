@@ -83,15 +83,17 @@ void _timer_tick_hz(void);
 void _timer_tick_1024hz(void);
 // Call this function from an interrupt routine every 1/1000 hz (_timer_tick_1024hz or _timer_tick_1000hz are mutually exclusive: call one or the other)
 void _timer_tick_1000hz(void);
-
+void _timer_tick_50hz(void);
 
 typedef unsigned long int WAITPERIOD;					// This must be matched to the size of the return value of timer_?s_get
 
 char timer_register_callback(unsigned char (*callback)(unsigned char),unsigned short divider);
 char timer_register_slowcallback(unsigned char (*callback)(unsigned char),unsigned short divider);
+char timer_register_50hzcallback(unsigned char (*callback)(unsigned char),unsigned short divider);
 unsigned char timer_isregistered_callback(unsigned char (*callback)(unsigned char));
 void timer_unregister_callback(unsigned char (*callback)(unsigned char));
 void timer_unregister_slowcallback(unsigned char (*callback)(unsigned char));
+void timer_unregister_50hzcallback(unsigned char (*callback)(unsigned char));
 void timer_printcallbacks(FILE *f);
 
 

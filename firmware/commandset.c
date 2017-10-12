@@ -36,7 +36,7 @@ const char help_y[] PROGMEM ="Test sync";
 const char help_demo[] PROGMEM ="Demo mode";
 const char help_c[] PROGMEM ="Clock mode";
 const char help_w[] PROGMEM ="Swap primary and secondary interfaces";
-const char help_i[] PROGMEM ="I<period>,<txslots>: Sets USB IO parameters. IO routine is called at (period+1)/1024Hz; txslots transmit slots are used before receiving data.";
+const char help_i[] PROGMEM ="I<period>,<#tx>: Sets USB IO parameters. IO at (period+1)/1024Hz.\n\t\tUse #tx slots for transmission before reception.";
 const char help_r[] PROGMEM ="RN-41 terminal";
 const char help_b[] PROGMEM ="B,<if>: Benchmark IO. if=0 for USB, 1 for BT";
 const char help_l[] PROGMEM ="L,<en>: en=1 to enable LCD, 0 to disable";
@@ -51,7 +51,9 @@ const char help_f[] PROGMEM ="F,<bin>,<pktctr>,<ts>,<bat>,<label>: bin: 1 for bi
 const char help_M[] PROGMEM ="M[,<mode>[,<logfile>[,<duration>]]: without parameters lists available modes, otherwise enters the specified mode.\n\t\tOptionally logs to logfile (use -1 not to log) and runs for the specified duration in seconds.";
 const char help_m[] PROGMEM ="MPU test mode";
 const char help_g[] PROGMEM ="G,<mode> enters motion recognition mode. The parameter is the sample rate/channels to acquire. Use G? to find more about modes";
-const char help_o[] PROGMEM ="O[,sec] Power off and no wakeup, or wakeup after sec seconds";
+const char help_O[] PROGMEM ="O[,sec] Power off and no wakeup, or wakeup after sec seconds";
+const char help_o[] PROGMEM ="Display power used in off mode; if the node was turned off with O";
+const char help_p[] PROGMEM ="Store data to measure power in off mmodepower used in off mode; if the node was turned off with O";
 const char help_coulomb[] PROGMEM ="Coulomb counter test mode";
 const char help_sd[] PROGMEM ="SD card test mode";
 const char help_identify[] PROGMEM ="Identify device by blinking LEDs";
@@ -62,6 +64,8 @@ const char help_batterylong[] PROGMEM="Long-term battery info";
 const char help_battery[] PROGMEM="Short-term battery info";
 const char help_powertest[] PROGMEM="Power tests";
 const char help_callback[] PROGMEM ="Lists timer callbacks";
+const char help_clearbootctr[] PROGMEM ="Clear boot counter";
+//const char help_clear[] PROGMEM ="Lists timer callbacks";
 
 unsigned CurrentAnnotation=0;
 
@@ -100,10 +104,11 @@ unsigned char __CommandQuit=0;
 unsigned char CommandParserTime(char *buffer,unsigned char size)
 {
 	unsigned char h,m,s;
+
 	if(size==0)
 	{
 		// Query time
-		ds3232_readtime_conv_int(1,&h,&m,&s);
+		ds3232_readdatetime_conv_int(1,&h,&m,&s,0,0,0);
 		fprintf_P(file_pri,PSTR("%02d:%02d:%02d\n"),h,m,s);
 		return 0;	
 	}
@@ -176,50 +181,13 @@ unsigned char CommandParserDate(char *buffer,unsigned char size)
 
 unsigned char CommandParserTime_Test(char *buffer,unsigned char size)
 {
-	/*unsigned char h,m,s;
-	if(size==0)
-	{
-		// Query time
-		ds3232_readtime_conv_int(&h,&m,&s);	
-		fprintf_P(file_pri,PSTR("%02d:%02d:%02d\n"),h,m,s);
-		return 0;	
-	}
-	// Set time
-	if(size!=7 || buffer[0]!=',')
-		return 2;
-	
-	buffer++;	// Skip comma
-
-		
-	// Check the digits are in range
-	if(checkdigits(buffer,6))
-		return 2;
-		
-	
-	h = (buffer[0]-'0')*10+(buffer[1]-'0');
-	m = (buffer[2]-'0')*10+(buffer[3]-'0');
-	s = (buffer[4]-'0')*10+(buffer[5]-'0');
-	
-	fprintf_P(file_dbg,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
-	
-	if(h>23 || m>59 || s>59)
-	{
-		return 2;
-	}
-	
-	// Execute
-	unsigned char rv = ds3232_writetime(h,m,s);
-	if(rv==0)
-		return 0;
-	return 1;*/
-	
 	// Demonstrate the second transition at the falling edge of the NT#/SQW signal.
 	unsigned char h,m,s;
 	unsigned long t1,t2,t3;
 	t1=timer_ms_get_intclk();
 	while(timer_ms_get_intclk()-t1<3000)
 	{
-		ds3232_readtime_conv(&h,&m,&s);
+		ds3232_readdatetime_conv_int(0,&h,&m,&s,0,0,0);		
 		printf("%02d:%02d:%02d %d\n",h,m,s,(PINA>>6)&1);
 		_delay_ms(100);
 	}
@@ -472,30 +440,7 @@ unsigned char CommandParserOff(char *buffer,unsigned char size)
 	}*/
 	
 	#if (HWVER==6) || (HWVER==7)
-	
-	
-	// Read the charge and store it
-	unsigned long charge = ltc2942_getcharge();	
-	eeprom_write_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_CHARGE0,charge);
-	// Read the voltage and store it 
-	//unsigned short voltage = ltc2942_getvoltage();
-	//eeprom_write_word((uint32_t*)STATUS_ADDR_OFFCURRENT_VOLTAGE0,voltage);
-	// Get the HMS time asynchronously and if too close to midnight wait for the next day to avoid writing erroneous date in the EEPROM
-	/*do
-	{
-		ds3232_readtime_conv_int(0,&h,&m,&s);
-	}
-	while(h==23 && m==59 && s>58);*/
-		// If too close to midnight (day would change, then delay process)
-		
-		
-	
-	// Get the HMS time synchronously
-	//ds3232_readtime_conv_int(1,&h,&m,&s);
-	// Check if 
-
-
-	
+	system_storepoweroffdata();
 	// Setup alarm after the specified time
 	ds3232_printreg(file_pri);
 	ds3232_alarm_in(sec);
@@ -508,8 +453,22 @@ unsigned char CommandParserOff(char *buffer,unsigned char size)
 	system_off();
 	return 0;
 }
-
-
+unsigned char CommandParserOffPower(char *buffer,unsigned char size)
+{
+	// Power in off mode
+	for(unsigned char i=0;i<5;i++)
+	{
+		fputs(_poweruse_off.str[i],file_pri);
+	}
+	
+	return 0;
+}
+unsigned char CommandParserOffStore(char *buffer,unsigned char size)
+{
+	// Power in off mode
+	system_storepoweroffdata();	
+	return 0;
+}
 unsigned char CommandParserStreamFormat(char *buffer,unsigned char size)
 {
 	unsigned char rv;
@@ -862,13 +821,19 @@ unsigned char CommandParserCallback(char *buffer,unsigned char size)
 	timer_printcallbacks(file_pri);
 	return 0;
 }
-
+unsigned char CommandParserClearBootCounter(char *buffer,unsigned char size)
+{
+	eeprom_write_dword((uint32_t*)STATUS_ADDR_NUMBOOT0,0);
+	fprintf_P(file_pri,PSTR("Cleared\n"));
+	return 0;
+}
 void CommandChangeMode(unsigned char newmode)
 {
 	//if(system_mode!=newmode)
 		__CommandQuit=1;
 	system_mode = newmode;
 }
+
 
 
 

@@ -32,6 +32,12 @@ unsigned char ds3232_writedate(unsigned char day,unsigned char date,unsigned cha
 unsigned char ds3232_writedate_int(unsigned char day,unsigned char date,unsigned char month,unsigned char year);
 unsigned char ds3232_writetime(unsigned char hour,unsigned char min,unsigned char sec);
 void ds3232_printreg(FILE *file);
+void ds3232_sync_fall(void);
+void ds3232_sync_rise(void);
+
+unsigned char ds3232_readtimeregisters(unsigned char *regs);
+void ds3232_convtime(unsigned char *val,unsigned char *hour,unsigned char *min,unsigned char *sec);
+void ds3232_convdate(unsigned char *val,unsigned char *day,unsigned char *month,unsigned char *year);
 
 
 void ds3232_off(void);
@@ -44,8 +50,7 @@ unsigned char ds3232_readtemp_int_cb_cb(I2C_TRANSACTION *t);
 
 
 // I2C transactional
-unsigned char ds3232_readtime_int(unsigned char *time);
-unsigned char ds3232_readtime_conv_int(unsigned char sync, unsigned char *hour,unsigned char *min,unsigned char *sec);
+unsigned char ds3232_readdatetime_conv_int(unsigned char sync, unsigned char *hour,unsigned char *min,unsigned char *sec,unsigned char *day,unsigned char *month,unsigned char *year);
 unsigned char ds3232_readdate_conv_int(unsigned char *date,unsigned char *month,unsigned char *year);
 
 #endif

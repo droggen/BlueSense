@@ -156,6 +156,9 @@ unsigned char config_enable_id,config_enable_timestamp,config_enable_battery,con
 unsigned char config_sensorsr;
 unsigned char config_streaming_format;
 
+//
+_POWERUSE_OFF _poweruse_off;
+
 // Other
 unsigned char system_mode=APP_MODE_IDLE;				// idle
 //unsigned char system_mode=3;			// clock
@@ -207,6 +210,11 @@ ISR(TIMER3_COMPA_vect)
 	}*/
 	//wdt_reset();
 	_timer_tick_1024hz();
+}
+// CPU some lower frequency stuff 
+ISR(TIMER2_COMPA_vect)
+{
+	_timer_tick_50hz();
 }
 // RTC 1024Hz
 #if HWVER==1
@@ -586,15 +594,15 @@ int main(void)
 
 	//init_wdt();
 
-	/*timer_get_speedtest();
+	//timer_get_speedtest();
 
-	while(1)
+	/*while(1)
 	{
 		unsigned long t=timer_ms_get();
 		printf("%ld\n",t);
 		_delay_ms(25);
-	}*/
-
+	}
+*/
 	
 	mode_main();			// This never returns.
 	

@@ -39,7 +39,7 @@ typedef unsigned char(*I2C_CALLBACK)(struct _I2C_TRANSACTION *);
 // Only entries modified by interrupts are marked as volatile
 typedef struct  _I2C_TRANSACTION {
 	unsigned char address;													// 7-bit address
-	unsigned char rw;																// write: 0. read: 1.
+	unsigned char rw;														// write: 0. read: 1.
 	unsigned char data[16];													// data to send/receive
 	unsigned char *extdata;													// If nonzero, use this buffer for send/receive, otherwise data is used
 	//volatile unsigned char dataack[16];									// acknowledge to send/receive

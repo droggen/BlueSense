@@ -1,5 +1,3 @@
-
-
 /*
    NTSensors - Firmware
    Copyright (C) 2009:
@@ -20,7 +18,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-
+#ifndef __MAIN_H
+#define __MAIN_H
 
 
 
@@ -48,7 +47,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define FIRMWARE_DOWNLOADING 3
 extern unsigned char firmware_state;
 
-
+typedef struct {
+	unsigned char valid;
+	unsigned char offh,offm,offs,offday,offmonth,offyear;
+	unsigned char onh,onm,ons,onday,onmonth,onyear;
+	unsigned long offcharge,oncharge;
+	unsigned short offvoltage,onvoltage;
+	char str[5][64];
+} _POWERUSE_OFF;
+extern _POWERUSE_OFF _poweruse_off;
 
 extern FILE *file_bt,*file_usb,*file_fb,*file_dbg,*file_pri;
 extern unsigned char system_devname[];
@@ -80,18 +87,25 @@ extern unsigned char system_devname[];
 
 
 
-// Boot script
+// Boot script - reserve 100 bytes
 #define CONFIG_ADDR_SCRIPTSTART 100
 #define CONFIG_ADDR_SCRIPTLEN COMMANDMAXSIZE
 #define CONFIG_ADDR_SCRIPTEND (CONFIG_ADDR_SCRIPTSTART+CONFIG_ADDR_SCRIPTLEN-1)
 
+// Storing number of boots
+#define STATUS_ADDR_NUMBOOT0	300
+#define STATUS_ADDR_NUMBOOT1	301
+#define STATUS_ADDR_NUMBOOT2	302
+#define STATUS_ADDR_NUMBOOT3	303
+
 // Storing charge status upon soft off
-#define STATUS_ADDR_OFFCURRENT_CHARGE0 500
-#define STATUS_ADDR_OFFCURRENT_CHARGE1 501
-#define STATUS_ADDR_OFFCURRENT_CHARGE2 502
-#define STATUS_ADDR_OFFCURRENT_CHARGE3 503
-#define STATUS_ADDR_OFFCURRENT_VOLTAGE0 504
-#define STATUS_ADDR_OFFCURRENT_VOLTAGE1 505
+#define STATUS_ADDR_OFFCURRENT_VALID 500
+#define STATUS_ADDR_OFFCURRENT_CHARGE0 501
+#define STATUS_ADDR_OFFCURRENT_CHARGE1 502
+#define STATUS_ADDR_OFFCURRENT_CHARGE2 503
+#define STATUS_ADDR_OFFCURRENT_CHARGE3 504
+#define STATUS_ADDR_OFFCURRENT_VOLTAGE0 505
+#define STATUS_ADDR_OFFCURRENT_VOLTAGE1 506
 #define STATUS_ADDR_OFFCURRENT_H 510
 #define STATUS_ADDR_OFFCURRENT_M 511
 #define STATUS_ADDR_OFFCURRENT_S 512
@@ -119,7 +133,6 @@ extern unsigned char system_mode;
 // System status
 extern volatile signed short system_temperature;
 extern volatile unsigned long int system_temperature_time;
-extern signed short system_offdeltacharge;
 
 signed short system_gettemperature(void);
 unsigned long system_gettemperaturetime(void);
@@ -150,3 +163,4 @@ unsigned long main_perfbench(unsigned long mintime);
 
 
 
+#endif

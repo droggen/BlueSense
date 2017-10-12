@@ -24,6 +24,7 @@ extern const char help_f[];
 extern const char help_M[];
 extern const char help_m[];
 extern const char help_g[];
+extern const char help_O[];
 extern const char help_o[];
 extern const char help_sd[];
 extern const char help_coulomb[];
@@ -36,6 +37,7 @@ extern const char help_batterylong[];
 extern const char help_battery[];
 extern const char help_powertest[];
 extern const char help_callback[];
+extern const char help_clearbootctr[];
 
 extern const COMMANDPARSER CommandParsersDefault[];
 extern const unsigned char CommandParsersDefaultNum;
@@ -56,6 +58,8 @@ unsigned char CommandParserLCD(char *buffer,unsigned char size);
 unsigned char CommandParserIO(char *buffer,unsigned char size);
 unsigned char CommandParserSwap(char *buffer,unsigned char size);
 unsigned char CommandParserOff(char *buffer,unsigned char size);
+unsigned char CommandParserOffPower(char *buffer,unsigned char size);
+unsigned char CommandParserOffStore(char *buffer,unsigned char size);
 unsigned char CommandParserStreamFormat(char *buffer,unsigned char size);
 unsigned char CommandParserPowerTest(char *buffer,unsigned char size);
 unsigned char CommandParserSync(char *buffer,unsigned char size);
@@ -69,6 +73,7 @@ unsigned char CommandParserInfo(char *buffer,unsigned char size);
 unsigned char CommandParserBatteryInfoLong(char *buffer,unsigned char size);
 unsigned char CommandParserBatteryInfo(char *buffer,unsigned char size);
 unsigned char CommandParserCallback(char *buffer,unsigned char size);
+unsigned char CommandParserClearBootCounter(char *buffer,unsigned char size);
 
 
 
