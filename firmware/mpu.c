@@ -14,7 +14,7 @@
 #include "mpu.h"
 #include "wait.h"
 #include "main.h"
-#include "motionconfig.h"
+#include "mpu_config.h"
 #include "system.h"
 #include "dbg.h"
 #include "helper.h"
@@ -351,18 +351,20 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			// Pointer to memory structure
 			MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
 			
-			//__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,mdata);			// Copy and conver the spi buffer to MPUMOTIONDATA; if this function is used, the correction must be manually done as below.
-			__mpu_copy_spibuf_to_mpumotiondata_magcor_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= -my; my<= -mx)
+			__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,mdata);			// Copy and conver the spi buffer to MPUMOTIONDATA; if this function is used, the correction must be manually done as below.
+			//__mpu_copy_spibuf_to_mpumotiondata_magcor_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= -my; my<= -mx)
 			
 			// Alternative to __mpu_copy_spibuf_to_mpumotiondata_magcor_asm: manual change
 			/*signed t = mdata->mx;
 			mdata->mx=-mdata->my;
 			mdata->my=-t;*/
 			
-			/*signed t = mdata->mx;
+			
+			// Mathias - changes where is the yaw=0 by 90
+			signed t = mdata->mx;
 			mdata->mx=mdata->my;
 			mdata->my=t;
-			mdata->mz=-mdata->mz;*/
+			mdata->mz=-mdata->mz;
 			
 			//mdata->mz=0;
 			

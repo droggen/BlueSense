@@ -134,7 +134,7 @@ BUG:	Stopeeing logging and quitting motion sampling mode with ! does not write b
 #include "mode_demo.h"
 #include "mode_demo_clock.h"
 #include "ltc2942.h"
-#include "motionconfig.h"
+#include "mpu_config.h"
 #include "wait.h"
 #include "mode.h"
 

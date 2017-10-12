@@ -84,13 +84,13 @@ void mode_main(void)
 				break;
 			case APP_MODE_CLOCK:
 			#if ENABLEGFXDEMO==1
-				mode_clock();
+//				mode_clock();
 			#endif
 				system_mode=0;
 				break;
 			case APP_MODE_DEMO:
 			#if ENABLEGFXDEMO==1
-				mode_demo();
+	//			mode_demo();
 			#endif
 				system_mode=0;
 				break;

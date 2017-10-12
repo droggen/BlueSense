@@ -66,14 +66,14 @@ const COMMANDPARSER CommandParsersIdle[] =
 	//{'z',CommandParserSyncFromRTC,help_zsyncfromrtc},
 	{'Y',CommandParserTestSync,help_y},
 	{'R',CommandParserBT,help_r},
-	{'L',CommandParserLCD,help_l},
+	//{'L',CommandParserLCD,help_l},
 	{'T', CommandParserTime,help_t},
 	{'t', CommandParserTime_Test,help_ttest},
 	{'D', CommandParserDate,help_d},
 	{'H', CommandParserHelp,help_h},
 	{'A', CommandParserADC,help_a},
-	{'C', CommandParserClock,help_c},
-	{'V', CommandParserDemo,help_demo},
+	//{'C', CommandParserClock,help_c},
+	//{'V', CommandParserDemo,help_demo},
 	//{'B', CommandParserBench,help_b},
 	{'I', CommandParserIO,help_i},
 	{'M', CommandParserMotion,help_M},
@@ -124,8 +124,8 @@ void mode_idle(void)
 	//unsigned long stat_timemsend=0;
 	//unsigned long time_laststatus=0;
 	
-	lcd_clear565(0);
-	lcd_writestring("Idle",48,0,2,0x0000,0xffff);	
+	//lcd_clear565(0);
+	//lcd_writestring("Idle",48,0,2,0x0000,0xffff);	
 	
 	fprintf_P(file_pri,PSTR("IDLE>\n"));
 	

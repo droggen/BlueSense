@@ -24,7 +24,7 @@
 #include "dbg.h"
 #include "mode_mputest.h"
 #include "mode_global.h"
-#include "motionconfig.h"
+#include "mpu_config.h"
 #include "commandset.h"
 #include "uiconfig.h"
 

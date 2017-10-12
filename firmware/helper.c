@@ -851,7 +851,40 @@ char *format4float(char *strptr,float q0,float q1,float q2,float q3)
 	return strptr;
 }
 #endif
-
+/******************************************************************************
+	Function: format3float
+*******************************************************************************
+	Formats 3 float numbers into an ascii string.
+	Numbers are space separated, including a space after the last number, 
+	however the string is not null terminated.
+	
+	The function returns a pointer to the first byte after the end of the string.
+	
+	Parameters:
+		strptr		-		pointer to the buffer that will receive the string
+		q0			-		First number to format
+		q1			-		Second number to format
+		q2			-		Third number to format
+	
+******************************************************************************/
+#ifdef __cplusplus
+char *format3float(char *strptr,float q0,float q1,float q2)
+{
+	floattoa(q0,strptr);
+	strptr+=6;
+	*strptr=' ';
+	strptr++;
+	floattoa(q1,strptr);
+	strptr+=6;
+	*strptr=' ';
+	strptr++;
+	floattoa(q2,strptr);
+	strptr+=6;
+	*strptr=' ';
+	strptr++;
+	return strptr;
+}
+#endif
 /******************************************************************************
 	function: eeprom_write32
 *******************************************************************************	

@@ -97,6 +97,8 @@ SRC += ds3232.c
 SRC += rn41.c
 SRC += pkt.c
 SRC += mpu.c
+SRC += mpu_config.c
+SRC += mpu_geometry.c
 #SRC += mpu_test.c
 SRC += spi.c
 SRC += sd.c
@@ -106,12 +108,12 @@ SRC += test_sd.c
 SRC += init.c
 SRC += helper2.c
 SRC += uiconfig.c
-SRC += lcd.c
-SRC += fb.c
-SRC += fnt4x6.c
+#SRC += lcd.c
+#SRC += fb.c
+#SRC += fnt4x6.c
 SRC += helper.c
-SRC += mode_demo.c
-SRC += mode_demo_clock.c
+#SRC += mode_demo.c
+#SRC += mode_demo_clock.c
 SRC += dbg.c
 SRC += megalol/circbuf.c
 SRC += mpu-usart0.c
@@ -140,12 +142,12 @@ SRC += mode_teststream.c
 SRC += mode_testsync.c
 SRC += mode_mputest.c
 SRC += mode_sd.c
-SRC += motionconfig.c
 SRC += ltc2942.c
 SRC += ufat.c
 #SRC += MadgwickAHRS_fixed.c
 SRC += MadgwickAHRS_float.c
 SRC += mathfix.c
+
 
 
 

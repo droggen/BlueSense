@@ -62,6 +62,7 @@ char *format1u32(char *strptr,unsigned long a);
 char *format1u16(char *strptr,unsigned short a);
 #ifdef __cplusplus
 char *format4float(char *strptr,float q0,float q1,float q2,float q3);
+char *format3float(char *strptr,float q0,float q1,float q2);
 #endif
 #ifndef __cplusplus
 char *format4fract16(char *strptr,float q0,float q1,float q2,float q3);

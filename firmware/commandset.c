@@ -347,7 +347,7 @@ unsigned char CommandParserError(char *buffer,unsigned char size)
 	return 1;
 }
 
-unsigned char CommandParserLCD(char *buffer,unsigned char size)
+/*unsigned char CommandParserLCD(char *buffer,unsigned char size)
 {	
 	int lcden;
 	
@@ -364,7 +364,7 @@ unsigned char CommandParserLCD(char *buffer,unsigned char size)
 	else
 		deinit_lcd();
 	return 0;
-}
+}*/
 unsigned char CommandParserInfo(char *buffer,unsigned char size)
 {	
 	int ien;

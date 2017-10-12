@@ -58,7 +58,7 @@ unsigned char init_portb;
 ******************************************************************************/
 void init_basic(void)
 {
-	_delay_ms(2000);
+	//_delay_ms(2000);
 
 	// INIT MODULE
 	init_module();

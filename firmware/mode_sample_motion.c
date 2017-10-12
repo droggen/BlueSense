@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "mpu_geometry.h"
 #include "main.h"
 #include "mpu.h"
 #include "pkt.h"
@@ -37,7 +38,7 @@
 #include "mode_sample.h"
 #include "mode_sample_motion.h"
 #include "mode_global.h"
-#include "motionconfig.h"
+#include "mpu_config.h"
 #include "commandset.h"
 #include "uiconfig.h"
 #include "ufat.h"
@@ -49,6 +50,7 @@
 
 // Volatile parameter of the mode 
 MODE_SAMPLE_MOTION_PARAM mode_sample_motion_param;
+float yaw,pitch,roll;
 
 // If quaternions are enabled: conversion factors
 #if ENABLEQUATERNION==1
@@ -67,6 +69,7 @@ unsigned long stat_timems_start,stat_t_cur,stat_wakeup,stat_time_laststatus;
 unsigned long int time_lastblink;
 
 MPUMOTIONDATA mpumotiondata;
+MPUMOTIONGEOMETRY mpumotiongeometry;
 
 
 const char help_samplestatus[] PROGMEM="Battery and logging status";
@@ -199,7 +202,29 @@ unsigned char stream_sample_text(FILE *f)
 			*strptr=' ';
 			strptr++;
 		#endif
-	}	
+	}
+	if(sample_mode & MPU_MODE_BM_E)
+	{
+		#if ENABLEQUATERNION==1
+			*strptr = '9';
+			strptr++;
+			*strptr=' ';
+			strptr = format3float(strptr,mpumotiongeometry.yaw,mpumotiongeometry.pitch,mpumotiongeometry.roll);
+		#else
+			*strptr='0';
+			strptr++;
+			*strptr=' ';
+			strptr++;
+			*strptr='0';
+			strptr++;
+			*strptr=' ';
+			strptr++;
+			*strptr='0';
+			strptr++;
+			*strptr=' ';
+			strptr++;
+		#endif
+	}
 	*strptr='\n';		
 	strptr++;
 
@@ -541,115 +566,10 @@ void mode_motionstream(void)
 			if(mpu_data_getnext_raw(mpumotiondata))
 				break;
 			
+			mpu_compute_geometry(mpumotiondata,mpumotiongeometry);
+			
 		
-			// Compute the quaternions if in a quaternion mode
-			#if ENABLEQUATERNION==1
-			if(sample_mode==MPU_MODE_ACCGYRMAGQ || sample_mode==MPU_MODE_Q)
-			{
-				#if FIXEDPOINTQUATERNION==1
-				
-				/*float tax,tay,taz;
-				tax = mpu_data_ax[mpu_data_rdptr]*1.0/16384.0;
-				tay = mpu_data_ay[mpu_data_rdptr]*1.0/16384.0;
-				taz = mpu_data_az[mpu_data_rdptr]*1.0/16384.0;
-				
-				// change range to avoid possible overflow
-				tax /= 16;
-				tay /= 16;
-				taz /= 16;
-				*/
-				FIXEDPOINTTYPE ax,ay,az,gx,gy,gz;
-				
-				//ax=tax;
-				//ay=tay;
-				//az=taz;
-				
-				ax = mpumotiondata.ax*atog;
-				ay = mpumotiondata.ay*atog;
-				az = mpumotiondata.az*atog;
-				gx = mpumotiondata.gx*mpu_gtorps;
-				gy = mpumotiondata.gy*mpu_gtorps;
-				gz = mpumotiondata.gz*mpu_gtorps;				
-				
-				// Killing g does not fix bug
-				// Killing a seems to fix bug
-				// Killing m does not seem to fix bug.
-				//gx=0;
-				//gy=0;
-				//gz=0;
-				
-				// bug still present with g=0 and m=0 and a amplitude reduced to avoid overflow. seems related to normalisation
-				// bug not related to normalisation of a
-				// bug seems in recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
-				
-				
-				
-				// Bug might be normalisation related
-				
-				
-				// Sensors x (y)-axis of the accelerometer is aligned with the y (x)-axis of the magnetometer;
-				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
-				//unsigned long t1,t2;
-				//t1=timer_us_get();
-				/*MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
-														-mpumotiondata.mx,
-														mpumotiondata.mz);*/
-														
-				MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,mpumotiondata.mx,		// Coordinate system now rotated during acquisition
-														mpumotiondata.my,
-														mpumotiondata.mz);
-				//t2=timer_us_get();
-				//printf("%lu\n",t2-t1);
-				//MadgwickAHRSupdate_fixed(gx,gy,gz,ax,ay,az,	0,
-				//										0,
-				//										0);
-				#else
-				float ax,ay,az,gx,gy,gz;
-				
-				// Acc does not need normalisation as it is normalised by Madgwick 
-				/*ax = mpumotiondata.ax*atog;
-				ay = mpumotiondata.ay*atog;
-				az = mpumotiondata.az*atog;*/
-				ax = mpumotiondata.ax;
-				ay = mpumotiondata.ay;
-				az = mpumotiondata.az;
-				gx = mpumotiondata.gx*mpu_gtorps;
-				gy = mpumotiondata.gy*mpu_gtorps;
-				gz = mpumotiondata.gz*mpu_gtorps;				
-				// Sensors x (y)-axis of the accelerometer is aligned with the y (x)-axis of the magnetometer;
-				// the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
-				//unsigned long t1,t2;
-				//t1=timer_us_get();
-				
-				float mx,my,mz;
-				
-				/*mx = -mpumotiondata.my;
-				my = -mpumotiondata.mx;
-				mz = mpumotiondata.mz;*/
-				mx = mpumotiondata.mx;		// Coordinate system now rotated during acquisition
-				my = mpumotiondata.my;
-				mz = mpumotiondata.mz;
-				
-				//printf("Qpre: %f %f %f %f\n",q0,q1,q2,q3);
-				//printf("Param: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,mx,my,mz);
-				//printf("Param2: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,-mpumotiondata.my,-mpumotiondata.mx,mpumotiondata.mz);
-				MadgwickAHRSupdate_float(gx,gy,gz,ax,ay,az,mx,my,mz);
-				//MadgwickAHRSupdate_float(0,0,0,1,0,0,1,0,0);
-				/*testf(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
-														-mpumotiondata.mx,
-														mpumotiondata.mz);*/
-				
-				//testf(gx,gy,gz,ax,ay,az,mx,my,mz);
-				
-				//testf(1,2,3,4,5,6,7,8,9);
-				//printf("Qpost: %f %f %f %f\n",q0,q1,q2,q3);
-				
-				
-				//t2=timer_us_get();
-				//printf("%lu\n",t2-t1);
-				#endif
-			}
-			#endif
+			
 			
 			// Send data to primary stream or to log if available
 			FILE *file_stream;
