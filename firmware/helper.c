@@ -310,7 +310,33 @@ void fract16toa(_Fract a,char *ptr)
 		v=-v;
 	}
 	else
-		c=' ';
+		c='+';
+	
+	u16toa(v,ptr+1);
+	ptr[0]=c;	
+	ptr[1]='.';	
+}
+#endif
+
+/******************************************************************************
+	function: floatqtoa
+*******************************************************************************	
+	Converts a float number lower than 1.0 into a 7-bytes ascii string 
+	(6 for the number + 1 null-terminator).	
+******************************************************************************/
+#ifdef __cplusplus
+void floatqtoa(float a,char *ptr)
+{
+	float k=a*10000.0;	// 4 digits after decimal point
+	signed short v = k;
+	char c;
+	if(v&0x8000)
+	{
+		c='-';
+		v=-v;
+	}
+	else
+		c='+';
 	
 	u16toa(v,ptr+1);
 	ptr[0]=c;	
@@ -320,13 +346,17 @@ void fract16toa(_Fract a,char *ptr)
 /******************************************************************************
 	function: floattoa
 *******************************************************************************	
-	Converts a float number into a 7-bytes ascii string (6 for the number
-	+ 1 null-terminator).	
+	Converts a float number lower than 300.0 into a 8-bytes ascii string 
+	(7 for the number + 1 null-terminator).	
+	
+	E.g.:
+	-327.68
+	
 ******************************************************************************/
 #ifdef __cplusplus
 void floattoa(float a,char *ptr)
 {
-	float k=a*10000.0;	// 4 digits after decimal point
+	float k=a*100.0;	// 2 digits after decimal point
 	signed short v = k;
 	char c;
 	if(v&0x8000)
@@ -339,7 +369,10 @@ void floattoa(float a,char *ptr)
 	
 	u16toa(v,ptr+1);
 	ptr[0]=c;	
-	ptr[1]='.';	
+	ptr[6]=ptr[5];
+	ptr[5]=ptr[4];
+	ptr[4]='.';
+	ptr[7]=0;
 }
 #endif
 
@@ -821,6 +854,8 @@ char *format4fract16(char *strptr,_Fract q0,_Fract q1,_Fract q2,_Fract q3)
 	
 	The function returns a pointer to the first byte after the end of the string.
 	
+	Numbers must be <1.0
+	
 	Parameters:
 		strptr		-		pointer to the buffer that will receive the string
 		q0			-		First number to format
@@ -830,21 +865,21 @@ char *format4fract16(char *strptr,_Fract q0,_Fract q1,_Fract q2,_Fract q3)
 	
 ******************************************************************************/
 #ifdef __cplusplus
-char *format4float(char *strptr,float q0,float q1,float q2,float q3)
+char *format4qfloat(char *strptr,float q0,float q1,float q2,float q3)
 {
-	floattoa(q0,strptr);
+	floatqtoa(q0,strptr);
 	strptr+=6;
 	*strptr=' ';
 	strptr++;
-	floattoa(q1,strptr);
+	floatqtoa(q1,strptr);
 	strptr+=6;
 	*strptr=' ';
 	strptr++;
-	floattoa(q2,strptr);
+	floatqtoa(q2,strptr);
 	strptr+=6;
 	*strptr=' ';
 	strptr++;
-	floattoa(q3,strptr);
+	floatqtoa(q3,strptr);
 	strptr+=6;
 	*strptr=' ';
 	strptr++;
@@ -857,6 +892,8 @@ char *format4float(char *strptr,float q0,float q1,float q2,float q3)
 	Formats 3 float numbers into an ascii string.
 	Numbers are space separated, including a space after the last number, 
 	however the string is not null terminated.
+	
+	Numbers must be <300.
 	
 	The function returns a pointer to the first byte after the end of the string.
 	
@@ -871,15 +908,15 @@ char *format4float(char *strptr,float q0,float q1,float q2,float q3)
 char *format3float(char *strptr,float q0,float q1,float q2)
 {
 	floattoa(q0,strptr);
-	strptr+=6;
+	strptr+=7;
 	*strptr=' ';
 	strptr++;
 	floattoa(q1,strptr);
-	strptr+=6;
+	strptr+=7;
 	*strptr=' ';
 	strptr++;
 	floattoa(q2,strptr);
-	strptr+=6;
+	strptr+=7;
 	*strptr=' ';
 	strptr++;
 	return strptr;

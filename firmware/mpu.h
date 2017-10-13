@@ -335,6 +335,7 @@ void __mpu_copy_spibuf_to_mpumotiondata_2(unsigned char *spibuf,unsigned char *m
 void __mpu_copy_spibuf_to_mpumotiondata_3(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
 extern "C" void __mpu_copy_spibuf_to_mpumotiondata_asm(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
 extern "C" void __mpu_copy_spibuf_to_mpumotiondata_magcor_asm(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
+extern "C" void __mpu_copy_spibuf_to_mpumotiondata_magcor_asm_mathias(unsigned char *spibuf,MPUMOTIONDATA *mpumotiondata);
 
 void mpu_benchmark_isr(void);
 

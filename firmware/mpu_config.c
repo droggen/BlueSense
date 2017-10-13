@@ -54,9 +54,10 @@ const char mc_37[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz"
 const char mc_38[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz";
 const char mc_39[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz Quaternions";
 const char mc_40[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz Quaternions  (broken, do not use)";
-const char mc_41[] PROGMEM = "  100Hz Quaternions";
+const char mc_41[] PROGMEM = "  100Hz Quaternions qw,qx,qy,qz";
 const char mc_42[] PROGMEM = "  200Hz Quaternions (broken, do not use)";
 const char mc_43[] PROGMEM = "  100Hz Tait–Bryan/aerospace/zx'y\", intrinsic (yaw, pitch, roll)";
+const char mc_44[] PROGMEM = "  100Hz Quaternions debug (angle, x,y,z)";
 
 // Reduced set of frequencies for which no sample loss can be guaranteed.
 /*const char mc_0[] PROGMEM = "Motion off";
@@ -141,6 +142,7 @@ PGM_P const mc_options[MOTIONCONFIG_NUM] PROGMEM =
 	mc_41,
 	mc_42,
 	mc_43,
+	mc_44,
 };
 
 
@@ -255,6 +257,8 @@ const char config_sensorsr_settings[MOTIONCONFIG_NUM][11] = {
 					{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     2,		1},		// ODR=200HZ, mag=100HZ, magodr=200/2=100Hz
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
 					{ MPU_MODE_E,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
+					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
+					{ MPU_MODE_QDBG,       1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
 			};
 /******************************************************************************
 	function: mpu_config_motionmode
@@ -300,6 +304,7 @@ void mpu_config_motionmode(unsigned char sensorsr,unsigned char autoread)
 		case MPU_MODE_ACCGYRMAGQ:
 		case MPU_MODE_Q:
 		case MPU_MODE_E:
+		case MPU_MODE_QDBG:
 			// Enable the gyro
 			mpu_mode_accgyro(config_sensorsr_settings[sensorsr][1],config_sensorsr_settings[sensorsr][2],config_sensorsr_settings[sensorsr][3],
 												config_sensorsr_settings[sensorsr][4],config_sensorsr_settings[sensorsr][5],config_sensorsr_settings[sensorsr][6]);

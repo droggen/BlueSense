@@ -42,6 +42,7 @@ void s16toa(signed short v,char *ptr);
 
 void s32toa(signed long v,char *ptr);
 #ifdef __cplusplus
+void floatqtoa(float a,char *ptr);
 void floattoa(float a,char *ptr);
 #endif
 #ifndef __cplusplus
@@ -61,12 +62,14 @@ char *format3s16(char *strptr,signed short x,signed short y,signed short z);
 char *format1u32(char *strptr,unsigned long a);
 char *format1u16(char *strptr,unsigned short a);
 #ifdef __cplusplus
-char *format4float(char *strptr,float q0,float q1,float q2,float q3);
+char *format4qfloat(char *strptr,float q0,float q1,float q2,float q3);
 char *format3float(char *strptr,float q0,float q1,float q2);
 #endif
 #ifndef __cplusplus
 char *format4fract16(char *strptr,float q0,float q1,float q2,float q3);
 #endif
+
+
 
 //unsigned char eeprom_write32(unsigned short address,unsigned long data);
 

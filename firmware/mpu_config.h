@@ -11,6 +11,8 @@
 #define MPU_MODE_BM_M 8
 #define MPU_MODE_BM_Q 16
 #define MPU_MODE_BM_E 32
+#define MPU_MODE_BM_DBG 64
+#define MPU_MODE_BM_QDBG 128
 #define MPU_MODE_GYR 		MPU_MODE_BM_G
 #define MPU_MODE_ACC 		MPU_MODE_BM_A
 #define MPU_MODE_ACCGYR 	(MPU_MODE_BM_A|MPU_MODE_BM_G)
@@ -19,10 +21,11 @@
 #define MPU_MODE_ACCGYRMAGQ (MPU_MODE_BM_A|MPU_MODE_BM_G|MPU_MODE_BM_M|MPU_MODE_BM_Q)
 #define MPU_MODE_Q 			MPU_MODE_BM_Q
 #define MPU_MODE_E 			MPU_MODE_BM_E
+#define MPU_MODE_QDBG		MPU_MODE_BM_QDBG
 
 
 
-#define MOTIONCONFIG_NUM 44
+#define MOTIONCONFIG_NUM 45
 #define MPU_MODE_OFF 								0
 #define MPU_MODE_500HZ_GYRO_BW250					1
 #define MPU_MODE_500HZ_GYRO_BW184					2
@@ -70,6 +73,7 @@
 #define MPU_MODE_100HZ_Q							41
 #define MPU_MODE_200HZ_Q							42
 #define MPU_MODE_100HZ_E							43
+#define MPU_MODE_100HZ_QDBG							44
 
 
 extern PGM_P const mc_options[];

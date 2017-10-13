@@ -182,48 +182,32 @@ unsigned char stream_sample_text(FILE *f)
 			#if FIXEDPOINTQUATERNION==1
 				strptr = format4fract16(strptr,q0,q1,q2,q3);
 			#else
-				strptr = format4float(strptr,q0,q1,q2,q3);
+				strptr = format4qfloat(strptr,q0,q1,q2,q3);
 			#endif
-		#else
-			*strptr='0';
-			strptr++;
-			*strptr=' ';
-			strptr++;
-			*strptr='0';
-			strptr++;
-			*strptr=' ';
-			strptr++;
-			*strptr='0';
-			strptr++;
-			*strptr=' ';
-			strptr++;
-			*strptr='0';
-			strptr++;
-			*strptr=' ';
-			strptr++;
 		#endif
 	}
 	if(sample_mode & MPU_MODE_BM_E)
 	{
-		#if ENABLEQUATERNION==1
-			*strptr = '9';
-			strptr++;
-			*strptr=' ';
-			strptr = format3float(strptr,mpumotiongeometry.yaw,mpumotiongeometry.pitch,mpumotiongeometry.roll);
-		#else
-			*strptr='0';
-			strptr++;
-			*strptr=' ';
-			strptr++;
-			*strptr='0';
-			strptr++;
-			*strptr=' ';
-			strptr++;
-			*strptr='0';
-			strptr++;
-			*strptr=' ';
-			strptr++;
-		#endif
+		strptr = format3float(strptr,mpumotiongeometry.yaw,mpumotiongeometry.pitch,mpumotiongeometry.roll);
+	}
+	if(sample_mode & MPU_MODE_QDBG)
+	{
+		floattoa(mpumotiongeometry.alpha,strptr);
+		strptr+=7;
+		*strptr=' ';
+		strptr++;
+		floatqtoa(mpumotiongeometry.x,strptr);
+		strptr+=6;
+		*strptr=' ';
+		strptr++;
+		floatqtoa(mpumotiongeometry.y,strptr);
+		strptr+=6;
+		*strptr=' ';
+		strptr++;
+		floatqtoa(mpumotiongeometry.z,strptr);
+		strptr+=6;
+		*strptr=' ';
+		strptr++;
 	}
 	*strptr='\n';		
 	strptr++;
@@ -310,6 +294,7 @@ unsigned char stream_sample_bin(FILE *f)
 		packet_add16_little(&p,0);
 		#endif
 	}
+	
 	packet_end(&p);
 	packet_addchecksum_fletcher16_little(&p);
 	int s = packet_size(&p);
