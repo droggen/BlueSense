@@ -46,7 +46,7 @@
 #include "mode.h"
 #include "MadgwickAHRS.h"
 #include "ltc2942.h"
-
+#include "a3d.h"
 
 // Volatile parameter of the mode 
 MODE_SAMPLE_MOTION_PARAM mode_sample_motion_param;
@@ -478,7 +478,7 @@ unsigned char CommandParserMotion(char *buffer,unsigned char size)
 // TODO: each time that a logging starts, stops, or change reset all the statistics and clear the buffers, including resetting the time since running
 void mode_motionstream(void)
 {
-	
+	static short ds=0;
 	unsigned char putbufrv;
 	
 	fprintf_P(file_pri,PSTR("SMPLMOTION>\n"));
@@ -554,8 +554,6 @@ void mode_motionstream(void)
 			mpu_compute_geometry(mpumotiondata,mpumotiongeometry);
 			
 		
-			
-			
 			// Send data to primary stream or to log if available
 			FILE *file_stream;
 			if(mode_sample_file_log)

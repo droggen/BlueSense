@@ -137,6 +137,7 @@ BUG:	Stopeeing logging and quitting motion sampling mode with ! does not write b
 #include "mpu_config.h"
 #include "wait.h"
 #include "mode.h"
+#include "a3d.h"
 
 FILE *file_bt;			// Bluetooth
 FILE *file_usb;			// USB
@@ -594,15 +595,8 @@ int main(void)
 
 	//init_wdt();
 
-	//timer_get_speedtest();
 
-	/*while(1)
-	{
-		unsigned long t=timer_ms_get();
-		printf("%ld\n",t);
-		_delay_ms(25);
-	}
-*/
+
 	
 	mode_main();			// This never returns.
 	

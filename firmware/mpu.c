@@ -291,6 +291,8 @@ void mpu_isr_o(void)	// Non-blocking SPI read triggered by this interrupt
 */
 void mpu_isr(void)	// Blocking SPI read within this interrupt
 {
+	//static signed short mxo=0,myo=0,mzo=0;
+
 	// motionint always called (e.g. WoM)
 	/*if(isr_motionint!=0)
 			isr_motionint();	*/
@@ -355,6 +357,7 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			//__mpu_copy_spibuf_to_mpumotiondata_magcor_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= -my; my<= -mx) (Dan's version)
 			__mpu_copy_spibuf_to_mpumotiondata_magcor_asm_mathias(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= my; my<= mx; mz<=-mz) (Mathias's version)
 			
+			
 			// Alternative to __mpu_copy_spibuf_to_mpumotiondata_magcor_asm: manual change
 			/*signed t = mdata->mx;
 			mdata->mx=-mdata->my;
@@ -378,7 +381,18 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			//mdata->mz=0;
 			
 			
+			// Magnetic filter
 			
+			/*mdata->mx = (mdata->mx+15*mxo)/16;
+			mdata->my = (mdata->my+15*myo)/16;
+			mdata->mz = (mdata->mz+15*mzo)/16;
+			mxo = mdata->mx;
+			myo = mdata->my;
+			mzo = mdata->mz;
+			
+			mdata->ax = 0;
+			mdata->ay = 0;
+			mdata->az = 0;*/
 			
 			
 			mdata->time=timer_ms_get();											// Fill remaining fields

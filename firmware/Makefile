@@ -147,6 +147,7 @@ SRC += ufat.c
 #SRC += MadgwickAHRS_fixed.c
 SRC += MadgwickAHRS_float.c
 SRC += mathfix.c
+SRC += a3d.c
 
 
 

@@ -54,7 +54,7 @@ const char mc_37[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz"
 const char mc_38[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz";
 const char mc_39[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz Quaternions";
 const char mc_40[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz Quaternions  (broken, do not use)";
-const char mc_41[] PROGMEM = "  100Hz Quaternions qw,qx,qy,qz";
+const char mc_41[] PROGMEM = "  100Hz Quaternions Qsg=(qw,qx,qy,qz); rotates vector in earth coords. G into sensor coords. S";
 const char mc_42[] PROGMEM = "  200Hz Quaternions (broken, do not use)";
 const char mc_43[] PROGMEM = "  100Hz Tait–Bryan/aerospace/zx'y\", intrinsic (yaw, pitch, roll)";
 const char mc_44[] PROGMEM = "  100Hz Quaternions debug (angle, x,y,z)";
