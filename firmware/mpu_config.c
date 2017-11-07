@@ -407,3 +407,4 @@ void mpu_printmotionmode(FILE *file)
 		fputc('\n',file);
 	}		
 }
+
