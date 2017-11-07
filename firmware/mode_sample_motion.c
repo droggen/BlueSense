@@ -44,7 +44,6 @@
 #include "ufat.h"
 #include "sd.h"
 #include "mode.h"
-#include "MadgwickAHRS.h"
 #include "ltc2942.h"
 #include "a3d.h"
 
@@ -180,9 +179,9 @@ unsigned char stream_sample_text(FILE *f)
 	{
 		#if ENABLEQUATERNION==1
 			#if FIXEDPOINTQUATERNION==1
-				strptr = format4fract16(strptr,q0,q1,q2,q3);
+				strptr = format4fract16(strptr,mpumotiongeometry.q0,mpumotiongeometry.q1,mpumotiongeometry.q2,mpumotiongeometry.q3);
 			#else
-				strptr = format4qfloat(strptr,q0,q1,q2,q3);
+				strptr = format4qfloat(strptr,mpumotiongeometry.q0,mpumotiongeometry.q1,mpumotiongeometry.q2,mpumotiongeometry.q3);
 			#endif
 		#endif
 	}
@@ -278,13 +277,13 @@ unsigned char stream_sample_bin(FILE *f)
 			#else
 				float k;
 				signed short v;
-				k = q0*10000.0; v = k;
+				k = mpumotiongeometry.q0*10000.0; v = k;
 				packet_add16_little(&p,v);
-				k = q1*10000.0; v = k;
+				k = mpumotiongeometry.q1*10000.0; v = k;
 				packet_add16_little(&p,v);
-				k = q2*10000.0; v = k;
+				k = mpumotiongeometry.q2*10000.0; v = k;
 				packet_add16_little(&p,v);
-				k = q3*10000.0; v = k;
+				k = mpumotiongeometry.q3*10000.0; v = k;
 				packet_add16_little(&p,v);	
 			#endif
 		#else
@@ -478,7 +477,6 @@ unsigned char CommandParserMotion(char *buffer,unsigned char size)
 // TODO: each time that a logging starts, stops, or change reset all the statistics and clear the buffers, including resetting the time since running
 void mode_motionstream(void)
 {
-	static short ds=0;
 	unsigned char putbufrv;
 	
 	fprintf_P(file_pri,PSTR("SMPLMOTION>\n"));
@@ -486,8 +484,7 @@ void mode_motionstream(void)
 	//lcd_clear565(0);
 	//lcd_writestring("Streaming",28,0,2,0x0000,0xffff);	
 
-	// Initialise Madgwick
-	MadgwickAHRSinit();
+	
 
 	// Initialise the sleep mode
 	set_sleep_mode(SLEEP_MODE_IDLE); 
@@ -498,6 +495,9 @@ void mode_motionstream(void)
 
 	stream_start();
 	
+	printf("Sample rate: %u\n",_mpu_samplerate);
+
+	
 	clearstat();
 	
 	//printf("atog: %f\n",atog);
@@ -507,8 +507,7 @@ void mode_motionstream(void)
 	
 	while(1)
 	{
-		sleep_cpu();
-		stat_wakeup++;
+	
 		
 		// Process user commands only if we do not run for a specified duration
 		if(mode_sample_motion_param.duration==0)
@@ -545,39 +544,47 @@ void mode_motionstream(void)
 		
 		// Stream existing data
 		unsigned char l = mpu_data_level();
-		for(unsigned char i=0;i<l;i++)
+		if(!l)
 		{
-			// Get the data from the auto read buffer; if no data available break
-			if(mpu_data_getnext_raw(mpumotiondata))
-				break;
-			
-			mpu_compute_geometry(mpumotiondata,mpumotiongeometry);
-			
-		
-			// Send data to primary stream or to log if available
-			FILE *file_stream;
-			if(mode_sample_file_log)
-				file_stream=mode_sample_file_log;
-			else
-				file_stream=file_pri;
-
-			// Send the samples and check for error
-			putbufrv = stream_sample(file_stream);
-			
-			// Update the statistics in case of errors
-			if(putbufrv)
+			sleep_cpu();
+			stat_wakeup++;
+		}
+		else
+		{
+			for(unsigned char i=0;i<l;i++)
 			{
-				// There was an error in fputbuf: increment the number of samples failed to send.			
-				stat_samplesendfailed++;
-				// Check whether the fputbuf was done on a log file; in which case close the log file.
-				if(file_stream==mode_sample_file_log)
-				{
-					fprintf_P(file_pri,PSTR("Motion mode: log file full or log error\n"));
+				// Get the data from the auto read buffer; if no data available break
+				if(mpu_data_getnext(mpumotiondata,mpumotiongeometry))
 					break;
+				
+				//fprintf(file_pri,"%lu\n",mpu_compute_geometry_time());
+			
+			
+				// Send data to primary stream or to log if available
+				FILE *file_stream;
+				if(mode_sample_file_log)
+					file_stream=mode_sample_file_log;
+				else
+					file_stream=file_pri;
+
+				// Send the samples and check for error
+				putbufrv = stream_sample(file_stream);
+				
+				// Update the statistics in case of errors
+				if(putbufrv)
+				{
+					// There was an error in fputbuf: increment the number of samples failed to send.			
+					stat_samplesendfailed++;
+					// Check whether the fputbuf was done on a log file; in which case close the log file.
+					if(file_stream==mode_sample_file_log)
+					{
+						fprintf_P(file_pri,PSTR("Motion mode: log file full or log error\n"));
+						break;
+					}
 				}
-			}
-			stat_totsample++;
-		} // End iterating sample buffer
+				stat_totsample++;
+			} // End iterating sample buffer
+		}
 		
 		
 		// Stop if batter too low
@@ -617,6 +624,8 @@ void mode_motionstream(void)
 	#endif 	
 	stream_status(file_pri,0);	
 	mpu_printstat(file_pri);
+	
+	fprintf_P(file_pri,PSTR("MPU Geometry time: %lu us\n"),mpu_compute_geometry_time());
 	
 	// Total errors
 	unsigned long cnt_sample_errbusy, cnt_sample_errfull,toterr;

@@ -440,7 +440,12 @@ unsigned char CommandParserOff(char *buffer,unsigned char size)
 	}*/
 	
 	#if (HWVER==6) || (HWVER==7)
-	system_storepoweroffdata();
+	// Get the battery state
+	ltc2942_backgroundgetstate(0);
+	// Wait for the read to occur
+	_delay_ms(100);
+	// Store the power off data
+	system_storepoweroffdata2();
 	// Setup alarm after the specified time
 	ds3232_printreg(file_pri);
 	ds3232_alarm_in(sec);
@@ -701,7 +706,7 @@ unsigned char CommandParserSync(char *buffer,unsigned char size)
 		system_settimefromrtc();
 		return 0;
 	}
-	timer_init(0);
+	timer_init(0,0);
 	return 0;
 }
 unsigned char CommandParserSyncFromRTC(char  *buffer,unsigned char size)

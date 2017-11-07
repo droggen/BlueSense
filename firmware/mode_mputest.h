@@ -28,10 +28,13 @@ unsigned char CommandParserMPUTest_BenchMath(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_AccScale(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_GyroScale(char *buffer,unsigned char size);
 unsigned char CommandParserMPUTest_SetGyroBias(char *buffer,unsigned char size);
+unsigned char CommandParserMPUTest_Kill(char *buffer,unsigned char size);
+unsigned char CommandParserMPUTest_Beta(char *buffer,unsigned char size);
 
 
 void mode_mputest(void);
 
 extern const char help_mt_r[];
+extern const char help_mt_beta[];
 
 #endif

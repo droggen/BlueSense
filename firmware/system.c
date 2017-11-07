@@ -218,6 +218,14 @@ unsigned char system_lifesign2(unsigned char sec)
 	Uses the red LED (led0) to indicate battery level and whether the power-button 
 	is pressed.
 	
+	If the power-button is pressed, the RED led turns on for the first 4 seconds, then 
+	starts blinking until power is cut.
+	
+	Also handles storing battery state during power off.
+	If a long-press on the power button occurs:
+	- at 4 seconds, issues a background read of battery state.
+	- at 4.5 seconds, save battery state.
+	
 	Must be called from a timer callback at 10Hz.
 	
 	If the power button is pressed, turn on the red LED. 
@@ -236,12 +244,13 @@ unsigned char system_lifesign2(unsigned char sec)
 ******************************************************************************/
 unsigned char system_batterystat(unsigned char unused)
 {
-	// Counter counts from 0 to 999 hundredth of seconds and wraps around (10 second period).
+	// Counter counts from 0 to 39 hundredth of seconds and wraps around (10 second period).
 	static unsigned char counter=0;
 	static unsigned char nblinks;
 #if HWVER==7
 	static unsigned char lastpc=0;
 	unsigned char newpc;
+	static unsigned char pressduration=0;
 #endif
 	
 	
@@ -250,6 +259,8 @@ unsigned char system_batterystat(unsigned char unused)
 	// Check if pin has changed state and update LED accordingly
 	if( (newpc^lastpc)&0b00010000)
 	{
+		// pin has changed
+		pressduration=0;			// Reset the press duration
 		// If push button is pressed, turn on the LED, otherwise off.
 		if((newpc&0b00010000)==0)
 		{
@@ -263,9 +274,27 @@ unsigned char system_batterystat(unsigned char unused)
 		lastpc=newpc;
 		counter=9;	// Reset the counter to somewhere after the blinks
 	}
-	// If the push button is pressed, do not do the battery display
+	// If the push button is pressed, do not do the battery display, but increase the press duration counter
 	if((newpc&0b00010000)==0)
+	{
+		pressduration++;
+		if(pressduration==40)
+		{
+			// Issue a background read of the battery state
+			ltc2942_backgroundgetstate(0);
+		}
+		if(pressduration==45)
+		{
+			// Store the battery info
+			system_storepoweroffdata2();
+			
+		}
+		if(pressduration>40 && pressduration<45)
+		{
+			system_led_toggle(0b001);
+		}
 		return 0;
+	}
 #endif
 	
 	if(counter==0)
@@ -500,8 +529,9 @@ void system_settimefromrtc(void)
 	fprintf_P(file_pri,PSTR("Setting time from RTC... "));
 	
 	ds3232_readdatetime_conv_int(1,&h,&m,&s,&day,&month,&year);
-	unsigned long ts = h*3600l+m*60l+s;
-	timer_init(ts);
+	unsigned long epoch_s = (day*24l+h)*3600l+m*60l+s;
+	unsigned long epoch_us = (m*60l+s)*1000l*1000l;
+	timer_init(epoch_s,epoch_us);
 	t1=timer_ms_get();
 	fprintf_P(file_pri,PSTR("done: %02d.%02d.%02d %02d:%02d:%02d = %lu ms\n"),day,month,year,h,m,s,t1);
 
@@ -511,6 +541,9 @@ void system_settimefromrtc(void)
 *******************************************************************************	
 	Store the current power/voltate/date/time to EEPROM. This is used before 
 	powering off the system to compute the power used in off mode.
+	
+	Interrupts:
+		Not suitable for use in interrupts.
 	
 	
 	Parameters:
@@ -530,7 +563,7 @@ void system_storepoweroffdata(void)
 	unsigned long chargectr = ltc2942_getchargectr();
 	unsigned short voltage = ltc2942_getvoltage();
 	
-	//printf("charge: %lu chargectr: %lu voltage: %u\n",charge,chargectr,voltage);
+	printf("charge: %lu chargectr: %lu voltage: %u\n",charge,chargectr,voltage);
 	
 	// Store charge, voltage and time
 	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID,1);
@@ -543,4 +576,33 @@ void system_storepoweroffdata(void)
 	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_MONTH,month);
 	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_YEAR,year);	
 }
+void system_storepoweroffdata2(void)
+{
+	// Get voltage and charge
+	unsigned long charge = ltc2942_last_charge();	
+	unsigned short voltage = ltc2942_last_mV();
+	unsigned long time = ltc2942_last_updatetime();
+	
+	// Store charge, voltage and time
+	eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID,1);
+	eeprom_write_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_CHARGE0,charge);
+	eeprom_write_word((uint16_t*)STATUS_ADDR_OFFCURRENT_VOLTAGE0,voltage);
+	eeprom_write_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_TIME,time);
+	
+}
+void system_loadpoweroffdata2(_POWERUSE_OFF &pu)
+{
+	unsigned long charge;
+	unsigned short voltage;
+	unsigned long time;
+	
+	// Load charge, voltage and time
+	pu.valid = eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID);
+	pu.offcharge = eeprom_read_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_CHARGE0);
+	pu.offvoltage = eeprom_read_word((uint16_t*)STATUS_ADDR_OFFCURRENT_VOLTAGE0);
+	pu.offtime = eeprom_read_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_TIME);
 
+
+	
+	
+}

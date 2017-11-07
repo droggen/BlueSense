@@ -49,5 +49,7 @@ unsigned char *system_getdevicename(void);
 unsigned char system_getrtcint(void);
 void system_settimefromrtc(void);
 void system_storepoweroffdata(void);
+void system_storepoweroffdata2(void);
+void system_loadpoweroffdata2(_POWERUSE_OFF &pu);
 
 #endif

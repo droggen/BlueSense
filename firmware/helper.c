@@ -310,7 +310,7 @@ void fract16toa(_Fract a,char *ptr)
 		v=-v;
 	}
 	else
-		c='+';
+		c=' ';
 	
 	u16toa(v,ptr+1);
 	ptr[0]=c;	
@@ -336,7 +336,7 @@ void floatqtoa(float a,char *ptr)
 		v=-v;
 	}
 	else
-		c='+';
+		c=' ';
 	
 	u16toa(v,ptr+1);
 	ptr[0]=c;	

@@ -19,6 +19,7 @@
 #include "dbg.h"
 #include "helper.h"
 #include "uiconfig.h"
+#include "mpu_geometry.h"
 
 /*
 	File: mpu
@@ -42,6 +43,8 @@
 	
 	* mpu_data_level:			Function indicating how many samples are in the buffer
 	* mpu_data_getnext_raw:		Returns the next data in the buffer (when automatic read is active).
+	* mpu_data_getnext:			Returns the next raw and geometry data (when automatic read is active).
+	
 	
 	In non automatic read, the functions mpu_get_a, mpu_get_g, mpu_get_agt or mpu_get_agmt must be used to acquire the MPU data. These functions can also be called in automatic
 	read, however this is suboptimal and increases CPU load as the data would be acquired in the interrupt routine and 	through this function call.
@@ -194,6 +197,10 @@ unsigned char __mpu_autoread=0;
 
 unsigned char _mpu_current_motionmode=0;
 
+unsigned char _mpu_kill=0;
+unsigned short _mpu_samplerate;
+float _mpu_beta;
+
 // Motion ISR
 void (*isr_motionint)(void) = 0;
 
@@ -291,7 +298,7 @@ void mpu_isr_o(void)	// Non-blocking SPI read triggered by this interrupt
 */
 void mpu_isr(void)	// Blocking SPI read within this interrupt
 {
-	//static signed short mxo=0,myo=0,mzo=0;
+	static signed short mxo=0,myo=0,mzo=0;
 
 	// motionint always called (e.g. WoM)
 	/*if(isr_motionint!=0)
@@ -353,6 +360,8 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			// Pointer to memory structure
 			MPUMOTIONDATA *mdata = &mpu_data[mpu_data_wrptr];
 			
+			mdata->time=timer_ms_get();											
+			
 			//__mpu_copy_spibuf_to_mpumotiondata_asm(spibuf+1,mdata);			// Copy and conver the spi buffer to MPUMOTIONDATA; if this function is used, the correction must be manually done as below.
 			//__mpu_copy_spibuf_to_mpumotiondata_magcor_asm(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= -my; my<= -mx) (Dan's version)
 			__mpu_copy_spibuf_to_mpumotiondata_magcor_asm_mathias(spibuf+1,mdata);		// Copy and conver the spi buffer to MPUMOTIONDATA including changing the magnetic coordinate system (mx <= my; my<= mx; mz<=-mz) (Mathias's version)
@@ -381,21 +390,12 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			//mdata->mz=0;
 			
 			
-			// Magnetic filter
-			
-			/*mdata->mx = (mdata->mx+15*mxo)/16;
-			mdata->my = (mdata->my+15*myo)/16;
-			mdata->mz = (mdata->mz+15*mzo)/16;
-			mxo = mdata->mx;
-			myo = mdata->my;
-			mzo = mdata->mz;
-			
-			mdata->ax = 0;
-			mdata->ay = 0;
-			mdata->az = 0;*/
 			
 			
-			mdata->time=timer_ms_get();											// Fill remaining fields
+		
+		
+			
+			
 			mdata->packetctr=__mpu_data_packetctr_current;
 			
 			// correct the magnetometer
@@ -405,7 +405,33 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			if(_mpu_mag_correctionmode==2)
 				mpu_mag_correct2_inplace(&mdata->mx,&mdata->my,&mdata->mz);								// Call identical regardless of __mpu_copy_spibuf_to_mpumotiondata_asm or __mpu_copy_spibuf_to_mpumotiondata_magcor_asm as calibration routine uses corrected coordinate system.
 						
-						
+
+			// Implement the channel kill
+			if(_mpu_kill&1)
+			{
+				mdata->mx=mdata->my=mdata->mz=0;
+			}
+			if(_mpu_kill&2)
+			{
+				mdata->gx=mdata->gy=mdata->gz=0;
+			}
+			if(_mpu_kill&4)
+			{
+				mdata->ax=mdata->ay=mdata->az=0;
+			}		
+			
+			// Magnetic filter
+			
+			/*mdata->mx = (mdata->mx+7*mxo)/8;
+			mdata->my = (mdata->my+7*myo)/8;
+			mdata->mz = (mdata->mz+7*mzo)/8;
+			mxo = mdata->mx;
+			myo = mdata->my;
+			mzo = mdata->mz;*/
+			
+			
+
+
 			// Next buffer	
 			_mpu_data_wrnext();	
 			
@@ -545,7 +571,23 @@ void __mpu_read_cb(void)
 		mpu_mag_correct1(mdata->my,mdata->mx,mdata->mz,&mdata->my,&mdata->mx,&mdata->mz);		// This call to be used with __mpu_copy_spibuf_to_mpumotiondata_magcor_asm: swap mx and my to ensure the right ASA coefficients are applied
 	if(_mpu_mag_correctionmode==2)
 		mpu_mag_correct2_inplace(&mdata->mx,&mdata->my,&mdata->mz);								// Call identical regardless of __mpu_copy_spibuf_to_mpumotiondata_asm or __mpu_copy_spibuf_to_mpumotiondata_magcor_asm as calibration routine uses corrected coordinate system.
-				
+	
+	// Implement the channel kill
+	if(_mpu_kill&1)
+	{
+		mdata->mx=mdata->my=mdata->mz=0;
+	}
+	if(_mpu_kill&2)
+	{
+		mdata->gx=mdata->gy=mdata->gz=0;
+	}
+	if(_mpu_kill&4)
+	{
+		mdata->ax=mdata->ay=mdata->az=0;
+	}		
+	
+
+			
 	// Next buffer	
 	_mpu_data_wrnext();	
 	
@@ -622,6 +664,43 @@ unsigned char mpu_data_getnext_raw(MPUMOTIONDATA &data)
 		return 0;
 	}
 	return 1;	// To avoid compiler warning
+}
+/******************************************************************************
+	function: mpu_data_getnext
+*******************************************************************************	
+	Returns the next raw and geometry data, when automatic read is active and data
+	is available.
+	This function returns the raw reads and also computes the geometry (e.g. quaternions)
+	from the raw data.
+	
+	This function removes the data from the automatic read buffer and the next call 
+	to this function will return the next available data.
+	
+	If no data is available, the function returns an error.
+	
+	Returns:
+		0	-	Success
+		1	-	Error (no data available in the buffer)
+*******************************************************************************/
+unsigned char mpu_data_getnext(MPUMOTIONDATA &data,MPUMOTIONGEOMETRY &geometry)
+{
+	//return (mpu_data_wrptr-mpu_data_rdptr)&(MPU_MOTIONBUFFERSIZE-1);
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		// Check if buffer is empty
+		if(mpu_data_wrptr==mpu_data_rdptr)
+			return 1;
+		// Copy the data
+		//memcpy((void*)&data,(void*)&mpu_data[mpu_data_rdptr],sizeof(MPUMOTIONDATA));
+		data = *(MPUMOTIONDATA*)&mpu_data[mpu_data_rdptr];
+		//data = mpu_data[mpu_data_rdptr];
+		// Increment the read pointer
+		_mpu_data_rdnext();
+	}
+	// Compute the geometry
+	mpu_compute_geometry(data,geometry);
+	
+	return 0;
 }
 
 
@@ -706,6 +785,9 @@ void mpu_init(void)
 	scale = mpu_LoadGyroScale()&0b11;
 	mpu_setgyroscale(scale);
 	fprintf_P(file_pri,PSTR("%sGyro scale: %d\n"),_str_mpu,scale);
+	// Load beta
+	mpu_LoadBeta();
+	fprintf_P(file_pri,PSTR("%sBeta: %f\n"),_str_mpu,_mpu_beta);
 	// Dump status
 	//system_led_set(0b010); _delay_ms(800);
 	//mpu_printregdesc(file_pri);	
@@ -716,6 +798,8 @@ void mpu_init(void)
 	mpu_clearbuffer();	
 	// Clear statistics
 	mpu_clearstat();
+	// Don't kill any channel
+	_mpu_kill=0;
 }
 
 /******************************************************************************
@@ -1756,7 +1840,7 @@ void mpu_calibrate(void)
 		
 		long totstd = acc_std[0]+acc_std[1]+acc_std[2];
 		acc_totstd[tries]=totstd;
-		printf("(std: %lu)\n",totstd);
+		fprintf_P(file_pri,PSTR("(std: %lu)\n"),totstd);
 	}
 	// Find best
 	long beststd = acc_totstd[0];
@@ -2286,6 +2370,27 @@ unsigned char mpu_LoadGyroScale(void)
 {
 	return eeprom_read_byte((uint8_t*)CONFIG_ADDR_GYRO_SCALE)&0b11;
 }
+void mpu_LoadBeta(void)
+{
+	float beta;
+	unsigned long b = eeprom_read_dword((uint32_t*)CONFIG_ADDR_BETA);
+	if(b==4294967295l)
+	{
+		mpu_StoreBeta(0.35);
+		beta=0.35;
+	}
+	else
+	{
+		beta=*((float*)&b);
+	}
+	_mpu_beta = beta;
+}
+void mpu_StoreBeta(float beta)
+{
+	unsigned long b;	
+	b=*((unsigned long*)&beta);	
+	eeprom_write_dword((uint32_t*)CONFIG_ADDR_BETA,b);	
+}
 
 
 /******************************************************************************
@@ -2759,3 +2864,22 @@ void mpu_benchmark_isr(void)
 	
 	
 }
+
+/******************************************************************************
+	function: mpu_kill
+*******************************************************************************	
+	Kills (i.e. sets to null) the sensors specified by the provided bitmap.
+	
+	Parameters:
+		bitmap		-	3-bit bitmap indicating whether to null acc|gyr|mag (mag is LSB).
+	
+	Returns:
+		-
+	
+*******************************************************************************/
+void mpu_kill(unsigned char bitmap)
+{
+	_mpu_kill = bitmap;
+}
+
+

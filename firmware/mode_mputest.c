@@ -102,14 +102,16 @@ const char help_mt_O[] PROGMEM ="MPU off";
 const char help_mt_P[] PROGMEM ="Poll acc, gyr, magn, temp";
 const char help_mt_A[] PROGMEM ="A[,<mode] Auto acquire (interrupt-driven) test";
 const char help_mt_B[] PROGMEM ="Benchmark overheads of auto acquire";
-const char help_mt_Q[] PROGMEM ="Q[,<bitmap>] Quaternion test; 3-bit bitmap indicates acc|gyr|mag (mag is lsb)";
+//const char help_mt_Q[] PROGMEM ="Q[,<bitmap>] Quaternion test; 3-bit bitmap indicates acc|gyr|mag (mag is lsb)";
 const char help_mt_G[] PROGMEM ="G[,<mode>] User magnetometer correction, or set 0='no correction' 1='correction w/ factory', 2='user correction'; persistent";
-const char help_mt_g[] PROGMEM ="g: get magnetometer calibration mode";
+const char help_mt_g[] PROGMEM ="g: get magnetometer correction mode";
 const char help_mt_t[] PROGMEM ="Magnetic selt test";
 const char help_mt_b[] PROGMEM ="bench math";
 const char help_mt_L[] PROGMEM ="L[,<scale>] read or set the accelerometer full scale; 0=2G, 1=4G, 2=8G, 3=16G; persistent";
 const char help_mt_l[] PROGMEM ="l[,<scale>] read or set the gyroscope full scale; 0=250dps, 1=500dps, 2=1000dps, 3=2000dps; persistent";
 const char help_mt_o[] PROGMEM ="o,<offX>,<offY>,<offZ> Set the gyro bias";
+const char help_mt_k[] PROGMEM ="K,bitmap: 3-bit bitmap indicating whether to null acc|gyr|mag (not persistent)";
+const char help_mt_beta[] PROGMEM ="b[,betax100]: gets or sets the beta correction gain for the orientation sensing; suggested: 35 for b=0.035 (persistent)";
 
 
 
@@ -122,6 +124,7 @@ const COMMANDPARSER CommandParsersMPUTest[] =
 	{'G', CommandParserMPUTest_MagneticCalib,help_mt_G},
 	{'g', CommandParserMPUTest_GetMagneticCalib,help_mt_g},
 	{'B', CommandParserMPUTest_Bench,help_mt_B},
+	{'b', CommandParserMPUTest_Beta,help_mt_beta},
 	// Test/debug
 	{'C', CommandParserMPUTest_Calibrate,help_mt_C},
 	{'c', CommandParserMPUTest_CalibrationData,help_mt_c},
@@ -139,8 +142,9 @@ const COMMANDPARSER CommandParsersMPUTest[] =
 	{'E', CommandParserMPUTest_External,help_mt_E},
 	{'W', CommandParserMPUTest_Shadow,help_mt_W},
 	{'O', CommandParserMPUTest_Off,help_mt_O},
-	{'Q', CommandParserMPUTest_Quaternion,help_mt_Q},	
+	//{'Q', CommandParserMPUTest_Quaternion,help_mt_Q},	
 	{'t', CommandParserMPUTest_MagneticSelfTest,help_mt_t},
+	{'K', CommandParserMPUTest_Kill,help_mt_k},
 	//{'b', CommandParserMPUTest_BenchMath,help_mt_b},
 	// Quit
 	{'!', CommandParserQuit,help_quit}
@@ -670,6 +674,7 @@ unsigned long perfbench_withreadout(unsigned long mintime)
 	unsigned long int ctr,cps;
 	//const unsigned long int mintime=1000;
 	MPUMOTIONDATA mpumotiondata;
+	MPUMOTIONGEOMETRY mpugeometry;
 		
 	ctr=0;
 	
@@ -688,7 +693,7 @@ unsigned long perfbench_withreadout(unsigned long mintime)
 		for(unsigned char i=0;i<l;i++)
 		{
 			// Get the data from the auto read buffer; if no data available break
-			if(mpu_data_getnext_raw(mpumotiondata))
+			if(mpu_data_getnext(mpumotiondata,mpugeometry))
 				break;
 			//_mpu_data_rdnext();
 		}		
@@ -739,7 +744,9 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 		MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_100,
 		MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,
 		MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100,
-		MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100
+		MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100,
+		MPU_MODE_500HZ_ACC_BW92_GYRO_BW92_MAG_8_Q,
+		MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8_Q,
 		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100_Q
 		};
 
@@ -943,6 +950,7 @@ void __mputest_bench_cb(void)
 *******************************************************************************
 	
 ******************************************************************************/
+/*
 #if FIXEDPOINTFILTER==0
 unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 {
@@ -972,15 +980,12 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 	printf("Starting loop\n");
 	
 	// Initialise Madgwick
-	MadgwickAHRSinit();
+	MadgwickAHRSinit(100,.4,0);
 	
 	//t1 = timer_ms_get();
 	//while(timer_ms_get()-t1<2000)
 	while(1)
 	{
-		/*while(CommandProcess(CommandParsersMPUTest,CommandParsersMPUTestNum));		
-		if(CommandShouldQuit())
-			break;*/
 		if( fgetc(file_pri) != -1)
 			break;
 	
@@ -993,9 +998,6 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 				
 			unsigned long tt1,tt2;
 			tt1 = timer_us_get();
-			/*ax = (float)mpu_data_ax[mpu_data_rdptr]/16384.;
-			ay = (float)mpu_data_ay[mpu_data_rdptr]/16384.;
-			az = (float)mpu_data_az[mpu_data_rdptr]/16384.;*/
 			ax = (float)mpumotiondata.ax;
 			ay = (float)mpumotiondata.ay;
 			az = (float)mpumotiondata.az;
@@ -1043,6 +1045,8 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 	return 0;
 }
 #endif
+*/
+/*
 #if FIXEDPOINTFILTER==1
 unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 {
@@ -1062,23 +1066,7 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 	mode=mode&0x07;
 	
 	
-	/*ax=1.1;
-	ay=0.8;
-	az=-.1;
-	gx=.2;
-	gy=.9;
-	gz=-2;
-	mx=2;
-	my=-3;
-	mz=4;
 	
-	t1 = timer_ms_get();
-	for(unsigned i=0;i<1000;i++)
-	{
-		MadgwickAHRSupdate(gx,gy,gz,ax,ay,az,mx,my,mz);
-	}
-	t2 = timer_ms_get();
-	printf("Time for 1000: %ld ms\n",t2-t1);*/
 	
 	// Enable sampling
 	mpu_config_motionmode(MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100,1);
@@ -1097,9 +1085,6 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 	//while(timer_ms_get()-t1<2000)
 	while(1)
 	{
-		/*while(CommandProcess(CommandParsersMPUTest,CommandParsersMPUTestNum));		
-		if(CommandShouldQuit())
-			break;*/
 		if( fgetc(file_pri) != -1)
 			break;
 	
@@ -1111,15 +1096,9 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 			ax = mpu_data_ax[mpu_data_rdptr]*atog;
 			ay = mpu_data_ay[mpu_data_rdptr]*atog;
 			az = mpu_data_az[mpu_data_rdptr]*atog;
-			/*ax = mpu_data_ax[mpu_data_rdptr];
-			ay = mpu_data_ay[mpu_data_rdptr];
-			az = mpu_data_az[mpu_data_rdptr];*/
 			gx = mpu_data_gx[mpu_data_rdptr]*gtor;
 			gy = mpu_data_gy[mpu_data_rdptr]*gtor;
 			gz = mpu_data_gz[mpu_data_rdptr]*gtor;			
-			/*mx = mpu_data_mx[mpu_data_rdptr];
-			my = mpu_data_my[mpu_data_rdptr];
-			mz = mpu_data_mz[mpu_data_rdptr];*/
 			//mx=my=mz=0;
 			
 			if(!(mode&0b100))
@@ -1166,6 +1145,7 @@ unsigned char CommandParserMPUTest_Quaternion(char *buffer,unsigned char size)
 	return 0;
 }
 #endif
+*/
 
 unsigned char CommandParserMPUTest_MagneticCalib(char *buffer,unsigned char size)
 {
@@ -1744,6 +1724,41 @@ unsigned char CommandParserMPUTest_BenchMath(char *buffer,unsigned char size)
 	
 	return 0;
 	
+}
+
+unsigned char CommandParserMPUTest_Kill(char *buffer,unsigned char size)
+{
+	unsigned char rv;
+	int bitmap;
+	
+	rv = ParseCommaGetInt((char*)buffer,1,&bitmap);
+	if(rv==0)
+	{
+		bitmap&=0b111;
+		mpu_kill(bitmap);
+		return 0;
+	}
+	return 0;
+}
+
+
+
+unsigned char CommandParserMPUTest_Beta(char *buffer,unsigned char size)
+{
+	unsigned char rv;
+	int b;
+	
+	rv = ParseCommaGetInt((char*)buffer,1,&b);
+	if(rv==0)
+	{
+		float beta = b/100.0;
+		
+		mpu_StoreBeta(beta);
+		mpu_LoadBeta();
+	}
+	
+	fprintf_P(file_pri,PSTR("Beta: %f\n"),_mpu_beta);
+	return 0;
 }
 
 /******************************************************************************

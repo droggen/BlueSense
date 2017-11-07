@@ -12,6 +12,16 @@
 // 2016			D. Roggen		Code size optimisation
 //=====================================================================================================
 
+/*
+	Madgwick's algorithm consider the following cases only:
+	
+	Acc!=0; Mag==0		Use Gyro, Acc
+	Acc==0; Mag==0		Use Gyro
+	Acc!=0; Mag!=0;		Use Gyro, Acc, Mag
+	Acc==0; Mag!=0		Use Gyro
+	
+*/
+
 //---------------------------------------------------------------------------------------------------
 // Header files
 
@@ -28,20 +38,29 @@
 // Definitions
 
 //#define sampleFreq	512.0f		// sample frequency in Hz
-#define sampleFreq	100.0f		// sample frequency in Hz
+//#define sampleFreq	100.0f		// sample frequency in Hz
 
 // 0.1 too slow
 //#define betaDef		0.1f		// 2 * proportional gain
 //#define betaDef		1.1f		// 2 * proportional gain		// dan - too much
-#define betaDef		0.4f		// 2 * proportional gain		// dan 
+//#define betaDef		0.4f		// 2 * proportional gain		// dan - default
+//#define betaDef		1.0f		// 2 * proportional gain		// dan -tryouts
+//float betaDef;
 
 
 
 //---------------------------------------------------------------------------------------------------
 // Variable definitions
-float invSampleFreq = 1.0/sampleFreq;
-volatile float beta = betaDef;								// 2 * proportional gain (Kp)
-volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;	// quaternion of sensor frame relative to auxiliary frame
+//float invSampleFreq = 1.0/sampleFreq;
+float invSampleFreq;
+//volatile float beta = betaDef;								// 2 * proportional gain (Kp)
+float beta;								// 2 * proportional gain (Kp)
+float _mpu_q0 = 1.0f, _mpu_q1 = 0.0f, _mpu_q2 = 0.0f, _mpu_q3 = 0.0f;	// quaternion of sensor frame relative to auxiliary frame
+unsigned char corrds;
+unsigned char corrdsctr;
+
+float mxo,myo,mzo;
+float axo,ayo,azo;
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -51,12 +70,20 @@ float invSqrtf(float x);
 //====================================================================================================
 // Functions
 
-void MadgwickAHRSinit(void)
+void MadgwickAHRSinit(float sampleFreq,float _beta,unsigned char _corrds)
 {
-	q0 = 1.0f; 
-	q1 = 0.0f;
-	q2 = 0.0f;
-	q3 = 0.0f;
+	invSampleFreq = 1.0/sampleFreq;
+	beta = _beta;
+	corrds = _corrds;
+	corrdsctr=0;
+	
+	_mpu_q0 = 1.0f; 
+	_mpu_q1 = 0.0f;
+	_mpu_q2 = 0.0f;
+	_mpu_q3 = 0.0f;
+	
+	mxo=myo=mzo=0;
+	axo=ayo=azo=0;
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -73,125 +100,169 @@ void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, 
 	float hx, hy;
 	float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
 	float _4q0, _4q1, _4q2 ,_8q1, _8q2;
-
-	//printf("Madgqpre: %f %f %f %f\n",q0,q1,q2,q3);	
+	
+	
+	
+	//printf("Madgqpre: %f %f %f %f\n",_mpu_q0,_mpu_q1,_mpu_q2,_mpu_q3);	
 	//printf("MadgParam: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,mx,my,mz);
 	
 	// Rate of change of quaternion from gyroscope
-	qDot1 = 0.5f * (-q1 * gx - q2 * gy - q3 * gz);
-	qDot2 = 0.5f * (q0 * gx + q2 * gz - q3 * gy);
-	qDot3 = 0.5f * (q0 * gy - q1 * gz + q3 * gx);
-	qDot4 = 0.5f * (q0 * gz + q1 * gy - q2 * gx);
+	qDot1 = 0.5f * (-_mpu_q1 * gx - _mpu_q2 * gy - _mpu_q3 * gz);
+	qDot2 = 0.5f * (_mpu_q0 * gx + _mpu_q2 * gz - _mpu_q3 * gy);
+	qDot3 = 0.5f * (_mpu_q0 * gy - _mpu_q1 * gz + _mpu_q3 * gx);
+	qDot4 = 0.5f * (_mpu_q0 * gz + _mpu_q1 * gy - _mpu_q2 * gx);
 
 
-	// Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
-	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+	//printf("I");
 
-		// Normalise accelerometer measurement
-		//printf("A");
-		recipNorm = invSqrtf(ax * ax + ay * ay + az * az);
-		ax *= recipNorm;
-		ay *= recipNorm;
-		az *= recipNorm;   
-
-		// Auxiliary variables to avoid repeated arithmetic
-		_2q0 = 2.0f * q0;
-		_2q1 = 2.0f * q1;
-		_2q2 = 2.0f * q2;
-		_2q3 = 2.0f * q3;
-		q0q0 = q0 * q0;
-		q1q1 = q1 * q1;
-		q2q2 = q2 * q2;
-		q3q3 = q3 * q3;
-		
-		if(!((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)))
-		{
-			// mag is non null
-			
-			// Normalise magnetometer measurement
-			//printf("B");
-			recipNorm = invSqrtf(mx * mx + my * my + mz * mz);
-			mx *= recipNorm;
-			my *= recipNorm;
-			mz *= recipNorm;
-
-			// Auxiliary variables to avoid repeated arithmetic
-			_2q0mx = 2.0f * q0 * mx;
-			_2q0my = 2.0f * q0 * my;
-			_2q0mz = 2.0f * q0 * mz;
-			_2q1mx = 2.0f * q1 * mx;
-			_2q0q2 = 2.0f * q0 * q2;
-			_2q2q3 = 2.0f * q2 * q3;
-			q0q1 = q0 * q1;
-			q0q2 = q0 * q2;
-			q0q3 = q0 * q3;
-			q1q2 = q1 * q2;
-			q1q3 = q1 * q3;
-			q2q3 = q2 * q3;
-			
-
-			// Reference direction of Earth's magnetic field
-			hx = mx * q0q0 - _2q0my * q3 + _2q0mz * q2 + mx * q1q1 + _2q1 * my * q2 + _2q1 * mz * q3 - mx * q2q2 - mx * q3q3;
-			hy = _2q0mx * q3 + my * q0q0 - _2q0mz * q1 + _2q1mx * q2 - my * q1q1 + my * q2q2 + _2q2 * mz * q3 - my * q3q3;
-			_2bx = sqrt(hx * hx + hy * hy);
-			_2bz = -_2q0mx * q2 + _2q0my * q1 + mz * q0q0 + _2q1mx * q3 - mz * q1q1 + _2q2 * my * q3 - mz * q2q2 + mz * q3q3;
-			_4bx = 2.0f * _2bx;
-			_4bz = 2.0f * _2bz;
-
-			// Gradient decent algorithm corrective step
-			s0 = -_2q2 * (2.0f * q1q3 - _2q0q2 - ax) + _2q1 * (2.0f * q0q1 + _2q2q3 - ay) - _2bz * q2 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * q3 + _2bz * q1) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * q2 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
-			s1 = _2q3 * (2.0f * q1q3 - _2q0q2 - ax) + _2q0 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * q1 * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + _2bz * q3 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * q2 + _2bz * q0) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * q3 - _4bz * q1) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
-			s2 = -_2q0 * (2.0f * q1q3 - _2q0q2 - ax) + _2q3 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * q2 * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + (-_4bx * q2 - _2bz * q0) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * q1 + _2bz * q3) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * q0 - _4bz * q2) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
-			s3 = _2q1 * (2.0f * q1q3 - _2q0q2 - ax) + _2q2 * (2.0f * q0q1 + _2q2q3 - ay) + (-_4bx * q3 + _2bz * q1) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * q0 + _2bz * q2) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * q1 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
-		} 
-		else
-		{
-			// mag is null
-			// Auxiliary variables to avoid repeated arithmetic
-			_4q0 = 4.0f * q0;
-			_4q1 = 4.0f * q1;
-			_4q2 = 4.0f * q2;
-			_8q1 = 8.0f * q1;
-			_8q2 = 8.0f * q2;
-
-			// Gradient decent algorithm corrective step
-			s0 = _4q0 * q2q2 + _2q2 * ax + _4q0 * q1q1 - _2q1 * ay;
-			s1 = _4q1 * q3q3 - _2q3 * ax + 4.0f * q0q0 * q1 - _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 + _4q1 * az;
-			s2 = 4.0f * q0q0 * q2 + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az;
-			s3 = 4.0f * q1q1 * q3 - _2q1 * ax + 4.0f * q2q2 * q3 - _2q2 * ay;
-		}
+	// Downsampling of correction
+	corrdsctr++;
+	if(corrdsctr>corrds)
+	{
+		corrdsctr=0;
 		//printf("C");
-		recipNorm = invSqrtf(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
-		s0 *= recipNorm;
-		s1 *= recipNorm;
-		s2 *= recipNorm;
-		s3 *= recipNorm;
+		// Compute feedback only if accelerometer mxeasurement valid (avoids NaN in accelerometer normalisation)
+		if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
 
-		// Apply feedback step
-		qDot1 -= beta * s0;
-		qDot2 -= beta * s1;
-		qDot3 -= beta * s2;
-		qDot4 -= beta * s3;
-		
-		
-		
-	}
+			// Filter
+			/*
+			if(0)
+			{
+				ax=axo=(3.0*axo+ax)/4.0;
+				ay=ayo=(3.0*ayo+ay)/4.0;
+				az=azo=(3.0*azo+az)/4.0;
+			}
+			*/
+
+			// Normalise accelerometer measurement
+			//printf("A");
+			recipNorm = invSqrtf(ax * ax + ay * ay + az * az);
+			ax *= recipNorm;
+			ay *= recipNorm;
+			az *= recipNorm;   
+
+			// Auxiliary variables to avoid repeated arithmetic
+			_2q0 = 2.0f * _mpu_q0;
+			_2q1 = 2.0f * _mpu_q1;
+			_2q2 = 2.0f * _mpu_q2;
+			_2q3 = 2.0f * _mpu_q3;
+			q0q0 = _mpu_q0 * _mpu_q0;
+			q1q1 = _mpu_q1 * _mpu_q1;
+			q2q2 = _mpu_q2 * _mpu_q2;
+			q3q3 = _mpu_q3 * _mpu_q3;
+			
+			if(!((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)))
+			{
+				// mag is non null
+				
+				// Filter. 
+				/*
+				//Magnetic field is noisy, but filtering has side effects.
+				if(0)
+				{
+					mx=mxo=(31.0*mxo+mx)/32.0;
+					my=myo=(31.0*myo+my)/32.0;
+					mz=mzo=(31.0*mzo+mz)/32.0;
+				}
+				*/
+				
+				// Normalise magnetometer measurement
+				//printf("B");
+				recipNorm = invSqrtf(mx * mx + my * my + mz * mz);
+				//printf("%f \n",recipNorm);
+				mx *= recipNorm;
+				my *= recipNorm;
+				mz *= recipNorm;
+
+				// Auxiliary variables to avoid repeated arithmetic
+				_2q0mx = 2.0f * _mpu_q0 * mx;
+				_2q0my = 2.0f * _mpu_q0 * my;
+				_2q0mz = 2.0f * _mpu_q0 * mz;
+				_2q1mx = 2.0f * _mpu_q1 * mx;
+				_2q0q2 = 2.0f * _mpu_q0 * _mpu_q2;
+				_2q2q3 = 2.0f * _mpu_q2 * _mpu_q3;
+				q0q1 = _mpu_q0 * _mpu_q1;
+				q0q2 = _mpu_q0 * _mpu_q2;
+				q0q3 = _mpu_q0 * _mpu_q3;
+				q1q2 = _mpu_q1 * _mpu_q2;
+				q1q3 = _mpu_q1 * _mpu_q3;
+				q2q3 = _mpu_q2 * _mpu_q3;
+				
+
+				// Reference direction of Earth's magnetic field
+				hx = mx * q0q0 - _2q0my * _mpu_q3 + _2q0mz * _mpu_q2 + mx * q1q1 + _2q1 * my * _mpu_q2 + _2q1 * mz * _mpu_q3 - mx * q2q2 - mx * q3q3;
+				hy = _2q0mx * _mpu_q3 + my * q0q0 - _2q0mz * _mpu_q1 + _2q1mx * _mpu_q2 - my * q1q1 + my * q2q2 + _2q2 * mz * _mpu_q3 - my * q3q3;
+				_2bx = sqrt(hx * hx + hy * hy);
+				_2bz = -_2q0mx * _mpu_q2 + _2q0my * _mpu_q1 + mz * q0q0 + _2q1mx * _mpu_q3 - mz * q1q1 + _2q2 * my * _mpu_q3 - mz * q2q2 + mz * q3q3;
+				_4bx = 2.0f * _2bx;
+				_4bz = 2.0f * _2bz;
+
+				// Gradient decent algorithm corrective step
+				s0 = -_2q2 * (2.0f * q1q3 - _2q0q2 - ax) + _2q1 * (2.0f * q0q1 + _2q2q3 - ay) - _2bz * _mpu_q2 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * _mpu_q3 + _2bz * _mpu_q1) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * _mpu_q2 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+				s1 = _2q3 * (2.0f * q1q3 - _2q0q2 - ax) + _2q0 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * _mpu_q1 * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + _2bz * _mpu_q3 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * _mpu_q2 + _2bz * _mpu_q0) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * _mpu_q3 - _4bz * _mpu_q1) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+				s2 = -_2q0 * (2.0f * q1q3 - _2q0q2 - ax) + _2q3 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * _mpu_q2 * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + (-_4bx * _mpu_q2 - _2bz * _mpu_q0) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * _mpu_q1 + _2bz * _mpu_q3) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * _mpu_q0 - _4bz * _mpu_q2) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+				s3 = _2q1 * (2.0f * q1q3 - _2q0q2 - ax) + _2q2 * (2.0f * q0q1 + _2q2q3 - ay) + (-_4bx * _mpu_q3 + _2bz * _mpu_q1) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * _mpu_q0 + _2bz * _mpu_q2) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * _mpu_q1 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+			} 
+			else
+			{
+				// mag is null
+				// Auxiliary variables to avoid repeated arithmetic
+				_4q0 = 4.0f * _mpu_q0;
+				_4q1 = 4.0f * _mpu_q1;
+				_4q2 = 4.0f * _mpu_q2;
+				_8q1 = 8.0f * _mpu_q1;
+				_8q2 = 8.0f * _mpu_q2;
+
+				// Gradient decent algorithm corrective step
+				s0 = _4q0 * q2q2 + _2q2 * ax + _4q0 * q1q1 - _2q1 * ay;
+				s1 = _4q1 * q3q3 - _2q3 * ax + 4.0f * q0q0 * _mpu_q1 - _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 + _4q1 * az;
+				s2 = 4.0f * q0q0 * _mpu_q2 + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az;
+				s3 = 4.0f * q1q1 * _mpu_q3 - _2q1 * ax + 4.0f * q2q2 * _mpu_q3 - _2q2 * ay;
+			}
+			//printf("C");
+			recipNorm = invSqrtf(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
+			//printf("%f \n",recipNorm);
+			//printf("%f %f %f %f  %f\n",s0,s1,s2,s3,recipNorm);
+			
+			// Numerical instability with very small values of ||s|| -> limit correction.
+			if(recipNorm>4)
+				recipNorm=4;
+			s0 *= recipNorm;
+			s1 *= recipNorm;
+			s2 *= recipNorm;
+			s3 *= recipNorm;
+
+			// Apply feedback step
+			/*qDot1 -= beta * s0;
+			qDot2 -= beta * s1;
+			qDot3 -= beta * s2;
+			qDot4 -= beta * s3;*/
+			
+			qDot1 -= beta * s0*(corrds+1);
+			qDot2 -= beta * s1*(corrds+1);
+			qDot3 -= beta * s2*(corrds+1);
+			qDot4 -= beta * s3*(corrds+1);
+			
+			
+			
+		}
+	}	// Downsampling of correction
 
 	// Integrate rate of change of quaternion to yield quaternion
-	q0 += qDot1 * invSampleFreq;
-	q1 += qDot2 * invSampleFreq;
-	q2 += qDot3 * invSampleFreq;
-	q3 += qDot4 * invSampleFreq;
+	_mpu_q0 += qDot1 * invSampleFreq;
+	_mpu_q1 += qDot2 * invSampleFreq;
+	_mpu_q2 += qDot3 * invSampleFreq;
+	_mpu_q3 += qDot4 * invSampleFreq;
 
 	// Normalise quaternion
 	//printf("D");
-	recipNorm = invSqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-	q0 *= recipNorm;
-	q1 *= recipNorm;
-	q2 *= recipNorm;
-	q3 *= recipNorm;
+	recipNorm = invSqrtf(_mpu_q0 * _mpu_q0 + _mpu_q1 * _mpu_q1 + _mpu_q2 * _mpu_q2 + _mpu_q3 * _mpu_q3);
+	_mpu_q0 *= recipNorm;
+	_mpu_q1 *= recipNorm;
+	_mpu_q2 *= recipNorm;
+	_mpu_q3 *= recipNorm;
 	
-	//printf("Madgqpost: %f %f %f %f\n",q0,q1,q2,q3);
+	//printf("Madgqpost: %f %f %f %f\n",_mpu_q0,_mpu_q1,_mpu_q2,_mpu_q3);
 }
 
 
@@ -211,7 +282,7 @@ float invSqrtf(float x) {
 	i = 0x5f3759df - (i>>1);
 	y = *(float*)&i;
 	y = y * (1.5f - (halfx * y * y));
-	
+
 	
 	
 	//float y = 1.0/sqrt(x);     // No need to save computation here

@@ -53,6 +53,7 @@ typedef struct {
 	unsigned char onh,onm,ons,onday,onmonth,onyear;
 	unsigned long offcharge,oncharge;
 	unsigned short offvoltage,onvoltage;
+	unsigned long offtime,ontime;
 	char str[5][64];
 } _POWERUSE_OFF;
 extern _POWERUSE_OFF _poweruse_off;
@@ -112,6 +113,10 @@ extern unsigned char system_devname[];
 #define STATUS_ADDR_OFFCURRENT_DAY 513
 #define STATUS_ADDR_OFFCURRENT_MONTH 514
 #define STATUS_ADDR_OFFCURRENT_YEAR 515
+#define STATUS_ADDR_OFFCURRENT_TIME 516
+#define STATUS_ADDR_OFFCURRENT_TIME_1 517
+#define STATUS_ADDR_OFFCURRENT_TIME_2 518
+#define STATUS_ADDR_OFFCURRENT_TIME_3 519
 
 // MPU related settings - MPU requires ~50 bytes of non-volatile storage
 #define CONFIG_ADDR_MPU_SETTINGS 600

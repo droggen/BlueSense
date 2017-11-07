@@ -3,7 +3,19 @@
 #include "mpu_config.h"
 #include "mpu_geometry.h"
 #include "MadgwickAHRS.h"
+#include "wait.h"
 #include "main.h"
+
+#define MPU_GEOMETRY_BENCH	1
+
+#if MPU_GEOMETRY_BENCH==1
+unsigned long _mpu_quat_time=0;
+#endif
+
+
+
+
+
 
 float rad_to_deg(float rad)
 {
@@ -23,17 +35,18 @@ float rad_to_deg(float rad)
 */
 void mpu_quaternion_to_aerospace(float &yaw,float &pitch, float &roll)
 {
-	yaw=rad_to_deg(atan2((-2*q1*q2+2*q0*q3),(1-2*q1*q1-2*q3*q3)));
+	yaw=rad_to_deg(atan2((-2*_mpu_q1*_mpu_q2+2*_mpu_q0*_mpu_q3),(1-2*_mpu_q1*_mpu_q1-2*_mpu_q3*_mpu_q3)));
 	
 
-	pitch = rad_to_deg(asin(2*q2*q3+2*q0*q1));
+	pitch = rad_to_deg(asin(2*_mpu_q2*_mpu_q3+2*_mpu_q0*_mpu_q1));
 	
-	roll = rad_to_deg(atan2((-2*q1*q3+2*q0*q2),(1-2*q1*q1-2*q2*q2)));
+	roll = rad_to_deg(atan2((-2*_mpu_q1*_mpu_q3+2*_mpu_q0*_mpu_q2),(1-2*_mpu_q1*_mpu_q1-2*_mpu_q2*_mpu_q2)));
 }
 
 void mpu_compute_geometry(MPUMOTIONDATA &mpumotiondata,MPUMOTIONGEOMETRY &mpumotiongeometry)
 {
 	// Compute the quaternions if in a quaternion mode
+	
 	
 	if(sample_mode==MPU_MODE_ACCGYRMAGQ || sample_mode==MPU_MODE_Q || sample_mode==MPU_MODE_E || sample_mode==MPU_MODE_QDBG)
 	{
@@ -122,11 +135,26 @@ void mpu_compute_geometry(MPUMOTIONDATA &mpumotiondata,MPUMOTIONGEOMETRY &mpumot
 			my = mpumotiondata.my;
 			mz = mpumotiondata.mz;
 			
-			//printf("Qpre: %f %f %f %f\n",q0,q1,q2,q3);
+			//printf("Qpre: %f %f %f %f\n",_mpu_q0,_mpu_q1,_mpu_q2,_mpu_q3);
 			//printf("Param: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,mx,my,mz);
 			//printf("Param2: %f %f %f  %f %f %f  %f %f %f\n",gx,gy,gz,ax,ay,az,-mpumotiondata.my,-mpumotiondata.mx,mpumotiondata.mz);
-			// Gives: q0=w, q1=x,q2=y,q3=z
+			// Gives: _mpu_q0=w, _mpu_q1=x,_mpu_q2=y,_mpu_q3=z
+			#if MPU_GEOMETRY_BENCH==1
+			unsigned long t1=timer_us_get();
+			#endif
 			MadgwickAHRSupdate_float(gx,gy,gz,ax,ay,az,mx,my,mz);
+			#if MPU_GEOMETRY_BENCH==1
+			unsigned long t2=timer_us_get();
+			_mpu_quat_time = (_mpu_quat_time*31+(t2-t1))/32;
+			#endif
+			
+			mpumotiongeometry.q0 = _mpu_q0;
+			mpumotiongeometry.q1 = _mpu_q1;
+			mpumotiongeometry.q2 = _mpu_q2;
+			mpumotiongeometry.q3 = _mpu_q3;
+			
+			
+			
 			//MadgwickAHRSupdate_float(0,0,0,1,0,0,1,0,0);
 			/*testf(gx,gy,gz,ax,ay,az,	-mpumotiondata.my,
 													-mpumotiondata.mx,
@@ -135,14 +163,14 @@ void mpu_compute_geometry(MPUMOTIONDATA &mpumotiondata,MPUMOTIONGEOMETRY &mpumot
 			//testf(gx,gy,gz,ax,ay,az,mx,my,mz);
 			
 			//testf(1,2,3,4,5,6,7,8,9);
-			//printf("Qpost: %f %f %f %f\n",q0,q1,q2,q3);
+			//printf("Qpost: %f %f %f %f\n",_mpu_q0,_mpu_q1,_mpu_q2,_mpu_q3);
 			
 			
 			//t2=timer_us_get();
 			//printf("%lu\n",t2-t1);
 			#endif
 		#else
-			q0=q1=q2=q3=0;
+			_mpu_q0=_mpu_q1=_mpu_q2=_mpu_q3=0;
 		#endif
 	}
 	
@@ -157,26 +185,34 @@ void mpu_compute_geometry(MPUMOTIONDATA &mpumotiondata,MPUMOTIONGEOMETRY &mpumot
 		mpumotiongeometry.yaw=mpumotiongeometry.pitch=mpumotiongeometry.roll=0;
 		#endif
 		
-		//fprintf(file_pri,"%f %f %f %f:  yaw: %f pitch %f roll: %f\n",q0,q1,q2,q3,yaw,pitch,t2);
+		//fprintf(file_pri,"%f %f %f %f:  yaw: %f pitch %f roll: %f\n",_mpu_q0,_mpu_q1,_mpu_q2,_mpu_q3,yaw,pitch,t2);
 		//fprintf(file_pri,"yaw: %f pitch %f roll: %f\n",mpumotiongeometry.yaw,mpumotiongeometry.pitch,mpumotiongeometry.roll);
 	}
 	if(sample_mode==MPU_MODE_QDBG)
 	{
 		#if ENABLEQUATERNION==1
 		
-		float a2=acos(q0);
+		float a2=acos(_mpu_q0);
 		mpumotiongeometry.alpha=rad_to_deg(2*a2);
 		float a2s = sin(a2);
-		mpumotiongeometry.x = q1/a2s;
-		mpumotiongeometry.y = q2/a2s;
-		mpumotiongeometry.z = q3/a2s;
+		mpumotiongeometry.x = _mpu_q1/a2s;
+		mpumotiongeometry.y = _mpu_q2/a2s;
+		mpumotiongeometry.z = _mpu_q3/a2s;
 		
 		#else
 		mpumotiongeometry.alpha=mpumotiongeometry.x=mpumotiongeometry.y=mpumotiongeometry.z=0;
 		#endif
 		
-		//fprintf(file_pri,"%f %f %f %f:  yaw: %f pitch %f roll: %f\n",q0,q1,q2,q3,yaw,pitch,t2);
+		//fprintf(file_pri,"%f %f %f %f:  yaw: %f pitch %f roll: %f\n",_mpu_q0,_mpu_q1,_mpu_q2,_mpu_q3,yaw,pitch,t2);
 		//fprintf(file_pri,"alpha: %f x %f y %f z %f\n",mpumotiongeometry.alpha,mpumotiongeometry.x,mpumotiongeometry.y,mpumotiongeometry.z);
 	}
 	
+}
+
+unsigned long mpu_compute_geometry_time(void)
+{
+	#if MPU_GEOMETRY_BENCH==1
+	return _mpu_quat_time;
+	#endif
+	return 0;
 }

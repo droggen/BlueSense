@@ -119,7 +119,18 @@ void init_extended(void)
 	fprintf_P(file_pri,PSTR("Boot %lu\n"),numboot);
 	eeprom_write_dword((uint32_t*)STATUS_ADDR_NUMBOOT0,numboot+1);
 	
-
+	// RTC INITIALISATION
+	#if !DISABLE_I2C
+		ds3232_init();	
+		ds3232_printreg(file_pri);
+	#endif
+	
+	// Initialise current time from RTC
+	#if !DISABLE_I2C
+		system_settimefromrtc();
+	#else
+		timer_init(0);
+	#endif
 
 	// Fuel gauge initialisation
 	// Get the charge
@@ -127,46 +138,49 @@ void init_extended(void)
 		// Read current data
 		_poweruse_off.oncharge = ltc2942_getcharge();
 		_poweruse_off.onvoltage = ltc2942_getvoltage();
+		_poweruse_off.ontime = timer_ms_get();
 		ds3232_readdatetime_conv_int(0,&_poweruse_off.onh,&_poweruse_off.onm,&_poweruse_off.ons,&_poweruse_off.onday,&_poweruse_off.onmonth,&_poweruse_off.onyear);
 
 		// Read data stored during last soft-off
-		_poweruse_off.valid = eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID);
-		_poweruse_off.offcharge = eeprom_read_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_CHARGE0);
-		_poweruse_off.offvoltage = eeprom_read_word((uint16_t*)STATUS_ADDR_OFFCURRENT_VOLTAGE0);
-		_poweruse_off.offh=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_H);
-		_poweruse_off.offm=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_M);
-		_poweruse_off.offs=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_S);
-		_poweruse_off.offday=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_DAY);
-		_poweruse_off.offmonth=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_MONTH);
-		_poweruse_off.offyear=eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_YEAR);
-		
+		system_loadpoweroffdata2(_poweruse_off);
+	
 		// Mark the data as now invalid
 		eeprom_write_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID,0);
 		
 		// Render info
 		for(unsigned char i=0;i<5;i++)
 			_poweruse_off.str[0][0]=0;
+		sprintf(_poweruse_off.str[0],"Off power data:\n");
 		if(_poweruse_off.valid)
-		{
-			sprintf(_poweruse_off.str[0],"Soft off at: %02d.%02d.%02d %02d:%02d:%02d Q: %lu V: %u\n",_poweruse_off.offday,_poweruse_off.offmonth,_poweruse_off.offyear,_poweruse_off.offh,_poweruse_off.offm,_poweruse_off.offs,_poweruse_off.offcharge,_poweruse_off.offvoltage);
-			sprintf(_poweruse_off.str[1],"Power on at: %02d.%02d.%02d %02d:%02d:%02d Q: %lu V: %u\n",_poweruse_off.onday,_poweruse_off.onmonth,_poweruse_off.onyear,_poweruse_off.onh,_poweruse_off.onm,_poweruse_off.ons,_poweruse_off.oncharge,_poweruse_off.onvoltage);
+		{		
+			sprintf(_poweruse_off.str[1],"Power off at: %lu Q: %lu V: %u\n",_poweruse_off.offtime,_poweruse_off.offcharge,_poweruse_off.offvoltage);
+			sprintf(_poweruse_off.str[2],"Power on at: %lu Q: %lu V: %u\n",_poweruse_off.ontime,_poweruse_off.oncharge,_poweruse_off.onvoltage);
 			
 			// Compute delta-T in seconds; does not work if the measurement is across one month
-			unsigned long toff = _poweruse_off.offday*86400l + _poweruse_off.offh * 3600l + _poweruse_off.offm * 60l + _poweruse_off.offs;
-			unsigned long ton = _poweruse_off.onday*86400l + _poweruse_off.onh * 3600l + _poweruse_off.onm * 60l + _poweruse_off.ons;
-			
-			sprintf(_poweruse_off.str[2],"Delta T: %lus\n",ton-toff);
+			unsigned long deltams = _poweruse_off.ontime-_poweruse_off.offtime;
+		
+			sprintf(_poweruse_off.str[3],"Delta T: %lu ms\n",deltams);
 			
 			// Compute power
-			signed short pwr1 = ltc2942_getavgpower(_poweruse_off.offcharge,_poweruse_off.oncharge,_poweruse_off.onvoltage,(ton-toff)*1000l);
-			signed long pwr2 = ltc2942_getavgpower2(_poweruse_off.offcharge,_poweruse_off.oncharge,_poweruse_off.offvoltage,_poweruse_off.onvoltage,ton-toff);
-			sprintf(_poweruse_off.str[3],"pwr1: %d mW pwr2: %ld uW\n",pwr1,pwr2);
+			signed short pwr1 = ltc2942_getavgpower(_poweruse_off.offcharge,_poweruse_off.oncharge,_poweruse_off.onvoltage,deltams);
+			signed long pwr2 = ltc2942_getavgpower2(_poweruse_off.offcharge,_poweruse_off.oncharge,_poweruse_off.offvoltage,_poweruse_off.onvoltage,deltams/1000l);
+			sprintf(_poweruse_off.str[4],"pwr1: %d mW pwr2: %ld uW\n",pwr1,pwr2);
 		}
 		else
 			sprintf(_poweruse_off.str[1],"No off-power data\n");
 		// Display info		
 		for(unsigned char i=0;i<5;i++)
 			fputs(_poweruse_off.str[i],file_pri);
+			
+		/*fprintf(file_pri,"==At power off==\n");
+		fprintf(file_pri,"Charge: %lu\n",_poweruse_off.offcharge);
+		fprintf(file_pri,"Voltage: %u\n",_poweruse_off.offvoltage);
+		fprintf(file_pri,"Time: %lu\n",_poweruse_off.offtime);
+		
+		fprintf(file_pri,"==At power on==\n");
+		fprintf(file_pri,"Charge: %lu\n",_poweruse_off.oncharge);
+		fprintf(file_pri,"Voltage: %u\n",_poweruse_off.onvoltage);
+		fprintf(file_pri,"Time: %lu\n",_poweruse_off.ontime);*/
 		
 		ltc2942_init();
 		
@@ -281,18 +295,7 @@ void init_extended(void)
 	system_status_ok(2);
 	_delay_ms(250);*/
 	
-	// RTC INITIALISATION
-	#if !DISABLE_I2C
-		ds3232_init();	
-		ds3232_printreg(file_pri);
-	#endif
-	
-	// Initialise current time from RTC
-	#if !DISABLE_I2C
-		system_settimefromrtc();
-	#else
-		timer_init(0);
-	#endif
+
 	
 	
 	//_delay_ms(500);
@@ -389,10 +392,8 @@ void init_extended(void)
 		
 		
 	#endif
-	//timer_register_callback(system_batterystat,99);		// Battery status at 10Hz
 	timer_register_50hzcallback(system_batterystat,4);		// Battery status at 10Hz
 	timer_register_slowcallback(system_lifesign,0);		// Low speed blinking
-	//timer_register_callback(system_lifesign2,99);		// High speed blinking
 	
 
 	system_status_ok(1);

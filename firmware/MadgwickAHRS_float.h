@@ -22,13 +22,14 @@
 //----------------------------------------------------------------------------------------------------
 // Variable declaration
 
-extern volatile float beta;				// algorithm gain
-extern volatile float q0, q1, q2, q3;	// quaternion of sensor frame relative to auxiliary frame
+extern float beta;				// algorithm gain
+extern float _mpu_q0, _mpu_q1, _mpu_q2, _mpu_q3;	// quaternion of sensor frame relative to auxiliary frame
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
 void testf(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz) ;
-void MadgwickAHRSinit(void);
+//void MadgwickAHRSinit(void);
+void MadgwickAHRSinit(float sampleFreq,float _beta,unsigned char _corrds);
 void MadgwickAHRSupdate_float(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
 
 

@@ -144,24 +144,29 @@ TIMER_CALLBACK timer_50hzcallbacks[TIMER_NUMCALLBACKS];
 	
 	The epoch is optional: set it to zero if the system does not have a 
 	battery-backed RTC.
+	
+	If the system has an absolute time reference (e.g. a 
+	battery backed RTC) use the RTC time as the epoch, 
+	otherwise set to zero.
+	If an RTC is used, this function must be called exactly upon a second change.
 
 	Parameters:
-		epoch_sec 	-	Time in second from an arbitrary "zero time". 
-						If the system has an absolute time reference (e.g. a 
-						battery backed RTC) use the RTC time as the epoch, 
-						otherwise set to zero.
-						If an RTC is used, this function must be called exactly
-						upon a second change.
+		epoch_s 	-	Time in seconds from an arbitrary "zero time". 
+						Used by the milliseconds timers (timer_ms_get).
+						
+		epoch_us	-	Time in microseconds from an arbitrary "zero time".
+						Used by the microseconds timers (timer_us_get).
+						
 ******************************************************************************/
-void timer_init(unsigned long epoch_sec)
+void timer_init(unsigned long epoch_s,unsigned long epoch_us)
 {
 	// Ensures an atomic change
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		// Initialise the variables holding the time updated at the 1Hz tick
-		_timer_1hztimer_in_s=epoch_sec;
-		_timer_1hztimer_in_ms=epoch_sec*1000;
-		_timer_1hztimer_in_us=epoch_sec*1000l*1000l;
+		_timer_1hztimer_in_s=epoch_s;
+		_timer_1hztimer_in_ms=epoch_s*1000l;
+		_timer_1hztimer_in_us=epoch_us;
 		
 		// Initialise the variable holding the time updated solely from the internal timer
 		_timer_time_ms_intclk=_timer_1hztimer_in_ms;
@@ -1135,7 +1140,7 @@ void timer_get_speedtest(void)
 	// Test timer
 	unsigned long *sb=(unsigned long*)sharedbuffer;
 	
-	timer_init(100);
+	timer_init(0,0);
 	
 	
 	unsigned long t=0;

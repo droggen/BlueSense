@@ -15,6 +15,56 @@
 
 #include "i2c.h"
 
+/*
+ Structure for MPU data
+ Memory organisation on AVR (GCC 7.2):
+ struct start: 0x40df
+	acc: 0x40df 0x40e1 0x40e3
+	gyr: 0x40e5 0x40e7 0x40e9
+	mag: 0x40eb 0x40ed 0x40ef 0x40f1
+	temp: 0x40f2
+	time: 0x40f4
+	packetctr: 0x40f8
+	
+	Offsets: 
+		ax: 0
+		ay:	2
+		az:	4
+		gx: 6
+		gy: 8
+		gz: 10
+		mx: 12
+		my: 14
+		mz: 16
+		ms: 18
+		temp: 19
+		time: 21
+		packetctr: 25
+		
+	
+*/
+typedef struct {
+	signed short ax,ay,az;
+	signed short gx,gy,gz;
+	signed short mx,my,mz;
+	unsigned char ms;
+	signed short temp;
+	unsigned long int time;
+	unsigned long packetctr;
+} MPUMOTIONDATA;
+
+
+typedef struct {
+	float yaw,pitch,roll;		// Aerospace
+	float alpha,x,y,z;			// Quaternion debug
+	float q0,q1,q2,q3;			// Quaternion
+} MPUMOTIONGEOMETRY;
+
+#include "mpu_geometry.h"
+
+
+
+
 
 // AK8963 address:0X0C
 #define MAG_ADDRESS 0X0C
@@ -108,6 +158,11 @@
 #define CONFIG_ADDR_ACC_SCALE (CONFIG_ADDR_MPU_SETTINGS+13)
 #define CONFIG_ADDR_GYRO_SCALE (CONFIG_ADDR_MPU_SETTINGS+14)
 
+#define CONFIG_ADDR_BETA (CONFIG_ADDR_MPU_SETTINGS+20)
+#define CONFIG_ADDR_BETA1 (CONFIG_ADDR_MPU_SETTINGS+21)
+#define CONFIG_ADDR_BETA2 (CONFIG_ADDR_MPU_SETTINGS+22)
+#define CONFIG_ADDR_BETA3 (CONFIG_ADDR_MPU_SETTINGS+23)
+
 
 
 #if HWVER==1
@@ -158,43 +213,6 @@ extern unsigned char __mpu_sample_softdivider_ctr,__mpu_sample_softdivider_divid
 
 void mpu_isr(void);
 
-/*
- Structure for MPU data
- Memory organisation on AVR (GCC 7.2):
- struct start: 0x40df
-	acc: 0x40df 0x40e1 0x40e3
-	gyr: 0x40e5 0x40e7 0x40e9
-	mag: 0x40eb 0x40ed 0x40ef 0x40f1
-	temp: 0x40f2
-	time: 0x40f4
-	packetctr: 0x40f8
-	
-	Offsets: 
-		ax: 0
-		ay:	2
-		az:	4
-		gx: 6
-		gy: 8
-		gz: 10
-		mx: 12
-		my: 14
-		mz: 16
-		ms: 18
-		temp: 19
-		time: 21
-		packetctr: 25
-		
-	
-*/
-typedef struct {
-	signed short ax,ay,az;
-	signed short gx,gy,gz;
-	signed short mx,my,mz;
-	unsigned char ms;
-	signed short temp;
-	unsigned long int time;
-	unsigned long packetctr;
-} MPUMOTIONDATA;
 
 
 // Data buffers
@@ -227,7 +245,9 @@ extern unsigned char _mpu_current_motionmode;
 extern unsigned long mpu_cnt_int, mpu_cnt_sample_tot, mpu_cnt_sample_succcess, mpu_cnt_sample_errbusy, mpu_cnt_sample_errfull;
 extern unsigned long mpu_cnt_spurious;
 
-
+extern unsigned char _mpu_kill;
+extern unsigned short _mpu_samplerate;
+extern float _mpu_beta;
 
 void __mpu_read_cb(void);
 
@@ -236,6 +256,7 @@ unsigned char mpu_data_isfull(void);
 //unsigned char mpu_data_isempty(void);
 unsigned char mpu_data_level(void);
 unsigned char mpu_data_getnext_raw(MPUMOTIONDATA &data);
+unsigned char mpu_data_getnext(MPUMOTIONDATA &data,MPUMOTIONGEOMETRY &geometry);
 void _mpu_data_wrnext(void);
 void _mpu_data_rdnext(void);
 
@@ -314,12 +335,18 @@ void mpu_mag_calibrate(void);
 void mpu_mag_storecalib(void);
 void mpu_mag_loadcalib(void);
 void mpu_mag_correctionmode(unsigned char mode);
+void mpu_kill(unsigned char bitmap);
 
 // Non-volatile parameters
 unsigned char mpu_LoadAccScale(void);
 unsigned char mpu_LoadGyroScale(void);
 void mpu_setandstoregyrocale(unsigned char scale);
 void mpu_setandstoreaccscale(unsigned char scale);
+
+void mpu_LoadBeta(void);
+void mpu_StoreBeta(float beta);
+
+
 
 // Print functions
 void mpu_mag_printreg(FILE *file);

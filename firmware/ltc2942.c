@@ -103,7 +103,7 @@ LTC2942_BATSTAT _ltc2942_batstat[LTC2942NUMLONGBATSTAT];	// Circular buffer hold
 volatile unsigned char _ltc2942_batstat_rdptr=0,_ltc2942_batstat_wrptr=0;	// Read/write pointers. This is used for fast removal of old entries avoiding memory copy
 unsigned long _ltc2942_batstat_lastupdate=0;
 const unsigned long _ltc2942_batstat_updateevery=LTC2942NUMLONGBATSTAT_UPDATEEVERY;	// Store every 3mn. 
-
+volatile unsigned _ltc2942_backgroundgetstate_ongoing=0;	// Mutex to ensure only one background read at any time
 
 
 /******************************************************************************
@@ -142,6 +142,8 @@ void ltc2942_init(void)
 		_ltc2942_last_mWs[i]=0;
 		
 	ltc2942_clear_longbatstat();
+	
+	_ltc2942_backgroundgetstate_ongoing=0;
 }
 
 /******************************************************************************
@@ -521,10 +523,19 @@ signed long ltc2942_getavgpower2(unsigned long c1,unsigned long c2,unsigned shor
 ******************************************************************************/
 unsigned char ltc2942_backgroundgetstate(unsigned char)
 {
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		if(_ltc2942_backgroundgetstate_ongoing)
+			return 1;
+		_ltc2942_backgroundgetstate_ongoing=1;
+	}
 	unsigned char r = i2c_transaction_queue(2,0,&__ltc2942_trans_selreg,&__ltc2942_trans_read);
 	if(r)
 	{
 		// Failed to queue the transactions
+		_ltc2942_backgroundgetstate_ongoing=0;
+		return 1;
+		
 	}	
 	return 0;
 }
@@ -738,7 +749,7 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 	}
 	
 	// Reset charge counter to midrange if getting close to top/bot
-	if(_ltc2942_last_chargectr<1000 || _ltc2942_last_chargectr>64535)
+	if(_ltc2942_last_chargectr<8192 || _ltc2942_last_chargectr>57343)
 	{
 		unsigned char r = i2c_transaction_queue(1,0,&__ltc2942_trans_setctr);
 		if(r)
@@ -750,6 +761,7 @@ unsigned char __ltc2942_trans_read_done(I2C_TRANSACTION *t)
 	}
 	
 	
+	_ltc2942_backgroundgetstate_ongoing=0;
 	
 	return 0;
 }
