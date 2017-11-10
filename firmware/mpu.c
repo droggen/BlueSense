@@ -497,6 +497,17 @@ void mpu_getstat(unsigned long *cnt_int, unsigned long *cnt_sample_tot, unsigned
 	}
 }
 
+/******************************************************************************
+	function: mpu_clearbuffer
+*******************************************************************************	
+	Clears all sensor data held in the MPU buffers.
+	
+	Parameters:
+		-
+	
+	Returns:
+		-
+*******************************************************************************/
 void mpu_clearbuffer(void)
 {
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)

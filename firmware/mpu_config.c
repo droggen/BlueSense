@@ -53,11 +53,12 @@ const char mc_35[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=250Hz) Mag 100Hz 
 const char mc_36[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 100Hz";
 const char mc_37[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz";
 const char mc_38[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz";
-//const char mc_39[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz Quaternions";
-const char mc_39[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 8Hz Quaternions";
-const char mc_40[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 8Hz Quaternions";
-const char mc_41[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz Quaternions";
-//const char mc_40[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz Quaternions  (broken, do not use)";
+//const char mc_39[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 8Hz Quaternions";
+//const char mc_40[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 8Hz Quaternions";
+//const char mc_41[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz Quaternions";
+const char mc_39[] PROGMEM = "  500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 100Hz Quaternions";
+const char mc_40[] PROGMEM = "  200Hz Acc  (BW= 92Hz) Gyro (BW= 92Hz) Mag 100Hz Quaternions";
+const char mc_41[] PROGMEM = "  100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz Quaternions";
 const char mc_42[] PROGMEM = "  500Hz Quaternions Qsg=(qw,qx,qy,qz); rotates vector in earth coords G into sensor coords S";
 const char mc_43[] PROGMEM = "  200Hz Quaternions";
 const char mc_44[] PROGMEM = "  100Hz Quaternions";
@@ -216,30 +217,31 @@ const short config_sensorsr_settings[MOTIONCONFIG_NUM][12] = {
 					{ MPU_MODE_ACCGYRMAG,  1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     2,		1,			200},		// ODR=200HZ, mag=100HZ, magodr=200/2=100Hz
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
 					{ MPU_MODE_ACCGYRMAG,  1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
-					/*
+					
+					
 					//----Magn 100Hz + Quat
-					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
-					{ MPU_MODE_ACCGYRMAGQ, 1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
+					// 500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 8Hz
+					{ MPU_MODE_ACCGYRMAGQ, 1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0,     2,		4,			500},		// ODR=500HZ, mag=100Hz, magodr=500/5=100Hz					
 					// 200Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
-					{ MPU_MODE_ACCGYRMAGQ, 1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     2,		1,			200},		// ODR=200HZ, mag=100HZ, magodr=200/2=100Hz
+					{ MPU_MODE_ACCGYRMAGQ, 1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     2,		1,			200},		// ODR=200HZ, mag=100HZ, magodr=200/2=100Hz					
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
-					//{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
-					{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     1,		11,			100},		// ODR=100HZ, mag=8Z, magodr=100/21=8.3Hz
-					// 200Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
-					//{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     2,		1,			200},		// ODR=200Hz, mag=100Hz, magodr=200/2=100Hz					
-					{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     1,		24,			200},		// ODR=200Hz, mag=8Hz, magodr=200/32=8Hz					
+					{ MPU_MODE_ACCGYRMAGQ, 1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz					
 					// 500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 100Hz
-					//{ MPU_MODE_Q,          1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0,     2,		4,			500},		// ODR=500HZ, mag=100HZ, magodr=500/5=100Hz					
-					{ MPU_MODE_Q,          1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0,     1,		31,			500},		// ODR=500HZ, mag=8Hz, magodr=500/32=15.6Hz					
+					{ MPU_MODE_Q,          1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0,     2,		4,			500},		// ODR=500HZ, mag=100HZ, magodr=500/5=100Hz					
+					// 200Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
+					{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     2,		1,			200},		// ODR=200Hz, mag=100Hz, magodr=200/2=100Hz					
+					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
+					{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
 					{ MPU_MODE_E,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
 					{ MPU_MODE_QDBG,       1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
-					*/
 					
+					
+					/*
 					//----Magn 8Hz + Quat
 					// 500Hz Acc  (BW=184Hz) Gyro (BW=184Hz) Mag 8Hz
-					{ MPU_MODE_ACCGYRMAGQ, 1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0,     1,		31,			500},		// ODR=200HZ, mag=8Hz, magodr=200/32=15.6Hz
+					{ MPU_MODE_ACCGYRMAGQ, 1,         0, MPU_GYR_LPF_184,     1, MPU_ACC_LPF_184,      1,             0,     0,     1,		31,			500},		// ODR=500HZ, mag=8Hz, magodr=500/32=15.6Hz
 					// 200Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz
 					{ MPU_MODE_ACCGYRMAGQ, 1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     1,		24,			200},		// ODR=200HZ, mag=8Hz, magodr=200/25=8Hz
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 8Hz
@@ -249,14 +251,12 @@ const short config_sensorsr_settings[MOTIONCONFIG_NUM][12] = {
 					// 200Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
 					{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_92,     1,  MPU_ACC_LPF_92,      4,             0,     0,     1,		24,			200},		// ODR=200Hz, mag=8Hz, magodr=200/32=8Hz					
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
-					//  { MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
 					{ MPU_MODE_Q,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     1,		11,			100},		// ODR=100HZ, mag=8Hz, magodr=100/21=8.3Hz
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
-					//{ MPU_MODE_E,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
 					{ MPU_MODE_E,          1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     1,		11,			100},		// ODR=100HZ, mag=8Hz, magodr=100/12=8.3Hz
 					// 100Hz Acc  (BW= 41Hz) Gyro (BW= 41Hz) Mag 100Hz
-					//{ MPU_MODE_QDBG,       1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     2,		0,			100},		// ODR=100HZ, mag=100HZ, magodr=100/1=100Hz
 					{ MPU_MODE_QDBG,       1,         0,  MPU_GYR_LPF_41,     1,  MPU_ACC_LPF_41,      9,             0,     0,     1,	   11,			100},		// ODR=100HZ, mag=8Hz, magodr=100/11=8.3
+					*/
 			};
 /******************************************************************************
 	function: mpu_config_motionmode

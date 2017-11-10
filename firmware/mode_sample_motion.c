@@ -109,7 +109,9 @@ void clearstat(void)
 	
 	stat_t_cur = time_lastblink = stat_time_laststatus = stat_timems_start = timer_ms_get();
 	
-	//ltc2942_clear_longbatstat();
+	// If there was a successful change in logging (start, stop, etc) then reset the statistics.
+	mpu_clearstat();	// Clear MPU ISR statistics
+	mpu_clearbuffer();
 }
 
 unsigned char CommandParserSampleLogMPU(char *buffer,unsigned char size)
@@ -117,10 +119,7 @@ unsigned char CommandParserSampleLogMPU(char *buffer,unsigned char size)
 	// MPU specific code to start/stop the log
 	unsigned char rv=CommandParserSampleLog(buffer,size);
 	if(!rv)
-	{
-		// If there was a successful change in logging (start, stop, etc) then reset the statistics.
-		mpu_clearstat();	// Clear MPU ISR statistics
-		mpu_clearbuffer();
+	{		
 		clearstat();		// Clear statistics related to streaming/logging
 	}
 	return rv;
@@ -395,9 +394,7 @@ void stream_start(void)
 	
 	
 	// Clear statistics
-	mpu_clearstat();	// Clear MPU ISR statistics
-	mpu_clearbuffer();
-	clearstat();		// Clear statistics related to streaming/logging
+	clearstat();		// Clear statistics related to mpu/streaming/logging
 }
 void stream_stop(void)
 {
@@ -495,7 +492,7 @@ void mode_motionstream(void)
 
 	stream_start();
 	
-	printf("Sample rate: %u\n",_mpu_samplerate);
+	fprintf_P(file_pri,PSTR("Sample rate: %u\n"),_mpu_samplerate);
 
 	
 	clearstat();
