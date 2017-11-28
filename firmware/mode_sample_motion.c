@@ -614,6 +614,17 @@ void mode_motionstream(void)
 				fprintf(mode_sample_file_log,"Battery log:\n");
 				ltc2942_print_longbatstat(mode_sample_file_log);
 				fprintf(mode_sample_file_log,"Battery log end\n");
+				
+				// Add statistics 
+				stream_status(mode_sample_file_log,0);	
+				mpu_printstat(mode_sample_file_log);
+				fprintf_P(mode_sample_file_log,PSTR("MPU Geometry time: %lu us\n"),mpu_compute_geometry_time());
+				
+				unsigned long cnt_sample_errbusy, cnt_sample_errfull,toterr;
+				mpu_getstat(0, 0, 0, &cnt_sample_errbusy, &cnt_sample_errfull);
+				toterr = stat_samplesendfailed+cnt_sample_errfull+cnt_sample_errbusy;
+				fprintf_P(file_pri,PSTR("Total errors: %lu/%lu samples (%lu ppm). Err stream/log: %lu, err MPU busy: %lu, err buffer full: %lu\n"),toterr,stat_totsample,toterr*1000000l/stat_totsample,stat_samplesendfailed,cnt_sample_errbusy,cnt_sample_errfull);
+				
 				mode_sample_file_log=0;
 				ufat_log_close();
 			}

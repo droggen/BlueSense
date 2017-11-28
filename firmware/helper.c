@@ -923,27 +923,29 @@ char *format3float(char *strptr,float q0,float q1,float q2)
 }
 #endif
 /******************************************************************************
-	function: eeprom_write32
+	function: str2xxyyzz
 *******************************************************************************	
-	Writes a 32-bit number to EEPROM in little endian format.
+	Converts a 6-characters long  string of type x1x2y1y2z1z2 with x1, x2, y1, y2, 
+	z1, z2 digits between 0-9 into the corresponding numbers x, y, z. 
+	E.g. x=x1*10+x2.
+	
+	No error checking is performed.
 	
 	Parameters:
-		address		-	Address where the first byte is stored, the following
-						bytes are stored at address+1 up to address+3
-		data		-	32-bit value to store
+		string		-	6-characters long string.
+		x 			-	Pointer to the variable receiving the x value
+		y 			-	Pointer to the variable receiving the y value
+		z 			-	Pointer to the variable receiving the z value
 
 	Returns:
-		0			-	Success
-		nonzero		-	Error
+		-
 ******************************************************************************/
-/*unsigned char eeprom_write32(unsigned short address,unsigned long data)
+void str2xxyyzz(char *string,unsigned char *x,unsigned char *y,unsigned char *z)
 {
-	eeprom_write_byte((uint8_t*)(address+0),(data>>0)&0xff);
-	eeprom_write_byte((uint8_t*)(address+1),(data>>8)&0xff);
-	eeprom_write_byte((uint8_t*)(address+2),(data>>16)&0xff);
-	eeprom_write_byte((uint8_t*)(address+3),(data>>24)&0xff);
-}*/
-
+	*x = (string[0]-'0')*10+(string[1]-'0');
+	*y = (string[2]-'0')*10+(string[3]-'0');
+	*z = (string[4]-'0')*10+(string[5]-'0');
+}
 
 /******************************************************************************
 	function: prettyprint_hexascii

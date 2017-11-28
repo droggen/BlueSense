@@ -508,11 +508,11 @@ unsigned char system_getrtcint(void)
 /******************************************************************************
 	function: system_settimefromrtc
 *******************************************************************************	
-	Sets the system time returned by timer_ms_get from the RTC.
+	Sets the system time returned by timer_ms_get and timer_us_get from the RTC.
 	
-	The epoch is midnight of the current day. This function will 
-	set the current time, as returned by timer_ms_get, to indicate the number 
-	of milliseconds elapsed from midnight.
+	
+	The epoch for millisecond time is midnight of the first day of the month.
+	The epoch for the microsecond time is the current hour.
 	
 	
 	Parameters:
@@ -529,7 +529,7 @@ void system_settimefromrtc(void)
 	fprintf_P(file_pri,PSTR("Setting time from RTC... "));
 	
 	ds3232_readdatetime_conv_int(1,&h,&m,&s,&day,&month,&year);
-	unsigned long epoch_s = (day*24l+h)*3600l+m*60l+s;
+	unsigned long epoch_s = ((day-1)*24l+h)*3600l+m*60l+s;
 	unsigned long epoch_us = (m*60l+s)*1000l*1000l;
 	timer_init(epoch_s,epoch_us);
 	t1=timer_ms_get();

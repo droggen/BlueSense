@@ -71,7 +71,8 @@ char *format4fract16(char *strptr,float q0,float q1,float q2,float q3);
 
 
 
-//unsigned char eeprom_write32(unsigned short address,unsigned long data);
+
+void str2xxyyzz(char *string,unsigned char *x,unsigned char *y,unsigned char *z);
 
 void prettyprint_hexascii(FILE *f,char *string,unsigned short n,unsigned char nl=1);
 

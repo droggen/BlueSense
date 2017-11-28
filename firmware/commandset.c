@@ -30,8 +30,7 @@
 
 // Command help
 
-const char help_z[] PROGMEM ="Z[,<hh><mm><ss>]: without parameters resets local time; otherwise sets the RTC and local time to hhmmss";
-//const char help_zsyncfromrtc[] PROGMEM ="z sync system time from RTC time";
+const char help_z[] PROGMEM ="Z[,<hh><mm><ss><dd><mm><yy>]: synchronise time.\n\t\tNo parameters: reset local time/date; otherwise sets the RTC and local time/date to hhmmss ddmmyy";
 const char help_y[] PROGMEM ="Test sync";
 const char help_demo[] PROGMEM ="Demo mode";
 const char help_c[] PROGMEM ="Clock mode";
@@ -100,7 +99,22 @@ unsigned char __CommandQuit=0;
 		1:	Message execution error (message valid)
 		2:	Message invalid 		
 */
+/******************************************************************************
+	function: CommandParserTime
+*******************************************************************************	
+	Either displays the RTC time if no argument is provided, or sets the
+	RTC time to the hhmmss argument.
+		
+	Parameters:
+		buffer	-		Pointer to the command string
+		size	-		Size of the command string
 
+	Returns:
+		0		-		Success
+		1		-		Message execution error (message valid)
+		2		-		Message invalid 
+
+******************************************************************************/
 unsigned char CommandParserTime(char *buffer,unsigned char size)
 {
 	unsigned char h,m,s;
@@ -123,10 +137,7 @@ unsigned char CommandParserTime(char *buffer,unsigned char size)
 	if(checkdigits(buffer,6))
 		return 2;
 		
-	
-	h = (buffer[0]-'0')*10+(buffer[1]-'0');
-	m = (buffer[2]-'0')*10+(buffer[3]-'0');
-	s = (buffer[4]-'0')*10+(buffer[5]-'0');
+	str2xxyyzz(buffer,&h,&m,&s);	
 	
 	fprintf_P(file_pri,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
 	
@@ -141,7 +152,67 @@ unsigned char CommandParserTime(char *buffer,unsigned char size)
 		return 0;
 	return 1;
 }
+/******************************************************************************
+	function: CommandParserSync
+*******************************************************************************	
+	Receive hhmmss time, update the RTC and synchronise the local time to the 
+	RTC.
+	
+	This function operates in two steps:
+	- 	First, it immediately sets the RTC time - this ensures the RTC is synchronised
+		to the provided time.
+	-	Then, it synchronises the local time to the RTC using system_settimefromrtc.
+		
+	Parameters:
+		buffer	-		Pointer to the command string
+		size	-		Size of the command string
 
+	Returns:
+		0		-		Success
+		1		-		Message execution error (message valid)
+		2		-		Message invalid 
+
+******************************************************************************/
+unsigned char CommandParserSync(char *buffer,unsigned char size)
+{
+	if(size!=0)
+	{
+		// Parameters are passed: check validity
+		if(size!=13 || buffer[0]!=',')
+			return 2;
+		
+		buffer++;	// Skip comma
+
+		// Check the digits are in range
+		if(checkdigits(buffer,12))
+			return 2;
+			
+		unsigned char h,m,s,d,month,y;
+		str2xxyyzz(buffer,&h,&m,&s);
+		str2xxyyzz(buffer+6,&d,&month,&y);	
+		
+		
+		//fprintf_P(file_dbg,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
+		
+		if(h>23 || m>59 || s>59 || d>31 || month>12)
+		{
+			return 2;
+		}
+		
+		
+		// Update the RTC date
+		if(ds3232_writedate_int(1,d,month,y))
+			return 1;		
+		// Update the RTC time
+		if(ds3232_writetime(h,m,s))
+			return 1;
+		// Synchronise local time to RTC time
+		system_settimefromrtc();
+		return 0;
+	}
+	timer_init(0,0);
+	return 0;
+}
 unsigned char CommandParserDate(char *buffer,unsigned char size)
 {
 	unsigned char d,m,y;
@@ -162,9 +233,7 @@ unsigned char CommandParserDate(char *buffer,unsigned char size)
 	if(checkdigits(buffer,6))
 		return 2;
 		
-	d = (buffer[0]-'0')*10+(buffer[1]-'0');
-	m = (buffer[2]-'0')*10+(buffer[3]-'0');
-	y = (buffer[4]-'0')*10+(buffer[5]-'0');
+	str2xxyyzz(buffer,&d,&m,&y);
 	
 	fprintf_P(file_pri,PSTR("Date: %02d.%02d.%02d\n"),d,m,y);
 	
@@ -653,62 +722,7 @@ unsigned char CommandParserStreamFormat(char *buffer,unsigned char size)
 	return 0;*/
 //}
 
-/******************************************************************************
-	function: CommandParserSync
-*******************************************************************************	
-	Receive hhmmss time, update the RTC and synchronise the local time to the 
-	RTC.
-	
-	This function operates in two steps:
-	- 	First, it immediately sets the RTC time - this ensures the RTC is synchronised
-		to the provided time.
-	-	Then, it synchronises the local time to the RTC using system_settimefromrtc.
-		
-	Parameters:
-		buffer	-		Pointer to the command string
-		size	-		Size of the command string
 
-	Returns:
-		0		-		Success
-		1		-		Message execution error (message valid)
-		2		-		Message invalid 
-
-******************************************************************************/
-unsigned char CommandParserSync(char *buffer,unsigned char size)
-{
-	if(size!=0)
-	{
-		// Parameters are passed: check validity
-		if(size!=7 || buffer[0]!=',')
-			return 2;
-		
-		buffer++;	// Skip comma
-
-		// Check the digits are in range
-		if(checkdigits(buffer,6))
-			return 2;
-			
-		unsigned char h,m,s;
-		h = (buffer[0]-'0')*10+(buffer[1]-'0');
-		m = (buffer[2]-'0')*10+(buffer[3]-'0');
-		s = (buffer[4]-'0')*10+(buffer[5]-'0');
-		
-		//fprintf_P(file_dbg,PSTR("Time: %02d:%02d:%02d\n"),h,m,s);
-		
-		if(h>23 || m>59 || s>59)
-		{
-			return 2;
-		}
-		
-		// Update the RTC time
-		ds3232_writetime(h,m,s);
-		// Synchronise local time to RTC time
-		system_settimefromrtc();
-		return 0;
-	}
-	timer_init(0,0);
-	return 0;
-}
 unsigned char CommandParserSyncFromRTC(char  *buffer,unsigned char size)
 {
 	system_settimefromrtc();

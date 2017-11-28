@@ -543,12 +543,18 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 	// Desired parameters
 	unsigned short p_srvclass=0b00001001000;			// Service: capturing, positioning
 	unsigned short p_devclass=0b0011100011000;			// Device: wearable, wearable computer
+	
+	// Optimised (low power):
 	unsigned short p_inqw = 0x20;
 	unsigned short p_pagw = 0x20;						// Inquiry and page at 0x20 reduce power by -15mW. 
-	//unsigned short p_inqw = 0x100;
-	//unsigned short p_pagw = 0x100;					// Default is inqq=pagw=0x100.
-	unsigned short p_sniff = 0x0000;					// Sniff deactivated (only useful during connection, but during streaming maximum throughput and minimum latency is desired)
 	unsigned short p_lowpower = 0x0301;					// Off 3 seconds, on 1 second. Reduces by -2mW over inquiry/page settings
+	// Default (high power):
+	//unsigned short p_inqw = 0x100;					// Default: 0100
+	//unsigned short p_pagw = 0x100;					// Default: 0100
+	//unsigned short p_lowpower = 0x0000;				// Default: 0000
+	
+	unsigned short p_sniff = 0x0000;					// Sniff deactivated (only useful during connection, but during streaming maximum throughput and minimum latency is desired)
+	
 	
 	//unsigned char p_cfgtimer = 255;					// 255=unlimited local/remote; 0=local only when not connected. 255 leads to instability (reboots) under high throughput, also lowers bitrate
 	unsigned char p_cfgtimer = 0;						// 255=unlimited local/remote; 0=local only when not connected. 255 leads to instability (reboots) under high throughput, also lowers bitrate

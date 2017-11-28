@@ -62,15 +62,17 @@ unsigned char CommandParserx(char *buffer,unsigned char size)
 
 const COMMANDPARSER CommandParsersIdle[] =
 { 
+	{'H', CommandParserHelp,help_h},
+	{'T', CommandParserTime,help_t},	
+	{'D', CommandParserDate,help_d},
 	{'Z',CommandParserSync,help_z},
 	//{'z',CommandParserSyncFromRTC,help_zsyncfromrtc},
 	{'Y',CommandParserTestSync,help_y},
 	{'R',CommandParserBT,help_r},
 	//{'L',CommandParserLCD,help_l},
-	{'T', CommandParserTime,help_t},
+	
 	{'t', CommandParserTime_Test,help_ttest},
-	{'D', CommandParserDate,help_d},
-	{'H', CommandParserHelp,help_h},
+	
 	{'A', CommandParserADC,help_a},
 	//{'C', CommandParserClock,help_c},
 	//{'V', CommandParserDemo,help_demo},
@@ -96,7 +98,7 @@ const COMMANDPARSER CommandParsersIdle[] =
 	{'b', CommandParserBootScript,help_bootscript},
 	{'?', CommandParserIdentify,help_identify},
 	{'~', CommandParserClearBootCounter,help_clearbootctr},
-	{'x', CommandParserx,help_x}
+	//{'x', CommandParserx,help_x}
 };
 const unsigned char CommandParsersIdleNum=sizeof(CommandParsersIdle)/sizeof(COMMANDPARSER);
 

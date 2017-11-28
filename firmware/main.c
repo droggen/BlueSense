@@ -71,7 +71,8 @@ TODO:	Verify sample rate regularity with high sample rate modes (200Hz-1KHz)
 TODO:	Readout of files (never practical due to slow transfer)
 TODO:	PC program to converto to quaternions
 TODO:	Magnetic field: check effect of quantisation and sample rate (8/100) on quaternions
-TODO:	Improve idle bluetooth power efficiency w/ inquiry and scan pages (SI,SJ)
+TODO:	Improve idle bluetooth power efficiency w/ inquiry and scan pages (SI,S
+J)
 TODO-DONE:	RN41: power optimisation of radio
 TODO:	RN41 I/O ports best settings ?
 TODO:	Check stability of magnetic field calibration
@@ -600,6 +601,7 @@ int main(void)
 	
 	mode_main();			// This never returns.
 	
+
 	while(1);
 	return 0;
 }
@@ -611,6 +613,7 @@ int main(void)
 
 
    
+
 
 
 
