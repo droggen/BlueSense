@@ -7,6 +7,7 @@
 #include "main.h"
 #include "mpu_config.h"
 #include "MadgwickAHRS.h"
+#include "init.h"
 
 /*
 	File: motionconfig
@@ -282,7 +283,16 @@ void mpu_config_motionmode(unsigned char sensorsr,unsigned char autoread)
 	//printf("%d\n",sensorsr);
 		
 	sample_mode = config_sensorsr_settings[sensorsr][0];
-	__mpu_sample_softdivider_divider = 	config_sensorsr_settings[sensorsr][8];
+	__mpu_sample_softdivider_ctr=0;
+	#if HWVER==9
+		// In HW9+ softdiv is implemented via a timer/counter.
+		//fprintf(file_pri,"softdiv: %d (timer)\n",config_sensorsr_settings[sensorsr][8]);
+		__mpu_sample_softdivider_divider = 0;
+		init_timer_mpucapture(config_sensorsr_settings[sensorsr][8]);
+	#else
+		//fprintf(file_pri,"softdiv: %d (legacy)\n",config_sensorsr_settings[sensorsr][8]);
+		__mpu_sample_softdivider_divider = 	config_sensorsr_settings[sensorsr][8];
+	#endif
 	_mpu_samplerate=config_sensorsr_settings[sensorsr][11];
 	switch(sample_mode)
 	{

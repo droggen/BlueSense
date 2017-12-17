@@ -15,9 +15,9 @@
 #include <util/delay.h>
 #include <stdio.h>
 #include <string.h>
+#include <util/atomic.h>
 
 #if BOOTLOADER==0
-//#include "adc.h"
 #include "lcd.h"
 #include "fb.h"
 #include "serial.h"
@@ -87,7 +87,7 @@ void init_basic(void)
 		//file_dbg=fdevopen(dbg_fputchar,0);
 		#error: HWVER1 is unsupported
 	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 		file_usb = serial_open(10,1);
 	#endif
 	
@@ -520,7 +520,7 @@ void init_ports(void)
 }
 #endif
 
-#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 void init_ports(void)
 {
 	
@@ -537,14 +537,23 @@ void init_ports(void)
 	
 	_delay_us(10);*/
 	
-	
+
+	// ---------------------------------------------------------------------------------------
+	// PORT B   PORT B   PORT B   PORT B   PORT B   PORT B   PORT B   PORT B   PORT B   PORT B   
+	// ---------------------------------------------------------------------------------------		
 	/*
 		On HW8.28 PC7 drops between DDRB=init_ddrb and PORTB=init_portb
 		Attempt to identify which pin triggers the drop: PB0
 	*/
 	
+	
+	#if (HWVER==9)
+	init_ddrb = 0b10110001;
+	init_portb = 0b10111101;
+	#else
 	init_ddrb = 0b10110011;
 	init_portb = 0b10111111;
+	#endif
 	
 	//DDRB  = init_ddrb;		// Initial
 	/*
@@ -617,7 +626,11 @@ void init_ports(void)
 	
 	//while(1);
 	
-	#if (HWVER==7)
+	// ---------------------------------------------------------------------------------------
+	// PORT A   PORT A   PORT A   PORT A   PORT A   PORT A   PORT A   PORT A   PORT A   PORT A   
+	// ---------------------------------------------------------------------------------------
+	
+	#if (HWVER==7) || (HWVER==9)
 	// V7
 	init_ddra = 0b00110000;
 	init_porta = 0b11111111;
@@ -630,17 +643,17 @@ void init_ports(void)
 	PORTA = init_porta;
 	
 	
-	//_delay_ms(1000);
-	//while(1);
-	
-	//_delay_ms(150);
-	
-	// Code initially set DDRC then PORTC; however this could lead to pulses....
 
+
+	// ---------------------------------------------------------------------------------------
+	// PORT C   PORT C   PORT C   PORT C   PORT C   PORT C   PORT C   PORT C   PORT C   PORT C   
+	// ---------------------------------------------------------------------------------------	
 	/*
 		CRITICAL:
-		In version HW8, PC7 must be set to drive 1 before being configured as output.
-		Therefore set PORTC before setting DDRC
+		In version HW8&HW9, PC7 must be set to drive 1 before being configured as output.
+		Therefore set PORTC before setting DDRC.
+		
+		Otherwise, a brief pulse occurs on PC7 which is caught by the pulse generator and power shuts off.
 	*/
 	#if (HWVER==4) 
 	PORTC = 0b11010000;		// Default for V4
@@ -649,14 +662,24 @@ void init_ports(void)
 	PORTC = 0b01010000;		// Default for V5
 	#endif
 	#if (HWVER==6) || (HWVER==7)
-	PORTC = 0b11011000;		// Default for V6, V7
+	PORTC = 0b11011000;		// Default for V6, V7, V8
 	#endif
-	
-	DDRC  = 0b11001000;		// Default
+	#if (HWVER==9)
+	PORTC = 0b11111000;		// Default for V9
+	#endif
+
+	#if (HWVER==9)
+	DDRC  = 0b11101000;		// Default for V9
+	#else
+	DDRC  = 0b11001000;		// Default for V1-V8
+	#endif
+
 	
 	
 
-	
+	// ---------------------------------------------------------------------------------------
+	// PORT D   PORT D   PORT D   PORT D   PORT D   PORT D   PORT D   PORT D   PORT D   PORT D   
+	// ---------------------------------------------------------------------------------------	
 	
 	/////////////////////////////////
 	//DDRC  = 0b11001011;	// Test i2c, set as output
@@ -672,24 +695,37 @@ void init_ports(void)
 	DDRD  = 0b00101010;	// V5
 	PORTD = 0b01000011;	// V5 pullup on pwren
 	#endif
-	#if (HWVER==6) || (HWVER==7) 
-	DDRD  = 0b00101010;	// V6
-	PORTD = 0b00000011;	// V6, V7
+	#if (HWVER==6) || (HWVER==7) || (HWVER==9) 
+	DDRD  = 0b00101010;	// V6, V7 V8, V9
+	PORTD = 0b00000011;	// V6, V7 V8, V9
 	#endif
 	
-	
-	
 }
+// HW9+ allows to use timer 1 to do edge detection on the mpu interrupt. 
+// This is recommended way of handling the MPU interrupt on HW9+
+// If the legacy pin change detection is desired, define HW9_ENABLE_MPUINT_LEGACYDETECT as 1
+#define HW9_ENABLE_MPUINT_LEGACYDETECT 0
+// To activate the timer-based MPU-interrupt detection on HW9+ define HW9_ENABLE_MPUINT_TIMERDETECT as 1
+#define HW9_ENABLE_MPUINT_TIMERDETECT 1
+
 void init_portchangeint(void)
 {
-
 	// Interrupt on change on PA6 (RTC int)
 	// PA6 is PCINT6
 	PCMSK0 = 0b01000000;			// Mask to select interrupt PA6
 		
-	// Interrupt on change on PC5 (Motion int)
-	// PC5 is PCINT21
+		
+	#if HWVER==9
+	#if HW9_ENABLE_MPUINT_LEGACYDETECT==1
+	// Interrupt on change on PB1 (Motion int). PB1 is PCINT9
+	PCMSK1 = 0b00000010;			// Mask to select motion_int (PB1)		
+	#endif 
+	// Interrupt on PC2 (USB)
+	PCMSK2 = 0b00000100;			// Mask to select PC2 (USB connect)
+	#else
+	// Interrupt on change on PC5 (Motion int). PC5 is PCINT21
 	PCMSK2 = 0b00100000;			// Mask to select motion_int (PC5)
+	#endif
 	
 	#if HWVER==4 	
 	// Interrupt on change on PD7 (Bluetooth connect) and PD4 (Bluetooth RTS)
@@ -701,10 +737,23 @@ void init_portchangeint(void)
 	// PD7 is PCINT31
 	PCMSK3 = 0b11010000;
 	#endif
+	#if (HWVER==9)
+	// Interrupt on change on PD7 (Bluetooth connect), PD4 (Bluetooth RTS)
+	// PD7 is PCINT31
+	PCMSK3 = 0b10010000;
+	#endif
 	
-	
-	// Enable PCIE0 and PCIE2
-	PCICR = 0b00001101;				// Enable interrupt on port A and C
+	#if (HWVER==9)
+		#if HW9_ENABLE_MPUINT_LEGACYDETECT==1
+			// Enable PCIE0, PCIE1, PICE2, PCIE3
+			PCICR = 0b00001111;				// Enable interrupt on port A, B, C, D
+		#else
+			PCICR = 0b00001101;				// Enable interrupt on port A, C, D
+		#endif
+	#else
+		// Enable PCIE0, PCIE2, PCIE3
+		PCICR = 0b00001101;				// Enable interrupt on port A, C, D
+	#endif
 }
 void deinit_portchangeint(void)
 {
@@ -719,18 +768,6 @@ void deinit_portchangeint(void)
 
 void init_timers(void)
 {
-	// Timer 1: CPU
-	/*
-	TCCR1A = 0x00;									// Clear timer on compare
-	TCCR1B = 0x08|0x01;								// Clear timer on compare, prescaler 1
-	TIMSK1 = (1<<OCIE1A);							// Output compare match A interrupt enable
-	#if HWVER==1
-	OCR1A = 7199;									// Top value: divides by OCR1A+1; 7199 leads to divide by 7200
-	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
-	OCR1A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
-	#endif
-	*/
 	// Use timer 3 for internal clocking, no prescaler
 	TCCR3A = 0x00;									// Clear timer on compare
 	TCCR3B = 0x08|0x01;								// Clear timer on compare, prescaler 1
@@ -738,7 +775,7 @@ void init_timers(void)
 	#if HWVER==1
 	OCR3A = 7199;									// Top value: divides by OCR1A+1; 7199 leads to divide by 7200
 	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 	OCR3A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
 	#endif
 	
@@ -749,7 +786,7 @@ void init_timers(void)
 	#if HWVER==1
 	OCR2A = 143;									// Divides by 243+1 -> 20ms period.
 	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 	OCR2A = 215;									// Divides by 215+1 -> 20ms period.
 	#endif
 
@@ -760,12 +797,74 @@ void deinit_timers(void)
 	//TIMSK1 = 0;		// Deinitialise timer 1
 	TIMSK3 = 0;		// Deinitialise timer 3
 }
+/******************************************************************************
+	function: init_timer_mpucapture
+*******************************************************************************	
+	Setup Timer 1 to capture rising edge of MPU interrupt (HW9+ only)
+	
+	PB1 (motion interrupt) is T1: Timer/Counter 1 External Counter Input
+	PD6 (motion interrupt) is ICP: Timer/Counter 1 input capture pin
+	
+	Divider is used to divide the MPU interrupt clock. The MPU interrupt is downsampled by divider+1
+	If divider is 0, no downsampling occurs: each MPU interupt triggers a CPU interrupt
+	If divider is nonzero, downsampling occurs: each (divider+1) MPU interrupts triggers a CPU interrupt.
+	
+	Due to a limitation of the AVR timer, two CPU interrupts are used:
+	When divider is 0: an MPU interrupt triggers the ICP interrupt TIMER1_CAPT_vect.
+	When divider is nonzero: downsampled MPU interrupts trigger the COMPA interrupt TIMER1_COMPA_vect
+	
+	Parameters:
+		divider		-	Generate a CPU interrupt (either TIMER1_CAPT_vect or TIMER1_COMPA_vect) every (divider+1) MPU interrupts.
+
+	Returns:
+		-
+******************************************************************************/
+#if HWVER==9
+void init_timer_mpucapture(char divider)
+{			
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		// Care must be taken not to change OCR1 while the timer is running, as it misses the next match.
+		// Stop/reset timer; reset timer counter, then set divider before turning on timer.
+		TCCR1B = 0x00;									// Stop clock
+		TCCR1C = 0x00;
+		TCCR1A = 0x00;
+		TIMSK1 = 0x00;
+		TCNT1 = 0;
+		TIFR1 = 0b00100111;								// Clear pending interrupts
+
+		OCR1A = divider;								// Top value: divides by OCR1A+1. If zero, the timer does not generate COMPA interrupts.
+
+		TCCR1A = 0x00;									// Clear timer on compare
+		//TCCR1B = 0b11001111;							// Clear timer on compare, external clock on T1 (rising edge), input capture noise canceller, input capture (rising edge)
+		TCCR1B = 0b10001111;							// Clear timer on compare, external clock on T1 (rising edge), input capture noise canceller, input capture (falling edge)
+		if(divider==0)
+		{
+			// Use the ICP interrupt
+			TIMSK1 = (1<<ICIE1);						// Input capture interrupt
+		}
+		else
+		{
+			// Use the COMPA interrupt
+			TIMSK1 = (1<<OCIE1A);						// Output compare match A interrupt enable
+		}
+		
+		
+	}
+}
+#endif
 
 void init_module(void)
 {
 	init_ports();
 	init_portchangeint();
 	init_timers();
+	
+	#if HWVER==9
+	#if HW9_ENABLE_MPUINT_TIMERDETECT==1
+	init_timer_mpucapture(0);
+	#endif
+	#endif
 	
 #if BOOTLOADER==0
 	spi_init(SPI_DIV_2);
@@ -782,7 +881,7 @@ void init_module(void)
 	#if HWVER==1
 		uart1_init(3,0);	
 	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 		uart1_init(5,0);	// 115200bps  @ 11.06 Mhz
 		//uart1_init(2,0);	// 230400bps  @ 11.06 Mhz
 	#endif
@@ -791,7 +890,7 @@ void init_module(void)
 		uart0_init(1,0);	
 	#endif
 	
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 		#if BOOTLOADER==0
 			spiusart0_init();
 		#endif

@@ -217,7 +217,7 @@ v			X_AIN0 = RST# = PB2
 	//PORTB&= 0b11110011;
 	#endif
 	
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 	// Same as HWVER1
 	// Setup ports as output driving low.
 	DDRA  |= 0b00001111;
@@ -283,7 +283,7 @@ inline void lcd_cmd(void)
 		#if HWVER==1
 			PORTA&=0b11111011;
 		#endif
-		#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+		#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 			// ADC3=PA3
 			PORTA&=0b11110111;
 		#endif
@@ -305,7 +305,7 @@ inline void lcd_data(void)
 		#if HWVER==1
 			PORTA|=0b00000100;
 		#endif
-		#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+		#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 			// ADC3=PA3
 			PORTA|=0b00001000;
 		#endif
@@ -378,7 +378,7 @@ void lcd_nselect(unsigned char ns)
 			else
 				PORTB&=0b11111011;
 		#endif
-		#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+		#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 			// SS=ADC2=PA2
 			if(ns!=0)
 				PORTA|=0b00000100;

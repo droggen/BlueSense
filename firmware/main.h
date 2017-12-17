@@ -124,7 +124,7 @@ extern unsigned char system_devname[];
 
 extern unsigned char config_enable_id,config_enable_acceleration,config_enable_gyroscope,config_enable_checksum,config_data_format;
 extern unsigned char config_sensorsr;
-extern volatile unsigned long motion_int_ctr, motion_int_ctr2,motion_int_ctrds;
+extern volatile unsigned long motion_int_ctr, motion_int_ctrds;
 extern unsigned char do_packet;
 
 extern unsigned long int system_perf;

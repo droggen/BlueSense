@@ -241,12 +241,47 @@ ISR(PCINT0_vect)
 		_timer_tick_hz();
 	}
 }
-// Pin change motion
-ISR(PCINT2_vect)
+#if HWVER==9
+// HW9+ can detect MPU interrupt by timer comparison, used when downsampling 
+ISR(TIMER1_COMPA_vect)
 {
+	/*static int c=0;
+	c++;
 	//dbg_fputchar_nonblock('m',0);
+	if( (c&0b111111) ==0x00)
+		system_led_toggle(0b001);*/
 	
-	//motion_int_ctr2++;
+	// No need to check signal edge, directly call interrupt vector
+	mpu_isr();
+	// Clear the compare match interrut, if it was set again prior to mpu_isr returning
+	TIFR1=0b00000010;
+}
+// HW9+ can detect MPU interrupt by timer input capture pin, used when not downsampling 
+ISR(TIMER1_CAPT_vect)
+{
+	/*static int c=0;
+	c++;
+	//dbg_fputchar_nonblock('n',0);
+	if( (c&0b111111)==0x00)
+		system_led_toggle(0b100);*/
+	
+	// No need to check signal edge, directly call interrupt vector
+	mpu_isr();
+	// Clear the input capture interrut, if it was set again prior to mpu_isr returning
+	TIFR1=0b00100000;
+}
+#endif
+
+
+#if HWVER!=9
+// HW9 supports timer-based edge detect and downsampling. Therefore, this is disabled by default on HW9.
+// MPU interrupt detected by pin change interrupt
+#if (HWVER==9)
+ISR(PCINT1_vect)
+#else
+ISR(PCINT2_vect)
+#endif
+{
 	/* React on motion_int pin
 		The naive but technically correct approach is: trigger mpu_isr on the rising edge of motion_int.
 		An issue arises if other interrupts delay this ISR by more than 50uS where
@@ -282,28 +317,35 @@ ISR(PCINT2_vect)
 	//dbg_fputchar_nonblock(b[i],0);
 
 
-
-
+	#if (HWVER==9)
+	if((PINB&0x02)==0)			// MPU ISR on falling edge; hack to avoid missing interrupts
+		mpu_isr();				
+	//if(PINB&0x02)			// MPU ISR on rising edge; technically correct but misses interrupts.
+	//	mpu_isr();
+	PCIFR=0b0010;		// Clear pending interrupts
+	#else
 	if((PINC&0x20)==0)			// MPU ISR on falling edge; hack to avoid missing interrupts
 		mpu_isr();				
 	//if(PINC&0x20)			// MPU ISR on rising edge; technically correct but misses interrupts.
 	//	mpu_isr();
-	
 	PCIFR=0b0100;		// Clear pending interrupts
-
-	/*if(PCIFR&4)
-	{
-		// This would be taken if the pin was toggled during the processing of the interrupt, either 0->1 or 0->1->0
-		if((PINC&0x20)==0)
-			dbg_fputchar_nonblock('x',0);		// Pin was toggled 0->1->0 or multiples
-		else
-			dbg_fputchar_nonblock('X',0);		// Pin was toggled 0->1 or multiples
-		//PCIFR=0b0100;
-		//if(PCIFR&4)
-			//dbg_fputchar_nonblock('y',0);
-	}*/
+	#endif
+	
 
 }
+#endif
+
+#if (HWVER==9)
+// Pin change: USB connect (PC2)
+ISR(PCINT2_vect)
+{
+	system_led_toggle(0b100);
+	signed char cur_bt_connected,cur_usb_connected=-1;
+	cur_bt_connected = system_isbtconnected();
+	cur_usb_connected = system_isusbconnected();	
+	interface_signalchange(cur_bt_connected,cur_usb_connected);
+}
+#endif
 // Pin change: BT connect (PD7) USB connect (PD6) and RTS (PD4)
 ISR(PCINT3_vect)
 {
@@ -338,17 +380,26 @@ ISR(PCINT3_vect)
 	}
 	bluetoothrts = rts;		
 
+	
 	// Check connection change
 	signed char cur_bt_connected,cur_usb_connected=-1;
 	cur_bt_connected = system_isbtconnected();		
+	
+	#if (HWVER!=9)
+	// HW9 does not have USB in this ISR.
 	
 	//PORTC&=0b11110111;
 	//PORTC|=cur_bt_connected<<3;
 	
 	#if (HWVER==5) || (HWVER==6) || (HWVER==7)
 	cur_usb_connected = system_isusbconnected();	
-	#endif	
+	#endif
+	
+	#endif	// HWVER!=9
+	
+	// Update interface
 	interface_signalchange(cur_bt_connected,cur_usb_connected);
+	
 }
 
 
@@ -591,14 +642,38 @@ int main(void)
 	// Initialises the port IO, timers, interrupts and "printf" debug interface over I2C
 	init_basic();
 	
+	/*init_module();
+	
+	// Disable interrupts
+	//cli();
+	
+	while(1)
+	{
+		_delay_ms(1);
+		system_led_on(0);
+		system_led_off(1);
+		system_led_on(2);
+		_delay_ms(1);
+		system_led_off(0);
+		system_led_on(1);
+		system_led_off(2);
+	}
+	
+	while(1);*/
+	
 	// Initialise the rest of ito
 	init_extended();
 
 	//init_wdt();
 
-
-
 	
+
+	/*while(1)
+	{
+		fprintf(file_pri,"%d\n",system_isusbconnected());
+		_delay_ms(100);
+	}
+	*/
 	mode_main();			// This never returns.
 	
 
@@ -613,6 +688,7 @@ int main(void)
 
 
    
+
 
 
 

@@ -307,6 +307,7 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 	// Check if we really have an interrupt (high overhead)
 	// Experimentally, this seems unnecessary if the PCIF interrupt is cleared after the mpu_isr returns.
 	
+	
 	unsigned char s[4];
 	unsigned char r=mpu_readregs_int_try_raw(s,MPU_R_INT_STATUS,1);
 	if(r)
@@ -321,20 +322,22 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 	}
 	
 	
+	
 	// Statistics
 	mpu_cnt_int++;
 
-	
+	#if HWVER!=9
+	// HW9+ implements the softdivider by means of a timer/counter
 	__mpu_sample_softdivider_ctr++;
 	if(__mpu_sample_softdivider_ctr>__mpu_sample_softdivider_divider)
 	{
 		__mpu_sample_softdivider_ctr=0;
+	#endif
 
 		// Statistics
 		mpu_cnt_sample_tot++;
 		
-		
-		
+			
 		// Automatically read data
 		if(__mpu_autoread)
 		{
@@ -439,7 +442,9 @@ void mpu_isr(void)	// Blocking SPI read within this interrupt
 			mpu_cnt_sample_succcess++;
 		
 		}
-	}
+	#if HWVER!=9
+	} // __mpu_sample_softdivider_ctr
+	#endif
 }
 
 /******************************************************************************

@@ -713,6 +713,7 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 	//long int perf,refperf,mintime=2000;
 	long int perf,refperf;
 	unsigned long int mintime=10;
+	//unsigned long int mintime=3;
 	mpu_config_motionmode(MPU_MODE_OFF,0);
 	fprintf_P(file_pri,PSTR("Benchmarking all auto acquire modes\n"));
 	//refperf = main_perfbench(mintime);
@@ -740,17 +741,19 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_8,
 		//MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_8,
 		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8,
+		
 		MPU_MODE_1KHZ_ACC_BW460_GYRO_BW250_MAG_100,
 		MPU_MODE_500HZ_ACC_BW184_GYRO_BW250_MAG_100,
 		MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,
-		MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100,
+		/*MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100,
 		MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100,
+		
 		//MPU_MODE_500HZ_ACC_BW92_GYRO_BW92_MAG_8_Q,
 		//MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_8_Q,
 		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_8_Q,
 		MPU_MODE_500HZ_ACC_BW92_GYRO_BW92_MAG_100_Q,
 		MPU_MODE_200HZ_ACC_BW92_GYRO_BW92_MAG_100_Q,
-		MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100_Q,		
+		MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100_Q,		*/
 		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100_Q
 		};
 

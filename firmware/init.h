@@ -12,6 +12,7 @@ void init_extended(void);
 void init_ports(void);
 void init_timers(void);
 void deinit_timers(void);
+void init_timer_mpucapture(char divider);
 void init_module(void);
 void init_spi(void);
 void init_portchangeint(void);

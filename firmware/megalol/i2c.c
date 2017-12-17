@@ -97,7 +97,7 @@ void i2c_init(void)
 	
 	//TWBR = 0; TWSR = 0;		// 460.8KHz @ 7'372'800 Hz
 	#endif
-	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7)
+	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 	//TWBR = 6; TWSR = 0;			// 394.9KHz @ 11'059'200 Hz		(default during development)
 	TWBR = 7; TWSR = 0;			// 368.64KHz @ 11'059'200 Hz		
 	//TWBR = 47; TWSR = 0;		// 100.5KHz @ 11'059'200 Hz

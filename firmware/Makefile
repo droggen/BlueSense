@@ -224,11 +224,14 @@ CDEFS =
 # ENABLE_SERIAL1: enable uart1 interface
 
 # BlueSense2: define the hardware revision below
-# Available versions are: 1, 4, 5, 6, 7. Version 7 is compatible with version 8.
+# Available versions are: 1, 4, 5, 6, 7, 9. Version 7 is compatible with version 8.
+#
+
 #CDEFS += -DHWVER=4
 #CDEFS += -DHWVER=5
 #CDEFS += -DHWVER=6
-CDEFS += -DHWVER=7
+#CDEFS += -DHWVER=7
+CDEFS += -DHWVER=9
 CDEFS += -DENABLE_SERIAL0=0
 CDEFS += -DENABLE_SERIAL1=1
 CDEFS += -DENABLE_I2CINTERRUPT

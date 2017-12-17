@@ -107,6 +107,38 @@ void system_led_toggle(unsigned char led)
 	PINB = led&0b10;
 	PINC = ((led&0b1)<<6) | ((led&0b100)<<1);
 }
+#endif
+#if (HWVER==9)
+void system_led_set(unsigned char led)
+{
+	led=(~led)&0b111;
+	PORTC = (PORTC&0b10010111)|((led&0b1)<<6)|((led&0b10)<<4)|((led&0b100)<<1);
+}
+void system_led_on(unsigned char ledn)
+{
+	if(ledn==0)
+		PORTC&=0b10111111;
+	if(ledn==1)
+		PORTC&=0b11011111;
+	if(ledn==2)
+		PORTC&=0b11110111;
+}
+void system_led_off(unsigned char ledn)
+{
+	if(ledn==0)
+		PORTC|=0b01000000;
+	if(ledn==1)
+		PORTC|=0b00100000;
+	if(ledn==2)
+		PORTC|=0b00001000;
+}
+void system_led_toggle(unsigned char led)
+{
+	PINC = ((led&0b1)<<6) | ((led&0b10)<<4) | ((led&0b100)<<1);
+}
+#endif
+#if (HWVER==6) || (HWVER==7) || (HWVER==9)
+// Three LED version
 void system_led_test(void)
 {
 	//for(unsigned char i=0;i<4;i++)
@@ -131,6 +163,7 @@ void system_led_test(void)
 	}
 }
 #else
+// Two LED version
 void system_led_test(void)
 {
 	for(unsigned char i=0;i<4;i++)
@@ -247,14 +280,14 @@ unsigned char system_batterystat(unsigned char unused)
 	// Counter counts from 0 to 39 hundredth of seconds and wraps around (10 second period).
 	static unsigned char counter=0;
 	static unsigned char nblinks;
-#if HWVER==7
+#if (HWVER==7) || (HWVER==9) 
 	static unsigned char lastpc=0;
 	unsigned char newpc;
 	static unsigned char pressduration=0;
 #endif
 	
 	
-#if HWVER==7
+#if (HWVER==7) || (HWVER==9) 
 	newpc = PINC;
 	// Check if pin has changed state and update LED accordingly
 	if( (newpc^lastpc)&0b00010000)
@@ -407,6 +440,13 @@ unsigned char system_isusbconnected(void)
 }
 #endif
 
+#if (HWVER==9)
+unsigned char system_isusbconnected(void)
+{
+	return (PINC&0b00000100)?1:0;
+}
+#endif
+
 
 #if BOOTLOADER==0
 
@@ -459,7 +499,7 @@ void system_off(void)
 	PORTC|=0b10000000;
 }
 #endif
-#if (HWVER==6) || (HWVER==7)
+#if (HWVER==6) || (HWVER==7) || (HWVER==9)
 void system_off(void)
 {
 	// Clear PC7

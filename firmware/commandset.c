@@ -508,7 +508,7 @@ unsigned char CommandParserOff(char *buffer,unsigned char size)
 		_delay_ms(1000);		
 	}*/
 	
-	#if (HWVER==6) || (HWVER==7)
+	#if (HWVER==6) || (HWVER==7) || (HWVER==9)
 	// Get the battery state
 	ltc2942_backgroundgetstate(0);
 	// Wait for the read to occur
