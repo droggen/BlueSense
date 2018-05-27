@@ -44,6 +44,6 @@ Besides USB, Bluetooth 2 and SD card interface with a FAT32 compatible filesyste
 * 30x30mm
 
 ## Hardware details
-<p>Description of <em>BlueSense</em> <a href="hardware">Hardware specifications</a></p>
+[Additional hardware details](/hardware/)
 
 <p>Main: <a href="main">main</a></p>
