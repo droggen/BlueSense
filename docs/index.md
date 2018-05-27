@@ -14,7 +14,7 @@ Yet it is extensible for IoT applications with a number of features making it ap
 
 ## Wearable motion sensing platform
 
-![BlueSense coordinate system](/assets/img/node_axes.jpg){:class="img-responsive"}
+![BlueSense coordinate system](/assets/img/node_axes.jpg){:class="img-responsive":width="300px"}
 
 As a wearable platforn, BlueSense is a tiny device which can be used to capture body movement and orientation with a 9DoF motion sensor. The data can either be logged on an SD card or streamed over USB or Bluetooth 2. BlueSense could be used to prototype a custom fitness tracker. Its extension ports allow to plug-in additional sensor modalities for research purposes. A display is being developed converting it into a smartwatch. 
 
