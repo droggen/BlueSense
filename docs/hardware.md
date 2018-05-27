@@ -4,19 +4,23 @@ title: Hardware
 permalink: /hardware/
 ---
 
-# Block diagram
+[Home](/)
+
+# Hardware details
+
+## Block diagram
 
 ![Block diagram](/assets/img/node4-hr.png){:class="img-responsive"}
 
-# Schematics
+## Schematics
 
 tbc
 
-# Hardware versions
+## Hardware versions
 
 tbc
 
-# Power consumption (table, discharge curve)
+## Power consumption (table, discharge curve)
 
 tbc
 
