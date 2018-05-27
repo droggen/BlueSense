@@ -29,13 +29,16 @@ Besides USB, Bluetooth 2 and SD card interface with a FAT32 compatible filesyste
 
 ## Hardware specifications
 * ATmega1284P core (128KB flash, 16KB RAM)
+* LTC3553 battery charger and voltage regulator
+* 3V regulated power supply 
 * MPU9250 9DoF motion sensor, with software attitude and heading reference system
 * USB interface for charging, device interaction
-* Bluetooth 2 interface for device interaction
+* RN41 Bluetooth 2 interface for device interaction
 * MicroSD card (SDHC standard)
 * DS3232 Real-Time Clock, one of the most accurate RTC on the market (+/-5ppm over the entire temperature range, <0.6ppm at identical temperature)
-* Coulomb counter allowing precise measurement of battery charge/discharge and characterisation of real-time current consumption by software
+* LTC2942 Coulomb counter allowing precise measurement of battery charge/discharge and characterisation of real-time current consumption by software
 * Extension ports with analog inputs, digital I/O, I2C, SPI, timekeeping, etc.
+
 
 ## Mechanical specifications
 * 30x30mm
