@@ -6,7 +6,7 @@ title: test BlueSense
 
 # An extensible wearable motion sensing and IoT platform
 
-![BlueSense PCB and coordinate system](/assets/img/nodephotoh-axes_vsmall.png){:class="img-responsive"}
+![BlueSense PCB and coordinate system](/assets/img/nodephotoh-axes_small.jpg){:class="img-responsive"}
 
 BlueSense is a 30x30mm extensible wearable/IoT platform designed to be functional out-of-the-box yet extensible. 
 It's primary purpose is to be an inertial measurement unit for wearable applications based on the Invensense MPU9250 and an AT1284p microcontroller. 
