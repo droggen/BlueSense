@@ -3,6 +3,8 @@ layout: default
 title: test BlueSense
 ---
 
+![image-title-here](/assets/img/logo.png){:class="img-responsive"}
+
 
 # Bluesense: an extensible wearable motion sensing and IoT platform
 BlueSense is a 30x30mm extensible wearable/IoT platform designed to be functional out-of-the-box yet extensible. 
