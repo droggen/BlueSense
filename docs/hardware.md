@@ -16,3 +16,7 @@ tbc
 
 tbc
 
+# Power consumption (table, discharge curve)
+
+tbc
+
