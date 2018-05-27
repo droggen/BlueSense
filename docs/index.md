@@ -38,7 +38,7 @@ Besides USB, Bluetooth 2 and SD card interface with a FAT32 compatible filesyste
 * DS3232 Real-Time Clock, one of the most accurate RTC on the market (+/-5ppm over the entire temperature range, <0.6ppm at identical temperature)
 * LTC2942 Coulomb counter allowing precise measurement of battery charge/discharge and characterisation of real-time current consumption by software
 * Extension ports with analog inputs, digital I/O, I2C, SPI, timekeeping, etc.
-
+* True hardware off (<70uW) and programmable wake-up by RTC (e.g. for measurements once a day)
 
 ## Mechanical specifications
 * 30x30mm
