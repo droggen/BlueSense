@@ -1,3 +1,9 @@
+---
+layout: page
+title: Hardware
+permalink: /hardware/
+---
+
 # H1
 ## H2
 ### H3
