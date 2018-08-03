@@ -268,9 +268,14 @@ void mode_adc(void)
 				sprintf_P(str,PSTR("ADC mode. Samples: %lu in %lu ms. Sample error: %lu. Log size: %lu\n"),stat_totsample,timer_ms_get()-stat_timemsstart,stat_samplesendfailed,ufat_log_getsize());
 				fputbuf(file_pri,str,strlen(str));
 				fputbuf(file_dbg,str,strlen(str));
+				_delay_ms(100);
+				sprintf_P(str,PSTR("time us: %lu. time ms: %lu\n"),time,timer_ms_get());
+				fputbuf(file_pri,str,strlen(str));
+				fputbuf(file_dbg,str,strlen(str));
 				time_laststatus = time;
 			}
 		}
+		
 		
 		// Initiate ADC conversion using double buffering
 		unsigned short *data = ADCReadDoubleBuffered(mode_adc_mask);
@@ -293,9 +298,15 @@ void mode_adc(void)
 			{
 				bufferptr=format1u16(bufferptr,pktctr);
 			}
+			// Format us timestamp 
 			if(mode_stream_format_ts)
 			{
 				bufferptr = format1u32(bufferptr,time);
+			}
+			// Format ms timestamp
+			if(mode_stream_format_ts)
+			{
+				bufferptr = format1u32(bufferptr,timer_ms_get());
 			}
 			if(mode_stream_format_bat)
 			{

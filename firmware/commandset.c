@@ -104,6 +104,7 @@ unsigned char __CommandQuit=0;
 *******************************************************************************	
 	Either displays the RTC time if no argument is provided, or sets the
 	RTC time to the hhmmss argument.
+	The local time is synchronised to the RTC (epoch).
 		
 	Parameters:
 		buffer	-		Pointer to the command string
@@ -150,6 +151,8 @@ unsigned char CommandParserTime(char *buffer,unsigned char size)
 	unsigned char rv = ds3232_writetime(h,m,s);
 	if(rv==0)
 		return 0;
+	// Synchronise local time to RTC time
+	system_settimefromrtc();
 	return 1;
 }
 /******************************************************************************
@@ -245,6 +248,9 @@ unsigned char CommandParserDate(char *buffer,unsigned char size)
 	unsigned char rv = ds3232_writedate_int(1,d,m,y);
 	if(rv==0)
 		return 0;
+		
+	// Synchronise local time to RTC time
+	system_settimefromrtc();
 	return 1;
 }
 
