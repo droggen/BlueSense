@@ -4,6 +4,29 @@ title: Hardware
 permalink: /hardware/
 ---
 
+[Home](/)
+
+
+# Hardware details
+
+## Block diagram
+
+![Block diagram](/assets/img/node4-hr.png){:class="img-responsive"}
+
+## Schematics
+
+tbc
+
+## Hardware versions
+
+tbc
+
+## Power consumption (table, discharge curve)
+
+tbc
+
+
+
 ### Hardware characteristics
 
 
@@ -16,3 +39,7 @@ permalink: /hardware/
 * Most accurate RTC (real-time clock) on the market: +/-5ppm
 * Coulomb counter allowing precise measurement of battery charge/discharge and characterisation of real-time current consumption by software
 * Extension ports with analog inputs, digital I/O, I2C, SPI, timekeeping, etc.
+
+
+
+
