@@ -879,7 +879,7 @@ unsigned long timer_waitperiod_ms(unsigned short p,WAITPERIOD *wp)
 *******************************************************************************
 	Wait until a a period of time, or a multiple of it, has elapsed from the previous call.
 		
-	Prior to the first call to this function, wp must be set to 0.
+	Prior to the first call to this function, the content pointed by wp must be set to 0.
 	
 	This function is time-wraparound-safe if the desired period and maximum
 	time elapsed between each function call is lower than 0x80000000 us (i.e. 35 minutes). 

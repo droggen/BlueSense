@@ -230,6 +230,10 @@ void mode_adc(void)
 	// Packet init
 	packet_init(&packet,"DXX",3);
 	
+	
+	// timer_init(1000,3990000000); // Debug hack: Set the epoch 
+	
+	
 	// Get the current time in us and ms
 	stat_timemsstart = timer_ms_get();	
 	time_laststatus = timer_us_get();
@@ -244,15 +248,7 @@ void mode_adc(void)
 		if(CommandShouldQuit())
 			break;
 
-		// TOFIX
-		// Check that we do not overrun the maximum duration allowed by 32-bit in uS (4'000'000=1h6mn).
-		if(p>4000000000)
-		{
-			fprintf_P(file_pri,PSTR("Maximum timing duration reached; interrupting\n"));
-			break;
-		}
-			
-					
+		
 		// Periodic wait - timer_waitperiod_us returns the current time in us
 		time = timer_waitperiod_us(mode_adc_period,&p);
 		
