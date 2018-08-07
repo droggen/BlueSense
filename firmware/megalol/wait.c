@@ -200,6 +200,24 @@ void timer_init(unsigned long epoch_s,unsigned long epoch_us)
 	}
 }
 
+// Hack to set the uS epoch only.
+// This is a serious hack: there is no guarantee that timer_us_get will return the epoch_us if immediately called afterwards, as 
+// some internal variables shared with by the ms and us logic are not reset.
+void timer_init_us(unsigned long epoch_us)
+{
+	// Ensures an atomic change
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		// Initialise the variables holding the time updated at the 1Hz tick
+		_timer_1hztimer_in_us=epoch_us;
+				
+		// Store current time and current monotonic time
+		_timer_time_us_lastreturned=_timer_time_us_monotonic=_timer_time_us=_timer_1hztimer_in_us;
+	
+	}
+}
+
+
 /******************************************************************************
 	function: _tick_hz
 *******************************************************************************

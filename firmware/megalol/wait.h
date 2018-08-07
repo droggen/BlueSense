@@ -62,6 +62,7 @@ extern volatile unsigned long _timer_time_ms_intclk;
 extern volatile unsigned long long _timer_lastreturned_microsec;
 
 void timer_init(unsigned long epoch_s,unsigned long epoch_us);
+void timer_init_us(unsigned long epoch_us);
 unsigned long timer_ms_get_c(void);
 unsigned long timer_ms_get_asm(void);
 #ifdef __cplusplus

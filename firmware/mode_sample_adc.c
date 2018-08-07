@@ -231,8 +231,17 @@ void mode_adc(void)
 	packet_init(&packet,"DXX",3);
 	
 	
-	// timer_init(1000,3990000000); // Debug hack: Set the epoch 
+	//timer_init(1000,4284967296); // Debug hack: Set the epoch 
+	timer_init_us(0);	// Hack: reset the uS timer
 	
+	/*unsigned long t0=timer_us_get();
+	while(1)
+	{
+		unsigned long t1=timer_us_get();
+		unsigned long t2=timer_ms_get();
+		_delay_ms(1000);
+		printf("%lu %lu (%lu)\n",t1,t2,(t1-t0)/1000);
+	}*/
 	
 	// Get the current time in us and ms
 	stat_timemsstart = timer_ms_get();	
