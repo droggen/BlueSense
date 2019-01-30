@@ -3,7 +3,8 @@
 
 #include "command.h"
 
-#define MSM_LOGBAT
+// MSM_LOGBAT: if defined, logs the battery level in the last log file, if the filesystem is available.
+// #define MSM_LOGBAT
 
 extern const char help_streamlog[] PROGMEM;
 
