@@ -1,6 +1,8 @@
 #ifndef __SYSTEM_H
 #define __SYSTEM_H
 
+#include "power.h"
+
 #define BATTERY_THRESHOLD_CONNECTED 4500
 
 #if BOOTLOADER==0

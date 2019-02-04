@@ -632,10 +632,6 @@ void system_storepoweroffdata2(void)
 }
 void system_loadpoweroffdata2(_POWERUSE_OFF &pu)
 {
-	unsigned long charge;
-	unsigned short voltage;
-	unsigned long time;
-	
 	// Load charge, voltage and time
 	pu.valid = eeprom_read_byte((uint8_t*)STATUS_ADDR_OFFCURRENT_VALID);
 	pu.offcharge = eeprom_read_dword((uint32_t*)STATUS_ADDR_OFFCURRENT_CHARGE0);

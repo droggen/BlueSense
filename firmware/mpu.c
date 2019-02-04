@@ -298,7 +298,7 @@ void mpu_isr_o(void)	// Non-blocking SPI read triggered by this interrupt
 */
 void mpu_isr(void)	// Blocking SPI read within this interrupt
 {
-	static signed short mxo=0,myo=0,mzo=0;
+	//static signed short mxo=0,myo=0,mzo=0;
 
 	// motionint always called (e.g. WoM)
 	/*if(isr_motionint!=0)

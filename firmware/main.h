@@ -47,16 +47,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define FIRMWARE_DOWNLOADING 3
 extern unsigned char firmware_state;
 
-typedef struct {
-	unsigned char valid;
-	unsigned char offh,offm,offs,offday,offmonth,offyear;
-	unsigned char onh,onm,ons,onday,onmonth,onyear;
-	unsigned long offcharge,oncharge;
-	unsigned short offvoltage,onvoltage;
-	unsigned long offtime,ontime;
-	char str[5][64];
-} _POWERUSE_OFF;
-extern _POWERUSE_OFF _poweruse_off;
+
 
 extern FILE *file_bt,*file_usb,*file_fb,*file_dbg,*file_pri;
 extern unsigned char system_devname[];
