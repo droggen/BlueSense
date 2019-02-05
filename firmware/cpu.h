@@ -1,6 +1,8 @@
 #ifndef __CPU_H
 #define __CPU_H
 
+// Defines the CPU speed.
+
 #if HWVER==1
 #define F_CPU 7372800UL
 #endif
