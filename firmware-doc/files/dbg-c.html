@@ -8,7 +8,12 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Functions"></a><a name="Topic188"></a><div class="CTopic TGroup LC first">
+<a name="dbg"></a><a name="Topic87"></a><div class="CTopic TFile LC first">
+ <div class="CTitle">dbg</div>
+ <div class="CBody"><p>FT200X debugging interface</p><p><b>Internal notes</b></p><p>Benchmarking of the inquire process, from the issuing of transaction until available bytes returned (from i2c_transaction_queue(2,0,&amp;_dbg_trans_query1,&amp;_dbg_trans_query2); until _dbg_query_callback2 is called) is: ~208-256uS @ 552KHz ~232-279uS @ 394 KHz ~511-559 @ 100KHz</p></div>
+</div>
+
+<a name="Functions"></a><a name="Topic188"></a><div class="CTopic TGroup LC">
  <div class="CTitle">Functions</div>
 </div>
 

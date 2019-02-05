@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("par",["Function"],[["ParseComma",,[[,,,,0,"File:helper.c:ParseComma"]]],["ParseCommaGetInt",,[[,,,,0,"File:helper.c:ParseCommaGetInt"]]]]);
+NDSearch.OnPrefixDataLoaded("par",["Function"],[["ParseComma",,[[,,,,0,"File:helper.c:ParseComma"]]],["ParseCommaGetInt",,[[,,,,0,"File:helper.c:ParseCommaGetInt"]]],["ParseCommaGetLong",,[[,,,,0,"File:helper.c:ParseCommaGetLong"]]],["ParseCommaGetNumParam",,[[,,,,0,"File:helper.c:ParseCommaGetNumParam"]]]]);

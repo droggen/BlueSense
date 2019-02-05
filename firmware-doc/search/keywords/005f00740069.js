@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("_ti",["Function"],[["_tick_hz",,[[,,,,0,"File:megalol/wait.c:_tick_hz"]]]]);
+NDSearch.OnPrefixDataLoaded("_ti",["Function"],[["_tick_hz",,[[,,,,0,"File:megalol/wait.c:_tick_hz"]]],["_timer_tick_1024hz",,[[,,,,0,"File:megalol/wait.c:_timer_tick_1024hz"]]],["_timer_tick_50hz",,[[,,,,0,"File:megalol/wait.c:_timer_tick_50hz"]]]]);

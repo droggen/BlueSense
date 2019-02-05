@@ -37,19 +37,6 @@
 	
 	
 
-	When "idle": must automatically detect which channel is used to send commands
-	Must print information to both channels (if connected).
-
-	What should be the features of the firmware?
-	
-	- Upon connect, auto stream data
-	- set time
-	- configure: sample rate, format, etc
-	- start recording 
-	- stop recording
-	- list files
-	- dump files
-	
 
 
 
@@ -139,6 +126,7 @@ BUG:	Stopeeing logging and quitting motion sampling mode with ! does not write b
 #include "wait.h"
 #include "mode.h"
 #include "a3d.h"
+#include "pio.h"
 
 FILE *file_bt;			// Bluetooth
 FILE *file_usb;			// USB
@@ -181,10 +169,6 @@ signed short system_offdeltacharge;
 //	vfprintf(file_dbg,fmt,args);
 }*/
 
-
-
-
-// Strings
 
 
 
@@ -428,6 +412,87 @@ unsigned char bootloaderhook_bluetooth(unsigned char c)
 }
 
 
+void test_pio_adc(void)
+{
+while(1)
+	{
+		unsigned short adc[8];
+		
+		for(int pin=0;pin<=3;pin++)
+		{
+			fprintf(file_pri,"====== PIN %d ======\n",pin);
+			
+			for(int i=0;i<5;i++)
+			{		
+				ADCReadMulti(0xff,adc);
+				for(int c=0;c<8;c++)
+					fprintf(file_pri,"%d ",adc[c]);
+				fprintf(file_pri,"\n");
+				
+				_delay_ms(250);
+			}
+			
+			// Set pin to output
+			fprintf(file_pri,"Set to output 0\n");
+			PIOPinMode(pin,PIOMODE_OUTPUT);
+			PIODigitalWrite(pin,0);
+			
+			for(int i=0;i<5;i++)
+			{		
+				ADCReadMulti(0xff,adc);
+				for(int c=0;c<8;c++)
+					fprintf(file_pri,"%d ",adc[c]);
+				fprintf(file_pri,"\n");
+				
+				_delay_ms(250);
+			}
+			
+			// Set pin to output
+			fprintf(file_pri,"Set to output 1\n");
+			PIOPinMode(pin,PIOMODE_OUTPUT);
+			PIODigitalWrite(pin,1);
+			
+			for(int i=0;i<5;i++)
+			{		
+				ADCReadMulti(0xff,adc);
+				for(int c=0;c<8;c++)
+					fprintf(file_pri,"%d ",adc[c]);
+				fprintf(file_pri,"\n");
+				
+				_delay_ms(250);
+			}
+			
+			// Set pin to inpt
+			fprintf(file_pri,"Set to input no pull up\n");
+			PIOPinMode(pin,PIOMODE_INPUT);
+			
+			for(int i=0;i<5;i++)
+			{		
+				ADCReadMulti(0xff,adc);
+				for(int c=0;c<8;c++)
+					fprintf(file_pri,"%d ",adc[c]);
+				fprintf(file_pri,"\n");
+				
+				_delay_ms(250);
+			}
+			
+			// Set pin to inpt
+			fprintf(file_pri,"Set to input pull up\n");
+			PIOPinMode(pin,PIOMODE_INPUTPULLUP);
+			
+			for(int i=0;i<5;i++)
+			{		
+				ADCReadMulti(0xff,adc);
+				for(int c=0;c<8;c++)
+					fprintf(file_pri,"%d ",adc[c]);
+				fprintf(file_pri,"\n");
+				
+				_delay_ms(250);
+			}
+		}
+	}
+}
+
 
 /******************************************************************************
 Main program loop
@@ -437,30 +502,14 @@ int main(void)
 	// Initialises the port IO, timers, interrupts and "printf" debug interface over I2C
 	init_basic();
 	
-	/*init_module();
-	
-	// Disable interrupts
-	//cli();
-	
-	while(1)
-	{
-		_delay_ms(1);
-		system_led_on(0);
-		system_led_off(1);
-		system_led_on(2);
-		_delay_ms(1);
-		system_led_off(0);
-		system_led_on(1);
-		system_led_off(2);
-	}
-	
-	while(1);*/
-	
-	// Initialise the rest of ito
+	// Initialise the rest of the system
 	init_extended();
 
 	//init_wdt();
 
+	
+	// test_pio_adc();
+	
 	
 
 	/*while(1)
@@ -469,9 +518,11 @@ int main(void)
 		_delay_ms(100);
 	}
 	*/
+	
+	
 	mode_main();			// This never returns.
 	
-
+	// This is never executed.
 	while(1);
 	return 0;
 }

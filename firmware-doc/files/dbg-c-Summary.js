@@ -1,1 +1,1 @@
-NDFramePage.OnPageTitleLoaded("File:dbg.c","dbg.c");NDSummary.OnSummaryLoaded("File:dbg.c",[["C/C++","C"]],[["Functions","Function"],["Groups","Group"]],[[188,0,1,"Functions","Functions"],[175,0,0,"dbg_putbuf","dbg_putbuf"]]);
+NDFramePage.OnPageTitleLoaded("File:dbg.c","dbg.c");NDSummary.OnSummaryLoaded("File:dbg.c",[["C/C++","C"]],[["Files","File"],["Functions","Function"],["Groups","Group"]],[[87,0,0,"dbg","dbg"],[188,0,2,"Functions","Functions"],[175,0,1,"dbg_putbuf","dbg_putbuf"]]);

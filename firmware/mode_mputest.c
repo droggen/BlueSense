@@ -508,8 +508,10 @@ unsigned char CommandParserMPUTest_Shadow(char *buffer,unsigned char size)
 		return 2;
 	}
 	en=en?1:0;
-	if(dly>31) dly=31; if(dly<0) dly=0;
-	if(numreg>15) numreg=15; if(numreg<0) numreg=0;
+	if(dly>31) dly=31; 
+	if(dly<0) dly=0;
+	if(numreg>15) numreg=15; 
+	if(numreg<0) numreg=0;
 	fprintf_P(file_pri,PSTR("Shadow en %d dly %d regstart %d numreg %d... "),en,dly,regstart,numreg);
 	_mpu_mag_regshadow(en,dly,regstart,numreg);
 	fprintf_P(file_pri,PSTR("done\n"));	
@@ -788,7 +790,6 @@ unsigned char CommandParserMPUTest_Bench(char *buffer,unsigned char size)
 unsigned char CommandParserMPUTest_Bench2(char *buffer,unsigned char size)
 {
 	//long int perf,refperf,mintime=2000;
-	long int perf,refperf,mintime=2;
 	mpu_config_motionmode(MPU_MODE_OFF,0);
 	fprintf_P(file_pri,PSTR("Benchmarking spi acq time\n"));
 	//refperf = main_perfbench(mintime);
@@ -819,7 +820,7 @@ unsigned char CommandParserMPUTest_Bench2(char *buffer,unsigned char size)
 		//MPU_MODE_100HZ_ACC_BW41_GYRO_BW41_MAG_100
 		};
 	
-	char buf[96];
+	//char buf[96];
 	//mpu_getmodename(MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,buf);
 	//fprintf_P(file_pri,PSTR("Benchmarking mode %d: %s\n"),MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,buf);
 	//mpu_config_motionmode(MPU_MODE_500HZ_ACC_BW184_GYRO_BW184_MAG_100,1);
@@ -847,7 +848,6 @@ unsigned char CommandParserMPUTest_Bench2(char *buffer,unsigned char size)
 unsigned char CommandParserMPUTest_Bench3(char *buffer,unsigned char size)
 {
 	//long int perf,refperf,mintime=2000;
-	long int perf,refperf,mintime=2;
 	mpu_config_motionmode(MPU_MODE_OFF,0);
 	fprintf_P(file_pri,PSTR("Benchmarking spi acq time\n"));
 	//refperf = main_perfbench(mintime);

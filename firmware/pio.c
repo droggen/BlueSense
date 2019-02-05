@@ -37,6 +37,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	This module offers an arduino-like interface to I/O pins. Each I/O pin is numbered, and the physical mapping to the actual AVR pin is handled by this module.
 	
 	Hardware version 7:
+	
+	--- Text	
 	Pin#	SchematicName			AVRPin		Function
 	0 		X_ADC0					PA0			Digital IO, ADC input
 	1		X_ADC1					PA1			Digital IO, ADC input
@@ -45,7 +47,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	4		N/A
 	5		X_AIN0					PB2			Digital IO, Analog comparator input
 	6		X_AIN1					PB3			Digital IO, Analog comparator input
-	
+	---
 	
 	
 	
@@ -55,8 +57,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	
 	When a pin is used for analog input, it must be configured as PIOMODE_INPUT first.
 	
-	
-	*Internals*
 	
 	*Hardware compatibility*
 	
