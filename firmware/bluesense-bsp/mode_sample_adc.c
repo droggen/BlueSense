@@ -31,6 +31,7 @@
 #include "uiconfig.h"
 #include "helper.h"
 #include "system.h"
+#include "system-extra.h"
 #include "pkt.h"
 #include "ufat.h"
 #include "mode.h"

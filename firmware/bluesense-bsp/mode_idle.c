@@ -42,6 +42,8 @@
 #include "mode_coulomb.h"
 #include "mode_sd.h"
 #include "mode_teststream.h"
+#include "options.h"
+
 
 const char help_x[] PROGMEM ="x";
 
@@ -68,10 +70,14 @@ const COMMANDPARSER CommandParsersIdle[] =
 	{'Z',CommandParserSync,help_z},
 	//{'z',CommandParserSyncFromRTC,help_zsyncfromrtc},
 	{'Y',CommandParserTestSync,help_y},
+#if DBG_RN41TERMINAL==1
 	{'R',CommandParserBT,help_r},
+#endif
 	//{'L',CommandParserLCD,help_l},
 	
+#if DBG_TIMERELATEDTEST==1
 	{'t', CommandParserTime_Test,help_ttest},
+#endif
 	
 	{'A', CommandParserADC,help_a},
 	//{'C', CommandParserClock,help_c},

@@ -32,6 +32,7 @@
 #include "lcd.h"
 #include "fb.h"
 #include "system.h"
+#include "system-extra.h"
 #include "helper.h"
 #include "serial.h"
 #include "dbg.h"

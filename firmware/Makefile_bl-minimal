@@ -1,5 +1,10 @@
 # Makefile for BlueSense2 minimalistic bootloader (main_bl-minimal).
 #
+# This minimalistic bootloader is only for development trials - it does not
+# allow to load user code. It signals aliveness over the usb/dbg interface
+# and jumps to user code.
+
+#
 #
 # ----------------------------------------------------------------------------
 # Author: Peter Fleury
@@ -53,9 +58,9 @@ MCU = atmega1284p
 # 0x0e00*2=0x1C00 for ATmega8  512 words Boot Size
 # 0xFC00*2=0x1F800 for ATmega128  1024 words Boot Size
 # 0xF800*2=0x1F000 for ATmega1280
-# 0xF000*2=0x1E000 for ATmega1280
-#BOOTLOADER_ADDRESS = 1E000
+# 0xF000*2=0x1E000 for ATmega1280	4096 words Boot size
 BOOTLOADER_ADDRESS = 1E000
+
 
 
 
@@ -71,23 +76,20 @@ SECONDARYHEX = main
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = main_bl-minimal.c
-#SRC = mainbl.c
-SRC += init.c
-SRC += system.c
+SRC = bl-minimal/main_bl-minimal.c
+SRC += bluesense-bsp/init.c
+SRC += bluesense-bsp/system.c
 #SRC += megalol/wait.c
 SRC += megalol/i2c.c
 SRC += megalol/i2c_internal.c
-SRC += circbuf.c
-SRC += dbg.c
-SRC += serial.c
-SRC += serial1.c
+SRC += megalol/circbuf.c
+SRC += megalol/wait.c
+SRC += bluesense-bsp/dbg.c
+SRC += bluesense-bsp/serial.c
+#SRC += bluesense-bsp/serial1.c
 #SRC += megalol/adc.c
 #SRC += stk500.c
 
-
-#SRC += system.c
-#SRC += init.c
 
 
 # List Assembler source files here.
@@ -98,7 +100,6 @@ SRC += serial1.c
 #     it will preserve the spelling of the filenames, and gcc itself does
 #     care about how the name is spelled on its command-line.
 ASRC = 
-#ASRC += numeric.S
 
 
 # Optimization level, can be [0, 1, 2, 3, s]. 
@@ -118,15 +119,16 @@ DEBUG = dwarf-2
 #     Each directory must be seperated by a space.
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
-EXTRAINCDIRS = ../common
 EXTRAINCDIRS = megalol
+EXTRAINCDIRS += bluesense-bsp
 
 # Compiler flag to set the C Standard level.
 #     c89   = "ANSI" C
 #     gnu89 = c89 plus GCC extensions
 #     c99   = ISO C99 standard (not yet fully implemented)
 #     gnu99 = c99 plus GCC extensions
-CSTANDARD = -std=gnu99
+#CSTANDARD = -std=gnu99
+CSTANDARD = -std=gnu++11
 
 
 # Place -D or -U options here
@@ -134,10 +136,10 @@ CDEFS =
 #CDEFS = -DF_CPU=$(F_CPU)UL
 
 CDEFS += -DBOOTLOADER=1
-CDEFS += -DHWVER=6
+CDEFS += -DHWVER=7
 #CDEFS += -DENABLE_I2CINTERRUPT
 #CDEFS += -DENABLE_I2CPOLL
-CDEFS += -DENABLE_SERIAL1
+#CDEFS += -DENABLE_SERIAL1
 
 CDEFS += -D__DELAY_BACKWARD_COMPATIBLE__
 
@@ -158,7 +160,8 @@ CFLAGS = -g$(DEBUG)
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += -O$(OPT)
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -fno-jump-tables
-CFLAGS += -Wall -Wstrict-prototypes
+CFLAGS += -Wall 
+#CFLAGS += -Wstrict-prototypes
 CFLAGS += -Wa,-adhlns=$(<:.c=.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
@@ -259,6 +262,8 @@ LDFLAGS += -Wl,--section-start=.text=$(BOOTLOADER_ADDRESS)
 #AVRDUDE_PROGRAMMER = stk500v2
 AVRDUDE_PROGRAMMER = avrispmkii
 
+AVRDUDE_WRITE_BIT_CLOCK = 2.5MHz
+
 # com1 = serial port. Use lpt1 to connect to parallel port.
 AVRDUDE_PORT = usb	   # programmer connected to serial device
 #AVRDUDE_PORT = com1    # programmer connected to serial device
@@ -284,7 +289,7 @@ AVRDUDE_NO_VERIFY = -V
 # to submit bug reports.
 #AVRDUDE_VERBOSE = -v -v
 
-AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER) -B $(AVRDUDE_WRITE_BIT_CLOCK)
 AVRDUDE_FLAGS += $(AVRDUDE_NO_VERIFY)
 AVRDUDE_FLAGS += $(AVRDUDE_VERBOSE)
 AVRDUDE_FLAGS += $(AVRDUDE_ERASE_COUNTER)
@@ -325,7 +330,8 @@ DEBUG_HOST = localhost
 
 # Define programs and commands.
 SHELL = sh
-CC = avr-gcc
+#CC = avr-gcc
+CC = avr-g++
 OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 SIZE = avr-size

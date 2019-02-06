@@ -34,21 +34,36 @@
 #include "dbg.h"
 #include "serial.h"
 
-FILE *file_usb,*file_bt;
+FILE *file_usb;			// Debug interface
+//FILE *file_bt;		// Bluetooth interface
+
 void (*app_start)(void) = 0x0000;
 
 /******************************************************************************
 	Timer interrupt vectors
 ******************************************************************************/
 // CPU 1024Hz
-ISR(TIMER1_COMPA_vect)
+ISR(TIMER3_COMPA_vect)
 {
+	// Blink at ~2Hz
+	static unsigned int ctr=0;
+	ctr=(ctr+1)&0xff;
+	if(ctr==0)
+		system_led_toggle(0b001);
+		
 	//wdt_reset();
 	//time_ms++;
 	dbg_callback(0);
 }
 
 
+void move_interrupts()
+{
+	// Move interrupt vectors to the boot area
+	unsigned char temp = MCUCR;
+	MCUCR = temp|(1<<IVCE);
+	MCUCR = temp|(1<<IVSEL);
+}
 
 /******************************************************************************
 Main program loop
@@ -70,22 +85,63 @@ int main(void)
 		app_start();
 	}
 
-	// INIT MODULE
+	// Init ports
 	init_ports();
+	
+	// LED lifesign
+	system_led_test();	
+	system_led_set(0b111);
+	
+	
+	// Initialise timers
 	init_timers();
-	//uart1_init(5,0);
+	// Initialise I2C
 	i2c_init();
+	
+	// Initialise debug interface
 	dbg_init();
+	dbg_setnumtxbeforerx(10);
+	// Initialise I/O
+	file_usb = serial_open(10,1);
+	serial_setblocking(file_usb,0);
+	
+	
+	
+	// Move interrupts to the boot area
+	move_interrupts();
+	// Enable interrupts
+	sei();
+	
+	// Print text
+	fputs("BS2 BL\n",file_usb);
+	_delay_ms(1000);
+	fputs("BS2 BL Reboot\n",file_usb);
+	
+	wdt_enable(WDTO_250MS);
+	while(1); // WDT will do reset
+	
+	while(1)
+	{
+		system_led_test();	
+		_delay_ms(1000);
+		
+	}
+	while(1);
+	
+	
+	/*
+	while(1);
+	
+	
+	//uart1_init(5,0);
+	
 	file_usb = serial_open(10,1);
 	//file_bt=serial_open(1,1);
 	serial_setblocking(file_usb,0);
 	//serial_setblocking(file_bt,0);
 	dbg_setnumtxbeforerx(10);
 	
-	// Move interrupt vector and enable interrupts
-	unsigned char temp = MCUCR;
-	MCUCR = temp|(1<<IVCE);
-	MCUCR = temp|(1<<IVSEL);
+	
 	sei();
 	
 	//cli();
@@ -122,12 +178,12 @@ int main(void)
 	// Reboot
 	
 	
-	/*while(1)
-	{
-		system_blink(10,50,0b01);
-		system_led_set(0b00);
-		_delay_ms(500);
-	}*/
+	//while(1)
+	//{
+	//	system_blink(10,50,0b01);
+	//	system_led_set(0b00);
+	//	_delay_ms(500);
+	//}
 	
 	
 	fputs("BS2 BL Reboot\n",file_usb);
@@ -144,7 +200,7 @@ int main(void)
 	while(1); // WDT will do reset
 	
 	
-	
+	*/
 	
 	
 

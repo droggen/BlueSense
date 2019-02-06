@@ -127,6 +127,7 @@ SRC += bluesense-bsp/spi-usart0.c
 SRC += megalol/wait.c
 SRC += megalol/i2c_internal.c
 SRC += bluesense-bsp/system.c
+SRC += bluesense-bsp/system-extra.c
 #SRC += stk500.c
 SRC += bluesense-bsp/boot.c
 SRC += bluesense-bsp/interface.c
@@ -244,7 +245,7 @@ CDEFS += -DENABLE_I2CINTERRUPT
 CDEFS += -DFIXEDPOINTQUATERNION=0
 CDEFS += -DFIXEDPOINTQUATERNIONSHIFT=0
 CDEFS += -DENABLEQUATERNION=1
-CDEFS += -DENABLEGFXDEMO=1
+CDEFS += -DENABLEGFXDEMO=0
 CDEFS += -DENABLEMODECOULOMB=0
 CDEFS += -DBOOTLOADER=0
 

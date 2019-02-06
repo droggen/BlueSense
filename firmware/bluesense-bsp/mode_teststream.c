@@ -28,6 +28,7 @@
 #include "helper.h"
 #include "i2c_internal.h"
 #include "system.h"
+#include "system-extra.h"
 #include "pkt.h"
 #include "sd.h"
 #include "ufat.h"

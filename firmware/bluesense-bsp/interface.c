@@ -28,6 +28,7 @@ Use interface_changedetectenable to enable/disable change detection.
 #include "dbg.h"
 #include "serial.h"
 #include "system.h"
+#include "system-extra.h"
 #include "wait.h"
 
 

@@ -1,7 +1,7 @@
 /*
 	File: init
 	
-	Initialisation and deinitialisation functions.
+	Board initialisation and deinitialisation functions.
 	
 */
 #include "cpu.h"
@@ -17,14 +17,15 @@
 #include <string.h>
 #include <util/atomic.h>
 
+#include "init.h"
 #if BOOTLOADER==0
 #include "lcd.h"
 #include "fb.h"
 #include "serial.h"
 #include "main.h"
 #include "spi.h"
-#include "init.h"
 #include "system.h"
+#include "system-extra.h"
 #include "i2c.h"
 #include "wait.h"
 #include "ltc2942.h"
@@ -56,6 +57,7 @@ unsigned char init_portb;
 	Parameters:
 		
 ******************************************************************************/
+#if BOOTLOADER==0
 void init_basic(void)
 {
 	//_delay_ms(2000);
@@ -112,6 +114,8 @@ void init_basic(void)
 	
 	//init_powerreduce();
 }
+#endif
+#if BOOTLOADER==0
 void init_extended(void)
 {
 	// Get number of boots
@@ -482,6 +486,15 @@ void init_extended(void)
 	
 	
 }
+#endif
+
+/******************************************************************************
+   function: init_ports
+*******************************************************************************
+	Init the CPU port direction and pull-up and/or output state.
+	
+	
+******************************************************************************/
 
 #if HWVER==1
 void init_ports(void)
@@ -526,16 +539,6 @@ void init_ports(void)
 	
 	//DDxn, PORTxn, and PINx
 	//DDxn =1 : output
-	
-	
-	
-	/*PORTC=0b10000000;		// Power stays on (ddrc still input but with pull up)
-	//_delay_us(10);
-	DDRC  = 0b11001000;		// put DDRC as output
-	
-	//while(1);
-	
-	_delay_us(10);*/
 	
 
 	// ---------------------------------------------------------------------------------------
@@ -766,6 +769,17 @@ void deinit_portchangeint(void)
 
 #endif
 
+/******************************************************************************
+	function: init_timers
+*******************************************************************************	
+	Initialise timers:
+	
+	Timer 3 (16-bit): 1024Hz timer, generates Output Compare Match A interrupt. ISR: TIMER3_COMPA_vect
+	
+	Timer 2 (8-bit): 50Hz timer, generates Output Compare Match A interrupt. Not initialised in bootloader. ISR: TIMER2_COMPA_vect
+	
+	
+******************************************************************************/
 void init_timers(void)
 {
 	// Use timer 3 for internal clocking, no prescaler
@@ -779,6 +793,7 @@ void init_timers(void)
 	OCR3A = 10799;									// Top value: divides by OCR1A+1; 10799 leads to divide by 10800
 	#endif
 	
+#if BOOTLOADER==0
 	// Use timer 2 for internal clocking at 20mS intervals
 	TCCR2A = 0b00000010;							// Clear timer on compare
 	TCCR2B = 0b00000111;							// Prescaler 1024
@@ -789,7 +804,7 @@ void init_timers(void)
 	#if (HWVER==4) || (HWVER==5) || (HWVER==6) || (HWVER==7) || (HWVER==9)
 	OCR2A = 215;									// Divides by 215+1 -> 20ms period.
 	#endif
-
+#endif
 }
 void deinit_timers(void)
 {
@@ -854,6 +869,12 @@ void init_timer_mpucapture(char divider)
 }
 #endif
 
+/******************************************************************************
+	function: init_module
+*******************************************************************************	
+	Initialises ports (input/output, pull-up), pin-change interrupts, timers,
+	SPI, UARTs.
+******************************************************************************/
 void init_module(void)
 {
 	init_ports();
@@ -966,6 +987,7 @@ void init_powerreduce(void)
 	PRR1 = 0b00000001;
 	
 }
+#if BOOTLOADER==0
 ISR(WDT_vect)
 {
     // Do something with a pin
@@ -976,7 +998,7 @@ ISR(WDT_vect)
 	system_led_toggle(1);	
 	//system_led_toggle(100);	
 }
-
+#endif
 void init_wdt(void)
 {
 	cli();												// Disable all interrupts

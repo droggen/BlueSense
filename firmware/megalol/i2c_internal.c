@@ -35,7 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "i2c_internal.h"
 
 #include "serial1.h"
-#include "helper.h"
+//#include "helper.h"
 
 // Internal stuff
 I2C_TRANSACTION *i2c_transaction_buffer[I2C_TRANSACTION_MAX];										// Not volatile, only modified in usermode

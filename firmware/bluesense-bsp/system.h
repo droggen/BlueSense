@@ -30,28 +30,9 @@ void system_status_error(unsigned char error,unsigned char forever);
 void system_led_test(void);
 unsigned char system_lifesign(unsigned char unused);
 unsigned char system_lifesign2(unsigned char sec);
-unsigned char system_batterystat(unsigned char unused);
-
 unsigned char system_isbtconnected(void);
 unsigned char system_isusbconnected(void);
 
-#if BOOTLOADER==0
-void system_callback_battery_sample_init(void);
-unsigned char system_callback_battery_sample(unsigned char);
-unsigned short system_getbattery(void);
-unsigned long system_getbatterytime(void);
-void system_off(void);
-void system_power_low(void);
-void system_power_normal(void);
-void system_adcpu_off(void);
-void system_adcpu_on(void);
-unsigned char *system_getdevicename(void);
-#endif
 
-unsigned char system_getrtcint(void);
-void system_settimefromrtc(void);
-void system_storepoweroffdata(void);
-void system_storepoweroffdata2(void);
-void system_loadpoweroffdata2(_POWERUSE_OFF &pu);
 
 #endif

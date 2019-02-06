@@ -19,6 +19,7 @@
 #include "commandset.h"
 #include "ds3232.h"
 #include "system.h"
+#include "system-extra.h"
 #include "uiconfig.h"
 #include "init.h"
 #include "dbg.h"
@@ -29,6 +30,8 @@
 #include "ufat.h"
 
 // Command help
+
+
 
 const char help_z[] PROGMEM ="Z[,<hh><mm><ss><dd><mm><yy>]: synchronise time.\n\t\tNo parameters: reset local time/date; otherwise sets the RTC and local time/date to hhmmss ddmmyy";
 const char help_y[] PROGMEM ="Test sync";

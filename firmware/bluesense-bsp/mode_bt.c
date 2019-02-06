@@ -28,22 +28,22 @@
 #include "i2c_internal.h"
 #include "system.h"
 #include "pkt.h"
-
 #include "mode.h"
 #include "mode_bench.h"
-
 #include "commandset.h"
+#include "options.h"
+
+
+#if DBG_RN41TERMINAL==1
 
 
 
-
-#define CommandParsersBTNum 2
-const COMMANDPARSER CommandParsersBT[CommandParsersBTNum] =
+const COMMANDPARSER CommandParsersBT[] =
 { 
 	{'H', CommandParserHelp,help_h},
 	{'!', CommandParserQuit,help_quit}
 };
-
+const unsigned char CommandParsersBTNum=sizeof(CommandParsersBT)/sizeof(COMMANDPARSER);
 
 
 
@@ -186,3 +186,4 @@ void mode_bt(void)
 
 }
 
+#endif

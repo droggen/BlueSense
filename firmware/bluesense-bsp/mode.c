@@ -82,26 +82,24 @@ void mode_main(void)
 				//main_log();
 				system_mode=0;
 				break;
-			case APP_MODE_CLOCK:
-			#if ENABLEGFXDEMO==1
-//				mode_clock();
-			#endif
-				system_mode=0;
+#if ENABLEGFXDEMO==1
+			case APP_MODE_CLOCK:			
+				mode_clock();
 				break;
 			case APP_MODE_DEMO:
-			#if ENABLEGFXDEMO==1
-	//			mode_demo();
-			#endif
-				system_mode=0;
+				mode_demo();
 				break;
+#endif
 			case APP_MODE_BENCHIO:
 				//mode_bench();
 				system_mode=0;
 				break;
+#if DBG_RN41TERMINAL==1
 			case APP_MODE_BT:
 				mode_bt();
 				system_mode=0;
 				break;
+#endif
 			case APP_MODE_MOTIONSTREAM:
 				mode_motionstream();
 				system_mode=0;
@@ -134,11 +132,13 @@ void mode_main(void)
 				system_mode=0;
 				break;
 
-			case APP_MODE_ADC:
-			default:
+			case APP_MODE_ADC:			
 				mode_adc();
 				system_mode=0;
 				break;
+			default:
+				system_mode=0;
+			
 		}
 	}
 	
