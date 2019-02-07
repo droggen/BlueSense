@@ -62,7 +62,7 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = bootloader
+TARGET = bootloader-stk500
 
 # Secondary hex file to program; e.g. bootloader or main
 SECONDARYHEX = main
@@ -116,6 +116,8 @@ DEBUG = dwarf-2
 #     For a directory that has spaces, enclose it in quotes.
 EXTRAINCDIRS = megalol
 EXTRAINCDIRS += bl
+EXTRAINCDIRS = megalol
+EXTRAINCDIRS += bluesense-bsp
 
 # Compiler flag to set the C Standard level.
 #     c89   = "ANSI" C
