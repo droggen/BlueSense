@@ -1,6 +1,33 @@
 # BlueSense2 makefile.
+#
 # This is a newer makefile that generates dependencies in a .dep directory
 # It can also be modified to generate bootloaders.
+#
+# ---- BOOTLOADER ----
+# If a file called bootloader.hex is available, then programming will flash
+# the main firmware, and if space is available the bootloader. 
+# If no space is available for the bootloader, only the main firmware is programmed.
+#
+# The bootloader is assumed to take the maximum size of 8192 bytes.
+#
+# ---- FUSES ----
+#
+# This makefile automatically programs the fuses as needed. 
+# If a bootloader is flashed, the fuses are set to boot at the bootloader address. 
+# If a bootloader is not flashed (not available, or firmware too large), the fuses
+# are set to boot at address 0000.
+#
+# The fuses without bootloader must be: 
+# 	Extended: FF
+# 	High: D1
+# 	Low: FF
+#
+# The fuses with bootloader must be: 
+# 	Extended: FF
+# 	High: D0
+# 	Low: FF
+
+
 
 # ----------------------------------------------------------------------------
 # Author: Peter Fleury
@@ -39,6 +66,7 @@
 # MCU name
 MCU = atmega1284p
 
+FSIZ = 122880
 
 # Processor frequency.
 #     This will define a symbol, F_CPU, in all source code files equal to the 
@@ -247,6 +275,9 @@ CDEFS += -DFIXEDPOINTQUATERNIONSHIFT=0
 CDEFS += -DENABLEQUATERNION=1
 CDEFS += -DENABLEGFXDEMO=0
 CDEFS += -DENABLEMODECOULOMB=0
+CDEFS += -DDBG_TIMERELATEDTEST=0
+CDEFS += -DDBG_RN41TERMINAL=0
+CDEFS += -DDBG_INFLATE=0
 CDEFS += -DBOOTLOADER=0
 
 CDEFS += -D__DELAY_BACKWARD_COMPATIBLE__
@@ -455,6 +486,7 @@ MSG_BEGIN = -------- begin --------
 MSG_END = --------  end  --------
 MSG_SIZE_BEFORE = Size before: 
 MSG_SIZE_AFTER = Size after:
+MSG_SIZE_AFTER2 = "Size after (total flash usage)":
 MSG_COFF = Converting to AVR COFF:
 MSG_EXTENDED_COFF = Converting to AVR Extended COFF:
 MSG_FLASH = Creating load file for Flash:
@@ -489,7 +521,7 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
 # Default target.
-all: begin gccversion sizebefore build sizeafter end
+all: begin gccversion sizebefore build sizeafter sizeafter2 end
 
 build: elf hex eep lss sym
 #build:  hex eep lss sym
@@ -516,6 +548,7 @@ end:
 
 # Display size of file.
 HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET).hex
+HEXSIZETOT = $(SIZE) $(TARGET).hex | sed '2q;d' | grep -Eo --color  '^\s*\w+\s*\w+\s*' | grep -Eo --color '\s*\w+\s*$$' | grep -Eo --color '\w+'
 #ELFSIZE = $(SIZE) --format=avr --mcu=$(MCU) $(TARGET).elf
 ELFSIZE = $(SIZE) -A $(TARGET).elf
 
@@ -527,7 +560,9 @@ sizeafter:
 	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); \
 	2>/dev/null; echo; fi
 
-
+sizeafter2:
+	@if test -f $(TARGET).hex; then echo; echo $(MSG_SIZE_AFTER2); $(HEXSIZETOT); \
+	2>/dev/null; echo; fi
 
 # Display compiler version information.
 gccversion : 
@@ -536,10 +571,22 @@ gccversion :
 
 
 # Program the device.  
-program: $(TARGET).hex $(TARGET).eep
+program: $(TARGET).hex $(TARGET).eep sizeafter2
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-	#powershell start-sleep 1
-	#$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
+	@sleep .5
+	@echo Programming bootloader, if available and space sufficient
+	$(eval HEXSIZETOTVAR := $(shell $(HEXSIZETOT)))
+	@echo Firmware size is $(HEXSIZETOTVAR), maximum size to allow for bootloader is 122880
+	@if test $(HEXSIZETOTVAR) -gt 122880; then echo The firmware is too large for a bootloader, no bootloader will be flashed.; \
+	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd1:m -U lfuse:w:0xff:m -U efuse:w:0xff:m; fi	
+	@if test $(HEXSIZETOTVAR) -le 122880; then echo Space sufficient for a bootloader.; \
+	if test -f $(SECONDARYHEX).hex; then echo Flashing bootloader;$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY);\
+	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd0:m -U lfuse:w:0xff:m -U efuse:w:0xff:m; fi;\
+	if test ! -f $(SECONDARYHEX).hex; then echo No bootloader to flash;\
+	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd1:m -U lfuse:w:0xff:m -U efuse:w:0xff:m; fi;\
+	fi
+	
+	
 
 
 # Generate avr-gdb config/init file which does the following:
@@ -675,6 +722,23 @@ clean_list :
 	$(REMOVE) $(SRC:.c=.d)
 	$(REMOVE) .dep/*
 
+
+.PHONY: toto2
+toto2:
+	$(eval FIRMWARESIZE = $(shell avr-size main.elf | sed '2q;d' | grep -Eo --color  '^\s*\w+\s*' | grep -Eo --color '\w+'))
+
+getfirwmaresize2:
+	$(eval FIRMWARESIZE2 = $(shell avr-size main.hex | sed '2q;d' | grep -Eo --color  '^\s*\w+\s*\w+\s*' | grep -Eo --color '\s*\w+\s*$' | grep -Eo --color '\w+'))
+
+printfirmwaresize: getfirwmaresize
+	@echo Firmware size is $(FIRMWARESIZE)
+
+toto: getfirwmaresize printfirmwaresize
+	@echo hello world
+	# FSIZ: must have the size of the .text section in bytes
+	@echo Firmware size: $(FIRMWARESIZE)
+	@if test $(FIRMWARESIZE) -gt 122880; then echo Error: firmware too large for bootloader; fi
+	@if test $(FIRMWARESIZE) -le 122880; then echo OK to flash firwmare and bootloader; fi
 
 
 # Include the dependency files.
