@@ -277,7 +277,6 @@ CDEFS += -DENABLEGFXDEMO=0
 CDEFS += -DENABLEMODECOULOMB=0
 CDEFS += -DDBG_TIMERELATEDTEST=0
 CDEFS += -DDBG_RN41TERMINAL=0
-CDEFS += -DDBG_INFLATE=0
 CDEFS += -DBOOTLOADER=0
 
 CDEFS += -D__DELAY_BACKWARD_COMPATIBLE__
@@ -573,7 +572,7 @@ gccversion :
 # Program the device.  
 program: $(TARGET).hex $(TARGET).eep sizeafter2
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-	@sleep .5
+	@sleep .1
 	@echo Programming bootloader, if available and space sufficient
 	$(eval HEXSIZETOTVAR := $(shell $(HEXSIZETOT)))
 	@echo Firmware size is $(HEXSIZETOTVAR), maximum size to allow for bootloader is 122880

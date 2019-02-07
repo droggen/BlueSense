@@ -37,6 +37,7 @@
 #include "mpu.h"
 #include "spi-usart0.h"
 #include "uiconfig.h"
+#include "boot.h"
 #endif
 
 unsigned char init_ddra;
@@ -808,9 +809,10 @@ void init_timers(void)
 }
 void deinit_timers(void)
 {
-	
-	//TIMSK1 = 0;		// Deinitialise timer 1
 	TIMSK3 = 0;		// Deinitialise timer 3
+#if BOOTLOADER==0
+	TIMSK2 = 0;		// Deinitialise timer 2
+#endif
 }
 /******************************************************************************
 	function: init_timer_mpucapture

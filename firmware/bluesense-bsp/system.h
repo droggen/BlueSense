@@ -32,7 +32,7 @@ unsigned char system_lifesign(unsigned char unused);
 unsigned char system_lifesign2(unsigned char sec);
 unsigned char system_isbtconnected(void);
 unsigned char system_isusbconnected(void);
-
-
+void system_blink_inbootloader();
+void system_blink_enterbootloader();
 
 #endif

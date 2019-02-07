@@ -201,6 +201,27 @@ void system_status_ok2(unsigned char status)
 {
 	system_blink_led(status,150,150,1);
 }
+void system_blink_inbootloader()
+{
+	for(int i=0;i<5;i++)
+	{
+		system_led_set(0b000);
+		_delay_ms(100);
+		system_led_set(0b111);
+		_delay_ms(100);
+	}
+}
+void system_blink_enterbootloader()
+{
+	for(char i=0;i<5;i++)
+	{
+		system_led_set(0b101);
+		_delay_ms(100);
+		system_led_set(0b010);
+		_delay_ms(100);
+	}
+}
+
 /******************************************************************************
 	function: system_lifesign
 *******************************************************************************

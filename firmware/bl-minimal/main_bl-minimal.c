@@ -46,10 +46,10 @@ void (*app_start)(void) = 0x0000;
 ISR(TIMER3_COMPA_vect)
 {
 	// Blink at ~2Hz
-	static unsigned int ctr=0;
+	/*static unsigned int ctr=0;
 	ctr=(ctr+1)&0xff;
 	if(ctr==0)
-		system_led_toggle(0b001);
+		system_led_toggle(0b001);*/
 		
 	//wdt_reset();
 	//time_ms++;
@@ -70,13 +70,14 @@ Main program loop
 ******************************************************************************/
 int main(void)
 {
-	unsigned char mcusr;
+	unsigned char mcusr,ubrr0;
 	/*
 		We have a hard time rebooting to the application once all the registers are initialised. 
 		Therefore we set a watchdog reset, and here we detect whether we were reseted by the watchdog.
 		If yes, then jump directly to application (all registers are still clear).
 	*/
 	mcusr=MCUSR;
+	ubrr0=UBRR0;
 	MCUSR=0;
 	if(mcusr&0x8)
 	{
@@ -89,8 +90,7 @@ int main(void)
 	init_ports();
 	
 	// LED lifesign
-	system_led_test();	
-	system_led_set(0b111);
+	system_blink_inbootloader();
 	
 	
 	// Initialise timers
@@ -114,97 +114,16 @@ int main(void)
 	
 	// Print text
 	fputs("BS2 BL\n",file_usb);
+	fprintf(file_usb,"MCUSR %X\n",mcusr);
+	fprintf(file_usb,"UBRR0 %X\n",ubrr0);
+	
+	// Wait a bit and reboot
 	_delay_ms(1000);
 	fputs("BS2 BL Reboot\n",file_usb);
 	
 	wdt_enable(WDTO_250MS);
 	while(1); // WDT will do reset
 	
-	while(1)
-	{
-		system_led_test();	
-		_delay_ms(1000);
-		
-	}
-	while(1);
-	
-	
-	/*
-	while(1);
-	
-	
-	//uart1_init(5,0);
-	
-	file_usb = serial_open(10,1);
-	//file_bt=serial_open(1,1);
-	serial_setblocking(file_usb,0);
-	//serial_setblocking(file_bt,0);
-	dbg_setnumtxbeforerx(10);
-	
-	
-	sei();
-	
-	//cli();
-	//dbg_rx_callback=echo_dbg2bt;
-	//sei();
-	
-		
-	fputs("BS2 BL\n",file_usb);
-	//fprintf(file_usb,"%s Bootloader\n","BlueSense");
-	//fputs("BlueSense2 BTBootloader\n",file_bt);
-	
-	
-	//fprintf(0,"a");			// 1560
-	//fprintf(0,"a %d",4);			// 2886, 2528, 4428
-	//fputs("a",0);					// 1560
-	
-	//char *b;
-	//b = malloc(128);
-	
-	//scanf("%d",&n);
-	
-	// Bootloader life sign
-	system_led_set(0b111);
-	_delay_ms(100);
-	system_led_set(0b101);
-	
-	// Wait for something to happen
-	_delay_ms(1000);
-	
-	
-	// Turn off bootloader life sign
-	system_led_set(0b000);
-	
-	// Reboot
-	
-	
-	//while(1)
-	//{
-	//	system_blink(10,50,0b01);
-	//	system_led_set(0b00);
-	//	_delay_ms(500);
-	//}
-	
-	
-	fputs("BS2 BL Reboot\n",file_usb);
-	
-	// Waits for I/O transfers to complete
-	_delay_ms(100);
-	// Move interrupt vector and enable interrupts
-	//cli();
-	//temp = MCUCR;
-	//MCUCR = temp|(1<<IVCE);
-	//MCUCR = temp&(~(1<<IVSEL));
-	
-	wdt_enable(WDTO_250MS);
-	while(1); // WDT will do reset
-	
-	
-	*/
-	
-	
-
-
 }
 
 
