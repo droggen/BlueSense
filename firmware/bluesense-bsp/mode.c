@@ -57,7 +57,6 @@
 
 #include "mode.h"
 
-
 void mode_main(void)
 {
 	
@@ -112,12 +111,12 @@ void mode_main(void)
 				//mode_motionrecog();
 				system_mode=0;
 				break;
-			#if ENABLEMODECOULOMB==1
+#if ENABLEMODECOULOMB==1
 			case APP_MODE_COULOMB:
 				mode_coulomb();
 				system_mode=0;
 				break;
-			#endif
+#endif
 			case APP_MODE_SD:
 				mode_sd();
 				system_mode=0;

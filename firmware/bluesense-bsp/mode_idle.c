@@ -42,7 +42,6 @@
 #include "mode_coulomb.h"
 #include "mode_sd.h"
 #include "mode_teststream.h"
-#include "options.h"
 
 
 const char help_x[] PROGMEM ="x";

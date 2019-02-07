@@ -31,7 +31,6 @@
 #include "mode.h"
 #include "mode_bench.h"
 #include "commandset.h"
-#include "options.h"
 
 
 #if DBG_RN41TERMINAL==1

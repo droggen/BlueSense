@@ -1,7 +1,6 @@
 #ifndef __MODE_COULOMB_H
 #define __MODE_COULOMB_H
 
-#if ENABLEMODECOULOMB==1
 
 #include "command.h"
 
@@ -21,4 +20,3 @@ unsigned char CommandParserCoulombReset(char *buffer,unsigned char size);
 
 #endif
 
-#endif

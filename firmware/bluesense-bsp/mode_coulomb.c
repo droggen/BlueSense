@@ -1,5 +1,3 @@
-#if ENABLEMODECOULOMB==1
-
 #include "cpu.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -39,6 +37,8 @@
 #include "mode_coulomb.h"
 #include "ltc2942.h"
 #include "mode.h"
+
+#if ENABLEMODECOULOMB==1
 
 const char help_cq[] PROGMEM ="Q,<q>: sets counter charge";
 const char help_cr[] PROGMEM ="R: reset accumulated charge";
@@ -144,7 +144,7 @@ void mode_coulomb(void)
 	WAITPERIOD p=0;
 	
 	fprintf_P(file_pri,PSTR("Mode coulomb\n"));
-	fprintf_P(file_pri,PSTR("Delta charge in last off period: %d\n"),system_offdeltacharge);	
+	//fprintf_P(file_pri,PSTR("Delta charge in last off period: %d\n"),system_offdeltacharge);	
 	
 		
 	
