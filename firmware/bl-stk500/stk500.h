@@ -13,9 +13,9 @@ unsigned long int timer_ms_get(void);
 void sendchar(char c);
 int getchar_timeout(void);
 
-unsigned char sendmessage(unsigned char *buffer, unsigned short size, unsigned char seq);
+unsigned char sendmessage(const unsigned char *buffer, unsigned short size, unsigned char seq);
 void msprintf(char *buffer,char *format,...);
-void mfprintf(FILE *f,char *format,...);
+void mfprintf(FILE *f,const char *format,...);
 FILE *detectbl(void);
 extern int bootmain(void);
 extern void stk500(void);

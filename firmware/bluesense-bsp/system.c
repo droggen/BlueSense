@@ -205,10 +205,10 @@ void system_blink_inbootloader()
 {
 	for(int i=0;i<5;i++)
 	{
-		system_led_set(0b000);
-		_delay_ms(100);
 		system_led_set(0b111);
-		_delay_ms(100);
+		_delay_ms(40);
+		system_led_set(0b000);
+		_delay_ms(40);
 	}
 }
 void system_blink_enterbootloader()

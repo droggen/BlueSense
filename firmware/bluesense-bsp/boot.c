@@ -112,10 +112,10 @@ void boot_bluetooth(void)
 unsigned char bootloaderhook_dbg(unsigned char c)
 {
 	// Enters the bootloader on reception of 0x1B
-	//if(c==0x1B)
-	if(c=='a')		// to help debugging
+	if(c==0x1B)
+	//if(c=='a')		// to help debugging
 	{
-		system_blink_enterbootloader();
+		//system_blink_enterbootloader();
 		boot_dbg();
 	}
 	return 1;
@@ -125,7 +125,7 @@ unsigned char bootloaderhook_bluetooth(unsigned char c)
 	// Enters the bootloader on reception of 0x1B
 	if(c==0x1B)
 	{
-		system_blink_enterbootloader();
+		//system_blink_enterbootloader();
 		boot_bluetooth();
 	}
 	return 1;

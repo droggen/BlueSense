@@ -249,7 +249,12 @@ void init_extended(void)
 	// BLUETOOTH INITIALISATION
 	//cli(); uart1_rx_callback = 0; sei();															// Deactivate callback
 	//cli(); uart1_rx_callback = echo_uart1_rx_callback; sei();					// Activate callback
+// NOBLUETOOTHINIT: prevent bluetooth initialisation. This ensures bluetooth connections are not reset, which aids in bootloader debugging
+#if NOBLUETOOTHINIT==1
+	system_devname[0]='D';system_devname[1]='B';system_devname[2]='G';system_devname[3]=0;
+#else
 	rn41_Setup(file_usb,file_bt,system_devname);
+#endif
 	bluetoothrts = (PIND&0x10)?1:0;
 	//cli(); uart1_rx_callback = echo_uart1_rx_callback; sei();					// Activate callback
 	cli(); uart1_rx_callback = 0; sei();															// Deactivate callback

@@ -76,8 +76,11 @@ void dbg_init(void)
 	// This is the case if _dbg_flag_unregister=1; here clear this flag to avoid deregistration. 
 	_dbg_flag_unregister=0;
 	// Check if the dbg_callback is registered; this can happen if dbg_init is called several time. Return immediately if teh callback is registered.
+	// Only implement in the non-bootloader mode (in bootloader more, the callback must be handled by the programmer)
+#if BOOTLOADER==0
 	if(timer_isregistered_callback(dbg_callback))
 		return;
+#endif
 	
 	_dbg_tx_state.buffer = _dbg_tx_buffer;
 	_dbg_tx_state.size = DBG_BUFFER_SIZE;
@@ -108,9 +111,12 @@ void dbg_init(void)
 	
 	// Register the callback
 	// Register debug callback
+#if BOOTLOADER==0
+	// Only implement in the non-bootloader mode (in bootloader more, the callback must be handled by the programmer)
 	//timer_register_callback(dbg_callback,3);		// DBG at 250Hz
 	//timer_register_callback(dbg_callback,2);		// DBG at 340Hz		(good tradeoff)
 	timer_register_callback(dbg_callback,1);		// DBG at 500Hz, causes issues with cpu overhead leading to missed MPU samples
+#endif
 }
 void dbg_deinit(void)
 {
@@ -274,7 +280,10 @@ unsigned char dbg_callback(unsigned char p)
 	{
 		_dbg_flag_unregister=0;
 		// Disable interrupts
+#if BOOTLOADER==0
+		// Only implemented in non-bootloader. In bootloader, debug callback must be handled by the programmer.
 		timer_unregister_callback(dbg_callback);
+#endif
 		return 0;
 	}
 	

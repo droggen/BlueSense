@@ -28,19 +28,25 @@
 #include "serial.h"
 #include "stk500-command.h"
 #include "system.h"
-#include "main.h"
+//#include "main.h"
 #include "adc.h"
 #include "stk500.h"
 
+#include "helper.h"
 
-FILE *file_bl;			// Bootloader interface
-FILE *file_dbg;			// Debugging interface
-
+void mfprintf(FILE *f,const char *format,...);
+void mfprintf_P(FILE *f,const char *formatp,...);
 
 // Define to read actual battery voltage
 //#define ENABLE_TRUEVTARGET
-//#define BOOTDBG
+// BOOTDBG 1 enables debug information
+#define BOOTDBG 1
 //#define DISABLE_EEPROM
+
+// Set to 1 to enable.
+#define ENABLE_CMD_READ_SIGNATURE_ISP 1
+#define ENABLE_CMD_READ_FUSE_ISP 1
+#define ENABLE_CMD_READ_LOCK_ISP 1
 
 // Settings
 #define MAXERR 5
@@ -165,7 +171,7 @@ unsigned char getmessage(unsigned char *buffer,unsigned short *size,unsigned cha
 	return 0;
 }
 // Always succeed; returns the next sequence number (seq+1)
-unsigned char sendmessage(unsigned char *buffer, unsigned short size, unsigned char seq)
+unsigned char sendmessage(const unsigned char *buffer, unsigned short size, unsigned char seq)
 {
 	unsigned char checksum;
 	unsigned char c;
@@ -206,17 +212,24 @@ void stk500(void)
 	address_t address = 0;
 	char s[128];
 	unsigned char err=0;
+	unsigned char togglectr=0;
 	
-	//fputs("stk500\n",file_dbg);
-	//delay_ms(100);
-
+    
+    //mfprintf(file_dbg,"APP_END: ++",(unsigned int)(APP_END>>16),(unsigned int)APP_END);
+    
+    fputs("Entering STK500 mode\n",file_dbg);
+    
 	while(!leave)
 	{
+		// Blink green LED.
+		if((togglectr++)%5==0)
+			system_led_toggle(0b100);
+			
+
 		// Get message
 		unsigned char rv = getmessage(buffer,&size,&seq);
-		system_led_toggle(0b10);
-		#ifdef BOOTDBG
-		fprintf(file_dbg,"get message returned: %d. size: %d. seq: %d. command. %02x\n",rv,size,seq,buffer[0]);
+		#if BOOTDBG==1
+			//mfprintf(file_dbg,"\tgetmessage - sz + seq - cmd -\n",rv,size,seq,buffer[0]);
 		#endif
 		if(rv!=0)
 		{
@@ -233,20 +246,19 @@ void stk500(void)
 		}
 		
 		
-		//#ifdef BOOTDBG
-		//msprintf(s,"M-\n",buffer[0]);
-		mfprintf(file_dbg,"M-\n",buffer[0]);
+		#if BOOTDBG==1
+			//mfprintf(file_dbg,"M-\n",buffer[0]);
 			/*s[0]='M';
 			s[1]=hex2chr((buffer[0]>>4)&0xf);
 			s[2]=hex2chr((buffer[0]>>0)&0xf);
 			s[3]='\n';
 			s[4]=0;*/
 			//fputs(s,file_dbg);
-		//#endif
+		#endif
 		if(rv!=0)
 		{
-			#ifdef BOOTDBG
-			fprintf(file_dbg,"msg rcv failed: %d\n",rv);
+			#if BOOTDBG==1
+				//mfprintf(file_dbg,"getmessage error\n");
 			#endif
 			return;
 		}
@@ -254,8 +266,8 @@ void stk500(void)
 		switch(buffer[0])
 		{
 			case CMD_SIGN_ON:
-				#ifdef BOOTDBG
-					fprintf(file_dbg,"CMD_SIGN_ON\n");
+				#if BOOTDBG==1
+					//fputs("C01\n",file_dbg);
 				#endif
 				// Reset the address
 				address=0;
@@ -276,11 +288,11 @@ void stk500(void)
 			{
 				unsigned char answerByte;
 								
-				#ifdef BOOTDBG
-				fprintf(file_dbg,"CMD_SPI_MULTI. numtx: %d. numrx: %d. rxstart: %d. txdata: ",buffer[1],buffer[2],buffer[3]);
-				for(unsigned short i=0;i<size-4;i++)
-					fprintf(file_dbg,"%02x ",buffer[4+i]);
-				fprintf(file_dbg,"\n");
+				#if BOOTDBG==1
+				//fprintf(file_dbg,"CMD_SPI_MULTI. numtx: %d. numrx: %d. rxstart: %d. txdata: ",buffer[1],buffer[2],buffer[3]);
+				//for(unsigned short i=0;i<size-4;i++)
+					//fprintf(file_dbg,"%02x ",buffer[4+i]);
+				//fprintf(file_dbg,"\n");
 				#endif
 	
 				if(buffer[4]==0x30)
@@ -314,13 +326,8 @@ void stk500(void)
 				else
 				{
 					// undefined command
-					#ifdef BOOTDBG
-						//msprintf(s,"CMD_SPI_MULTI u: - - - : - - - -\n",buffer[1],buffer[2],buffer[3],buffer[4],buffer[5],buffer[6],buffer[7]);
-						//fputs(s,file_dbg);
+					#if BOOTDBG==1
 						mfprintf(file_dbg,"CMD_SPI_MULTI u: - - - : - - - -\n",buffer[1],buffer[2],buffer[3],buffer[4],buffer[5],buffer[6],buffer[7]);
-						
-					//#else
-						//fputc('u',file_dbg);
 					#endif
 					answerByte = 0;
 					//answerByte = 0xff;
@@ -339,8 +346,8 @@ void stk500(void)
 			{
 				unsigned char value;
 	
-				#ifdef BOOTDBG
-				fprintf(file_dbg,"CMD_GET_PARAMETER. Param: %d\n",buffer[1]);
+				#if BOOTDBG==1
+				//fprintf(file_dbg,"CMD_GET_PARAMETER. Param: %d\n",buffer[1]);
 				#endif
 				switch(buffer[1])
 				{
@@ -387,19 +394,8 @@ void stk500(void)
 				#else
 					address	=	( ((buffer[3])<<8)|(buffer[4]) )<<1;		//convert word to byte address
 				#endif
-				#ifdef BOOTDBG
-					s[0]='A';
-					s[1]=hex2chr(buffer[1]>>4);
-					s[2]=hex2chr(buffer[1]&0xf);
-					s[3]=hex2chr(buffer[2]>>4);
-					s[4]=hex2chr(buffer[2]&0xf);
-					s[5]=hex2chr(buffer[3]>>4);
-					s[6]=hex2chr(buffer[3]&0xf);
-					s[7]=hex2chr(buffer[4]>>4);
-					s[8]=hex2chr(buffer[4]&0xf);
-					s[9]='\n';
-					s[10]=0;
-					fputs(s,file_dbg);
+				#if BOOTDBG==1
+					//mfprintf(file_dbg,"A++\n",(unsigned int)(address>>16),(unsigned int)address);
 				#endif
 				size		=	2;
 				buffer[1]	=	STATUS_CMD_OK;
@@ -412,15 +408,8 @@ void stk500(void)
 				unsigned int	data;
 				unsigned char	highByte, lowByte;
 	
-				#ifdef BOOTDBG
-					s[0]='W';
-					s[1]=hex2chr((size>>12)&0xf);
-					s[2]=hex2chr((size>>8)&0xf);
-					s[3]=hex2chr((size>>4)&0xf);
-					s[4]=hex2chr((size>>0)&0xf);
-					s[5]='\n';
-					s[6]=0;
-					fputs(s,file_dbg);
+				#if BOOTDBG==1
+                    //mfprintf(file_dbg,"W+\n",size);
 				#endif
 				
 				
@@ -450,31 +439,20 @@ void stk500(void)
 					fputs(s,file_dbg);*/
 						
 					//boot_page_erase(eraseAddress);			// Perform page erase, byte address
-					ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+                    // Dan 2019: no need to disable interrupts or call boot_rww_enable
+					ATOMIC_BLOCK(ATOMIC_RESTORESTATE)     
 					{
 						boot_page_erase(address);				// Perform page erase, byte address
-						boot_spm_busy_wait();								// Wait until the memory is erased.
-						boot_rww_enable();
+						boot_spm_busy_wait();					// Wait until the memory is erased.
+						boot_rww_enable();                
 					}
 					//eraseAddress += SPM_PAGESIZE;				// point to next page to be erase
 	
-					#ifdef BOOTDBG
-						s[0]='w';
-						s[1]=hex2chr((address>>28)&0xf);
-						s[2]=hex2chr((address>>24)&0xf);
-						s[3]=hex2chr((address>>20)&0xf);
-						s[4]=hex2chr((address>>16)&0xf);
-						s[5]=hex2chr((address>>12)&0xf);
-						s[6]=hex2chr((address>>8)&0xf);
-						s[7]=hex2chr((address>>4)&0xf);
-						s[8]=hex2chr((address>>0)&0xf);
-						s[9]='\n';
-						s[10]=0;
-						fputs(s,file_dbg);
+					#if BOOTDBG==1
+                        //mfprintf(file_dbg,"w-+\n",(unsigned int)(address>>16),(unsigned int)address);
 					#endif
 					// Write FLASH 
 					// Not disabling interrupts leads to problem, with some address not being filled (0xffff).
-					// There does not seem to be a need to disable interrupts in the write and busywait phases.
 					ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 					{
 						for(unsigned short i=0;i<size;i+=2)
@@ -490,14 +468,16 @@ void stk500(void)
 								data=0xaaaa;*/
 							
 							boot_page_fill(address+i,data);			// Byte address
+                            
 						}
 					
 						boot_page_write(address);				
-						boot_spm_busy_wait();
-						boot_rww_enable();				// Re-enable the RWW section
-						// Next address
-						address+=size;
-					}
+
+                        boot_spm_busy_wait();
+                        boot_rww_enable();				// Re-enable the RWW section
+                        // Next address
+                        address+=size;
+					} // Dan
 				}
 				else
 				{
@@ -525,15 +505,8 @@ void stk500(void)
 				unsigned char *p = buffer+1;
 				size = readsize+3;
 	
-				#ifdef BOOTDBG
-					s[0]='R';
-					s[1]=hex2chr((readsize>>12)&0xf);
-					s[2]=hex2chr((readsize>>8)&0xf);
-					s[3]=hex2chr((readsize>>4)&0xf);
-					s[4]=hex2chr((readsize>>0)&0xf);
-					s[5]='\n';
-					s[6]=0;
-					fputs(s,file_dbg);
+				#if BOOTDBG==1
+					//mfprintf(file_dbg,"R+\n",readsize);
 				#endif
 	
 				*p++	=	STATUS_CMD_OK;
@@ -573,30 +546,104 @@ void stk500(void)
 				buffer[1] = STATUS_CMD_FAILED;	//*	isue 543, return FAILED instead of OK
 				break;
 			case CMD_READ_SIGNATURE_ISP:
-			case CMD_READ_LOCK_ISP:
-			case CMD_READ_FUSE_ISP:
-				#ifdef BOOTDBG
-					fputs("CMD:NOTIMPL\n",file_dbg);
+			{
+				// Return the AVR chip signature
+				#if ENABLE_CMD_READ_SIGNATURE_ISP==0
+					#if BOOTDBG==1
+						fputs("CMD:NOTIMPL\n",file_dbg);
+					#endif
+					size = 2;
+					buffer[1] = STATUS_CMD_FAILED;
+				#else
+					unsigned char signatureIndex = buffer [4];
+					unsigned char signature;
+					if ( signatureIndex == 0 )
+						signature	=	(SIGNATURE_BYTES >>16) & 0x000000FF;
+					else if ( signatureIndex == 1 )
+						signature	=	(SIGNATURE_BYTES >> 8) & 0x000000FF;
+					else
+						signature	=	SIGNATURE_BYTES & 0x000000FF;
+						
+					#if BOOTDBG==1
+						//mfprintf(file_dbg,"C1B - -\n",signatureIndex,signature);
+					#endif
+
+					size		=	4;
+					buffer[1]	=	STATUS_CMD_OK;
+					buffer[2]	=	signature;
+					buffer[3]	=	STATUS_CMD_OK;
 				#endif
-				size = 2;
-				buffer[1] = STATUS_CMD_FAILED;
 				break;
+			}
+			case CMD_READ_FUSE_ISP:
+			{
+				#if ENABLE_CMD_READ_FUSE_ISP==0
+					#if BOOTDBG==1
+						fputs("CMD:NOTIMPL\n",file_dbg);
+					#endif
+					size = 2;
+					buffer[1] = STATUS_CMD_FAILED;
+				#else				
+					unsigned char fuseBits;
+					if ( buffer[2] == 0x50 )
+					{
+						if ( buffer[3] == 0x08 )
+							fuseBits	=	boot_lock_fuse_bits_get( GET_EXTENDED_FUSE_BITS );
+						else
+							fuseBits	=	boot_lock_fuse_bits_get( GET_LOW_FUSE_BITS );
+					}
+					else
+					{
+						fuseBits	=	boot_lock_fuse_bits_get( GET_HIGH_FUSE_BITS );
+					}
+					size		=	4;
+					buffer[1]	=	STATUS_CMD_OK;
+					buffer[2]	=	fuseBits;
+					buffer[3]	=	STATUS_CMD_OK;
+				#endif
+				break;
+			}
+			case CMD_READ_LOCK_ISP:
+            {
+                #if ENABLE_CMD_READ_LOCK_ISP==0
+                    #if BOOTDBG==1
+                        mfprintf(file_dbg,"CMD - NOTIMPL\n",buffer[0]);
+                    #endif
+                    size = 2;
+                    buffer[1] = STATUS_CMD_FAILED;
+                #else
+                    mfprintf(file_dbg,"READ LOCK BITS\n");
+                    size =	4;
+					buffer[1] = STATUS_CMD_OK;
+					buffer[2] = boot_lock_fuse_bits_get( GET_LOCK_BITS );
+					buffer[3] = STATUS_CMD_OK;
+                #endif
+				break;
+            }
 			case CMD_SET_PARAMETER:
 			case CMD_ENTER_PROGMODE_ISP:
 			case CMD_LEAVE_PROGMODE_ISP:
-			default:
 				size = 2;
 				buffer[1]	=	STATUS_CMD_OK;
 				if(buffer[0]==CMD_LEAVE_PROGMODE_ISP)
 					leave=1;
 				break;
+			default:
+                #if BOOTDBG==1
+					mfprintf(file_dbg,"CMD - FAIL\n",buffer[0]);
+				#endif
+				size = 2;
+				buffer[1] = STATUS_CMD_FAILED;
+				break;
+			
 		}
-		#ifdef BOOTDBG
-		fputs("Sending answer\n",file_dbg);
+		#if BOOTDBG==1
+			//fputs("Sending answer\n",file_dbg);
 		#endif
 		seq = sendmessage(buffer,size,seq);
 	}
-	fputs("Leaving ISP\n",file_dbg);
+	fputs("Leaving STK500 mode\n",file_dbg);
+    //fputs("Leaving bootloader\n",file_bl);
 
 }
 /*

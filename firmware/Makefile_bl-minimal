@@ -121,6 +121,7 @@ DEBUG = dwarf-2
 #     For a directory that has spaces, enclose it in quotes.
 EXTRAINCDIRS = megalol
 EXTRAINCDIRS += bluesense-bsp
+EXTRAINCDIRS += helper
 
 # Compiler flag to set the C Standard level.
 #     c89   = "ANSI" C

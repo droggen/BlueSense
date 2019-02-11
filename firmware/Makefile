@@ -138,7 +138,8 @@ SRC += bluesense-bsp/sd_bit.c
 SRC += bluesense-bsp/sd_int.c
 SRC += bluesense-bsp/test_sd.c
 SRC += bluesense-bsp/init.c
-SRC += bluesense-bsp/helper2.c
+SRC += helper/helper.c
+SRC += helper/helper2.c
 SRC += bluesense-bsp/uiconfig.c
 SRC += bluesense-bsp/pio.c
 SRC += bluesense-bsp/power.c
@@ -146,7 +147,6 @@ SRC += bluesense-bsp/isr.c
 #SRC += bluesense-bsp/gfx/lcd.c
 #SRC += bluesense-bsp/gfx/fb.c
 #SRC += bluesense-bsp/gfx/fnt4x6.c
-SRC += bluesense-bsp/helper.c
 #SRC += mode_demo.c
 #SRC += mode_demo_clock.c
 SRC += bluesense-bsp/dbg.c
@@ -195,8 +195,8 @@ SRC += bluesense-bsp/a3d.c
 ASRC =
 #ASRC = asmfunc.S
 #ASRC = bluesense-bsp/num.S
-ASRC = bluesense-bsp/helper_num.S
-ASRC += bluesense-bsp/numeric.S
+ASRC = helper/helper_num.S
+ASRC += helper/numeric.S
 ASRC += bluesense-bsp/mpu_helper.S
 #ASRC += bluesense-bsp/softspi.S
 #ASRC += bluesense-bsp/gfx/lcd_spi.S
@@ -208,6 +208,7 @@ ASRC += bluesense-bsp/spi-usart0-isr.S
 # List any extra directories to look for include files here.
 #     Each directory must be seperated by a space.
 EXTRAINCDIRS = megalol
+EXTRAINCDIRS += helper
 EXTRAINCDIRS += bluesense-bsp
 EXTRAINCDIRS += bluesense-bsp/gfx
 
@@ -260,12 +261,13 @@ CDEFS =
 # BlueSense2: define the hardware revision below
 # Available versions are: 1, 4, 5, 6, 7, 9. Version 7 is compatible with version 8.
 #
-
 #CDEFS += -DHWVER=4
 #CDEFS += -DHWVER=5
 #CDEFS += -DHWVER=6
 CDEFS += -DHWVER=7
 #CDEFS += -DHWVER=9
+
+# BlueSense2: define firmware options below
 CDEFS += -DENABLE_SERIAL0=0
 CDEFS += -DENABLE_SERIAL1=1
 CDEFS += -DENABLE_I2CINTERRUPT
@@ -276,8 +278,11 @@ CDEFS += -DENABLEQUATERNION=1
 CDEFS += -DENABLEGFXDEMO=0
 CDEFS += -DENABLEMODECOULOMB=0
 CDEFS += -DDBG_TIMERELATEDTEST=0
+# Set DDBG_RN41TERMINAL=1 to activate the Bluetooth terminal
 CDEFS += -DDBG_RN41TERMINAL=0
 CDEFS += -DBOOTLOADER=0
+# Set NOBLUETOOTHINIT=1 to prevent Bluetooth initialisation - keeps connection ongoing despite reset. For normal use set NOBLUETOOTHINIT=0.
+CDEFS += -DNOBLUETOOTHINIT=0
 
 CDEFS += -D__DELAY_BACKWARD_COMPATIBLE__
 
@@ -398,12 +403,13 @@ LDFLAGS += -Wl,-gc-sections
 #
 # AVRDUDE_PROGRAMMER = stk500v2
 AVRDUDE_PROGRAMMER = avrispmkii
+AVRDUDE_PROGRAMMER_BL = stk500v2
 
 AVRDUDE_WRITE_BIT_CLOCK = 2.5MHz
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
 AVRDUDE_PORT = usb	   # programmer connected to serial device
-#AVRDUDE_PORT = com1    # programmer connected to serial device
+AVRDUDE_PORT_BL = com12    # programmer connected to serial device
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 AVRDUDE_WRITE_SECONDARY = -U flash:w:$(SECONDARYHEX).hex -D
@@ -429,6 +435,12 @@ AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER) -B $(AVRDU
 AVRDUDE_FLAGS += $(AVRDUDE_NO_VERIFY)
 AVRDUDE_FLAGS += $(AVRDUDE_VERBOSE)
 AVRDUDE_FLAGS += $(AVRDUDE_ERASE_COUNTER)
+
+AVRDUDE_FLAGS_BL = -p $(MCU) -P $(AVRDUDE_PORT_BL) -c $(AVRDUDE_PROGRAMMER_BL)
+# Disable verify and disable chip erase
+AVRDUDE_FLAGS_BL += -D -V
+AVRDUDE_FLAGS_BL += $(AVRDUDE_VERBOSE)
+AVRDUDE_FLAGS_BL += $(AVRDUDE_ERASE_COUNTER)
 
 
 
@@ -570,6 +582,8 @@ gccversion :
 
 
 # Program the device.  
+# Programs the firmware and an optional bootloader (in bootloader.hex) if available and space sufficient. 
+# If the bootloader is flashed, the fuses are set to enable it and the lock bit protects it.
 program: $(TARGET).hex $(TARGET).eep sizeafter2
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 	@sleep .1
@@ -577,13 +591,17 @@ program: $(TARGET).hex $(TARGET).eep sizeafter2
 	$(eval HEXSIZETOTVAR := $(shell $(HEXSIZETOT)))
 	@echo Firmware size is $(HEXSIZETOTVAR), maximum size to allow for bootloader is 122880
 	@if test $(HEXSIZETOTVAR) -gt 122880; then echo The firmware is too large for a bootloader, no bootloader will be flashed.; \
-	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd1:m -U lfuse:w:0xff:m -U efuse:w:0xff:m; fi	
+	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd1:m -U lfuse:w:0xff:m -U efuse:w:0xff:m -U lock:w:0xff:m; fi	
 	@if test $(HEXSIZETOTVAR) -le 122880; then echo Space sufficient for a bootloader.; \
 	if test -f $(SECONDARYHEX).hex; then echo Flashing bootloader;$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY);\
-	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd0:m -U lfuse:w:0xff:m -U efuse:w:0xff:m; fi;\
+	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd0:m -U lfuse:w:0xff:m -U efuse:w:0xff:m -U lock:w:0xef:m; fi;\
 	if test ! -f $(SECONDARYHEX).hex; then echo No bootloader to flash;\
-	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd1:m -U lfuse:w:0xff:m -U efuse:w:0xff:m; fi;\
+	echo Flashing fuses;$(AVRDUDE) $(AVRDUDE_FLAGS) -U hfuse:w:0xd1:m -U lfuse:w:0xff:m -U efuse:w:0xff:m -U lock:w:0xff:m; fi;\
 	fi
+	
+# Program the device with the STK500 bootloader
+programbl: $(TARGET).hex $(TARGET).eep sizeafter2
+	$(AVRDUDE) $(AVRDUDE_FLAGS_BL) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 	
 	
 

@@ -69,18 +69,19 @@ SECONDARYHEX = main
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = main_bl.c
-SRC += init.c
-SRC += system.c
+SRC = bl-stk500/main_bl-stk500.c
+SRC += bluesense-bsp/init.c
+SRC += bluesense-bsp/system.c
 SRC += megalol/i2c.c
 SRC += megalol/i2c_internal.c
 SRC += megalol/circbuf.c
-SRC += dbg.c
-SRC += serial.c
-SRC += serial1.c
+#SRC += megalol/wait.c
+SRC += bluesense-bsp/dbg.c
+SRC += bluesense-bsp/serial.c
+SRC += bluesense-bsp/serial1.c
 #SRC += megalol/adc.c
-SRC += bl/stk500.c
-
+SRC += bl-stk500/stk500.c
+#SRC += helper/helper.c
 
 #SRC += system.c
 #SRC += init.c
@@ -94,13 +95,14 @@ SRC += bl/stk500.c
 #     it will preserve the spelling of the filenames, and gcc itself does
 #     care about how the name is spelled on its command-line.
 ASRC = 
-ASRC += numeric.S
+ASRC += helper/numeric.S
 
 
 # Optimization level, can be [0, 1, 2, 3, s]. 
 #     0 = turn off optimization. s = optimize for size.
 #     (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT = s
+#OPT = s
+OPT = 2
 
 
 # Debugging format.
@@ -115,8 +117,7 @@ DEBUG = dwarf-2
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
 EXTRAINCDIRS = megalol
-EXTRAINCDIRS += bl
-EXTRAINCDIRS = megalol
+EXTRAINCDIRS += helper
 EXTRAINCDIRS += bluesense-bsp
 
 # Compiler flag to set the C Standard level.
@@ -124,7 +125,8 @@ EXTRAINCDIRS += bluesense-bsp
 #     gnu89 = c89 plus GCC extensions
 #     c99   = ISO C99 standard (not yet fully implemented)
 #     gnu99 = c99 plus GCC extensions
-CSTANDARD = -std=gnu99
+#CSTANDARD = -std=gnu99
+CSTANDARD = -std=gnu++11
 
 
 # Place -D or -U options here
@@ -132,7 +134,7 @@ CDEFS =
 #CDEFS = -DF_CPU=$(F_CPU)UL
 
 CDEFS  += -DBOOTLOADER
-CDEFS += -DHWVER=6
+CDEFS += -DHWVER=7
 #CDEFS += -DENABLE_I2CINTERRUPT
 #CDEFS += -DENABLE_I2CPOLL
 CDEFS += -DENABLE_SERIAL1
@@ -156,12 +158,14 @@ CFLAGS = -g$(DEBUG)
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += -O$(OPT)
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -fno-jump-tables
-CFLAGS += -Wall -Wstrict-prototypes
+CFLAGS += -Wall 
+#CFLAGS += -Wstrict-prototypes
 CFLAGS += -Wa,-adhlns=$(<:.c=.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
 CFLAGS += -Werror=implicit-function-declaration
+CFLAGS += -Wall
 
 # Dan: remove unused functions with compile flag -ffunction-sections and linker flag -Wl,-gc-sections
 CFLAGS += -ffunction-sections
@@ -257,6 +261,8 @@ LDFLAGS += -Wl,--section-start=.text=$(BOOTLOADER_ADDRESS)
 #AVRDUDE_PROGRAMMER = stk500v2
 AVRDUDE_PROGRAMMER = avrispmkii
 
+AVRDUDE_WRITE_BIT_CLOCK = 2.5MHz
+
 # com1 = serial port. Use lpt1 to connect to parallel port.
 AVRDUDE_PORT = usb	   # programmer connected to serial device
 #AVRDUDE_PORT = com1    # programmer connected to serial device
@@ -280,7 +286,7 @@ AVRDUDE_NO_VERIFY = -V
 # to submit bug reports.
 #AVRDUDE_VERBOSE = -v -v
 
-AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER) -B $(AVRDUDE_WRITE_BIT_CLOCK)
 AVRDUDE_FLAGS += $(AVRDUDE_NO_VERIFY)
 AVRDUDE_FLAGS += $(AVRDUDE_VERBOSE)
 AVRDUDE_FLAGS += $(AVRDUDE_ERASE_COUNTER)
@@ -321,8 +327,8 @@ DEBUG_HOST = localhost
 
 # Define programs and commands.
 SHELL = sh
-CC = avr-gcc
-#CC = avr-g++
+#CC = avr-gcc
+CC = avr-g++
 OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 SIZE = avr-size
@@ -423,8 +429,8 @@ gccversion :
 # Program the device.  
 program: $(TARGET).hex $(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-	powershell start-sleep 1
-	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
+	#powershell start-sleep .5
+	#$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_SECONDARY)
 
 
 # Generate avr-gdb config/init file which does the following:

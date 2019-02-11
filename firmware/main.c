@@ -486,12 +486,6 @@ int main(void)
 	*/
 	
 	
-	fprintf(file_pri,"dbg _rx_callback: %X\n",dbg_rx_callback);
-	fprintf(file_pri,"bootloaderhook_dbg: %X\n",bootloaderhook_dbg);
-	fprintf(file_pri,"main: %X\n",&main);
-	fprintf(file_pri,"init_basic: %X\n",&init_basic);
-	fprintf(file_pri,"main: %X\n",main);
-	fprintf(file_pri,"init_basic: %X\n",init_basic);
 	
 	mode_main();			// This never returns.
 	
