@@ -9,12 +9,13 @@
 #if BOOTLOADER==0
 #include <util/delay.h>
 #include "wait.h"
-#include "main.h"
+#include "global.h"
 #include "adc.h"
 #include "interface.h"
 #include "megalol/i2c_internal.h"
 #include "ltc2942.h"
 #include "ds3232.h"
+#include "mpu.h"
 #else
 //extern unsigned long int timer_ms_get(void);
 #include <util/delay.h>
@@ -336,3 +337,102 @@ void system_off(void)
 	PORTC&=0b01111111;
 }
 #endif
+
+
+
+/******************************************************************************
+	system_gettemperature
+*******************************************************************************	
+	Returns the temperature from the DS332 in hundredth of degree.
+	The temperature is sampled in the background through a timer callback.
+	
+******************************************************************************/
+signed short system_gettemperature(void)
+{
+	signed short t;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		t = system_temperature;	
+	}
+	return t;
+}
+/******************************************************************************
+	system_gettemperaturetime
+*******************************************************************************	
+	Returns the temperature from the DS332 in hundredth of degree.
+	The temperature is sampled in the background through a timer callback.	
+******************************************************************************/
+unsigned long system_gettemperaturetime(void)
+{
+	unsigned long t;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		t = system_temperature_time;	
+	}
+	return t;
+}
+
+unsigned char system_sampletemperature(unsigned char p)
+{
+	ds3232_readtemp_int_cb(system_sampletemperature_cb);
+	return 0;
+}
+
+void system_sampletemperature_cb(unsigned char s,signed short t)
+{
+	system_temperature = t;
+	system_temperature_time = timer_ms_get();
+}
+
+
+/******************************************************************************
+	function: system_perfbench
+*******************************************************************************	
+	Benchmarks the processor, here using simple counting. Use to assess
+	CPU load during sampling.
+	
+	Parameters:
+		mintime		-		Minimum duration of the benchmark in ms. 
+							If 0 (default if no parameters) does a 1000ms test.
+	
+	Return value:	performance result
+******************************************************************************/
+unsigned long system_perfbench(unsigned long mintime)
+{
+	unsigned long int t_last,t_cur;
+	unsigned long int ctr,cps;
+	MPUMOTIONDATA mpumotiondata;
+	ctr=0;
+	/*
+	// Using millisecond timer
+	t_last=timer_ms_get();
+	while((t_cur=timer_ms_get())-t_last<=mintime)
+	{
+		ctr++;
+	}
+	cps = ctr*1000/(t_cur-t_last);*/
+	
+	t_last=timer_s_wait();
+	mpu_clearstat();
+	unsigned long tint1=timer_ms_get_intclk();
+	while((t_cur=timer_s_get())-t_last<mintime)
+	{
+		ctr++;
+		
+		// Simulate reading out the data from the buffers
+		unsigned char l = mpu_data_level();
+		for(unsigned char i=0;i<l;i++)
+		{
+			// Get the data from the auto read buffer; if no data available break
+			if(mpu_data_getnext_raw(mpumotiondata))
+				break;
+			//_mpu_data_rdnext();
+		}		
+	}
+	unsigned long tint2=timer_ms_get_intclk();
+	cps = ctr/(t_cur-t_last);
+	
+	fprintf_P(file_pri,PSTR("main_perfbench: %lu perf (%lu intclk ms)\n"),cps,tint2-tint1);
+	
+	return cps;
+}

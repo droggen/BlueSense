@@ -28,7 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "main.h"
+#include "global.h"
 #include "adc.h"
 #include "serial.h"
 #include "pkt.h"

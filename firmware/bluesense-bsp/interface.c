@@ -24,7 +24,7 @@ Use interface_changedetectenable to enable/disable change detection.
 #include <stdio.h>
 #include <string.h>
 
-#include "main.h"
+#include "global.h"
 #include "dbg.h"
 #include "serial.h"
 #include "system.h"

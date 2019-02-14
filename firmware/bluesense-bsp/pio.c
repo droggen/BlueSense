@@ -98,7 +98,7 @@ void PIOPinMode(unsigned char pinnumber,PIOMODE mode)
 {
 	#if HWVER==7
 	// Do nothing in case of wrong pin number
-	if(pinnumber==4 || pinnumber>6)
+	if(pinnumber>6)
 		return;
 		
 	volatile uint8_t *ddr;
@@ -117,7 +117,15 @@ void PIOPinMode(unsigned char pinnumber,PIOMODE mode)
 			
 		bm<<=pinnumber;			// Create a bitmask: bm bitmask takes value 1 at position of pin		
 	}
-	else
+	if(pinnumber==4)
+	{
+		// Pin on port PA7
+		ddr = &DDRA;				//	DDRA
+		port = &PORTA;				//	PORTA	
+		
+		bm = 0b10000000;
+	}
+	if(pinnumber>=5 && pinnumber<=6)
 	{
 		// Pins on port B (port 5, 6)
 		ddr = &DDRB;				//	DDRB
@@ -173,7 +181,7 @@ void PIODigitalWrite(unsigned char pinnumber,unsigned char set)
 {
 	#if HWVER==7
 	// Do nothing in case of wrong pin number
-	if(pinnumber==4 || pinnumber>6)
+	if(pinnumber>6)
 		return;
 		
 	volatile uint8_t *port;
@@ -184,7 +192,13 @@ void PIODigitalWrite(unsigned char pinnumber,unsigned char set)
 		port = &PORTA;				//	PORTA
 		bm<<=pinnumber;				// Create a bitmask: bm bitmask takes value 1 at position of pin		
 	}
-	else
+	if(pinnumber==4)
+	{
+		// Pin on port PA7
+		port = &PORTA;				//	PORTA			
+		bm = 0b10000000;
+	}
+	if(pinnumber>=5 && pinnumber<=6)
 	{
 		// Pins on port B (port 5, 6)
 		port = &PORTB;				// PORTB
@@ -215,7 +229,7 @@ unsigned char PIODigitalRead(unsigned char pinnumber)
 {
 	#if HWVER==7
 	// Do nothing in case of wrong pin number
-	if(pinnumber==4 || pinnumber>6)
+	if(pinnumber>6)
 		return 0;
 		
 	volatile uint8_t *pin;
@@ -226,7 +240,13 @@ unsigned char PIODigitalRead(unsigned char pinnumber)
 		pin = &PINA;				//	PINA			
 		bm<<=pinnumber;				// Create a bitmask: bm bitmask takes value 1 at position of pin		
 	}
-	else
+	if(pinnumber==4)
+	{
+		// Pin on port PA7
+		pin = &PINA;				//	PINA
+		bm = 0b10000000;
+	}
+	if(pinnumber>=5 && pinnumber<=6)
 	{
 		// Pins on port B (port 5, 6)
 		pin = &PINB;				// PINB

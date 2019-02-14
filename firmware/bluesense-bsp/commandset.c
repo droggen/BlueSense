@@ -12,7 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "main.h"
+#include "global.h"
 #include "helper.h"
 #include "wait.h"
 #include "command.h"

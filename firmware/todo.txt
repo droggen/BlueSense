@@ -1,0 +1,73 @@
+/*
+	file: Main file
+	
+	todo
+	- ADC sample multiple channels in A mode
+	- ADC sample/return multiple channels
+	- Increase the size of the command buffer
+	- Reactivate the bootloader
+	- Label in the motion mode
+	- Add test in wait function that would allow to detect non-monoticity/wraparound of uS counter
+	- Log becoming an system-wide functionality that redirects all serial comm to file?
+	
+	
+	1) Auto-detect SD card on boot?
+	H 2) Motion stream mode: two parameters: mode and logging 
+	3) Power measurements in background
+	4) PC interface
+	5) Default mode (e.g. to automatically stream or enter demo or clock mode)
+	6) Background blinking
+	7) Speedup boot
+	8) Download logs?
+	9) Minimise flash usage
+	10) Fix warnings in codebase
+	V 11) Malloc pulled in from fdevopen ? 
+	12) Script to launch at start
+	12.1: CommandGet: must be split in one command reading from file_pri and filling internal buffer, and one reading internal buffer until it is empty
+	
+	
+	Not linking unused functions: http://www.avrfreaks.net/forum/not-linking-unused-functions
+	
+	Tests on HW6:
+	- SD card
+	- Interface connect/disconnect and interface swap
+	- ADC
+	
+	
+	
+	
+
+
+
+
+	
+*/
+/*
+TODO: ds3232_writetime / commandset.CommandParserSync: must check whether setting the second clock of the RTC is reset by writing to the registers, otherwise must wait for a rising/falling edge of rtc clock to set the time
+
+TODO-FIXED:	bug in motion acquisition buffering: when the MPU interrupt callback triggers the strategy is to discard the oldest sample when the motion buffer is full with a call to rdnext. However
+		the user app may be currently accessing that oldest sample. Need to have a new interrupt-blocking function which transfers data from the interrupt buffer to user code.
+		
+TODO:	bug in the mode_sample_motion quaternion (which may have no effect): acceleration is converted into mg using a fixed conversion factor, which is not reflecting the settings of the accelerometer range
+
+TODO-DONE:	Time synchronisation including epoch
+TODO-DONE:	Time synchronisation including epoch on boot
+TODO:	Verify time synchronisation including epoch
+TODO-DONE:	PC program to synchronise clocks
+TODO:	Verify sample rate regularity with high sample rate modes (200Hz-1KHz)
+TODO:	Readout of files (never practical due to slow transfer)
+TODO:	PC program to converto to quaternions
+TODO:	Magnetic field: check effect of quantisation and sample rate (8/100) on quaternions
+TODO:	Improve idle bluetooth power efficiency w/ inquiry and scan pages (SI,S
+J)
+TODO-DONE:	RN41: power optimisation of radio
+TODO:	RN41 I/O ports best settings ?
+TODO:	Check stability of magnetic field calibration
+TODO:	Reactivate the bootloader....
+TODO-DONE:	Upon time synchronisation ensure the system LED blink synchronously
+TODO:	Check sampling returns calibrated magnetic field
+TODO:	Convert to quaternion when logging without, taking into account dt
+TODO:	Identify the regular >50ms hicckups in the logging
+TODO:	Sometimes error writing log 4 (F,10) on S10 - ?
+BUG:	Stopeeing logging and quitting motion sampling mode with ! does not write battery statistics data unlike stopping logging with L first, then quitting with !
+*/

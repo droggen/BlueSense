@@ -9,7 +9,7 @@
 #include <util/delay.h>
 #include <stdio.h>
 #include <string.h>
-#include "main.h"
+#include "global.h"
 #include "uiconfig.h"
 
 

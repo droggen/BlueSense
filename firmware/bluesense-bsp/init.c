@@ -22,7 +22,7 @@
 #include "lcd.h"
 #include "fb.h"
 #include "serial.h"
-#include "main.h"
+#include "global.h"
 #include "spi.h"
 #include "system.h"
 #include "system-extra.h"
@@ -114,6 +114,12 @@ void init_basic(void)
 	fprintf_P(file_usb,PSTR("BlueSense2\n"));
 	
 	//init_powerreduce();
+	
+	// Hook bootloader detector
+	cli(); 
+	dbg_rx_callback = bootloaderhook_dbg; 					// Hook the bootloader detector
+	//uart1_rx_callback = bootloaderhook_bluetooth; 		// Hook the bootloader detector
+	sei();															
 }
 #endif
 #if BOOTLOADER==0
@@ -210,14 +216,6 @@ void init_extended(void)
 
 		
 	
-	// Hook bootloader detector
-	cli(); 
-	dbg_rx_callback = bootloaderhook_dbg; 					// Hook the bootloader detector
-	//uart1_rx_callback = bootloaderhook_bluetooth; 		// Hook the bootloader detector
-	sei();															
-	
-	
-	//boottest();
 	
 	
 	

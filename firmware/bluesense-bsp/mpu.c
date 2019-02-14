@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "global.h"
 #include "mpu.h"
 #include "wait.h"
 #include "main.h"

@@ -9,7 +9,7 @@
 #include <string.h>
 #include "wait.h"
 #include "spi.h"
-#include "main.h"
+#include "global.h"
 #include "sd.h"
 
 /*

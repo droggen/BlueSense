@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "mpu_geometry.h"
-#include "main.h"
+#include "global.h"
 #include "mpu.h"
 #include "pkt.h"
 #include "wait.h"

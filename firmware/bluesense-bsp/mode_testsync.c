@@ -11,7 +11,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "main.h"
+#include "global.h"
 #include "adc.h"
 #include "serial.h"
 #include "i2c.h"

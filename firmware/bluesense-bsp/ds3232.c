@@ -17,6 +17,7 @@
 #include "helper.h"
 #include "system.h"
 #include "system-extra.h"
+#include "global.h"
 
 /*
 	file: ds3232
