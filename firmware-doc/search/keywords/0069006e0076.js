@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("inv",["Function"],[["invSqrt3",,[[,,,,0,"File:mathfix.c:invSqrt3"]]]]);
+NDSearch.OnPrefixDataLoaded("inv",["Function"],[["invSqrt3",,[[,,,,0,"File:bluesense-bsp/mathfix.c:invSqrt3"]]]]);

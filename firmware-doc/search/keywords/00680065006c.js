@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("hel",["File"],[["helper",,[[,,,,0,"File:helper.c:helper"]]]]);
+NDSearch.OnPrefixDataLoaded("hel",["File"],[["helper",,[[,,,,0,"File:helper/helper.c:helper"]]]]);

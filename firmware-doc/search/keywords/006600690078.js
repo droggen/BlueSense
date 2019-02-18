@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("fix",["Function"],[["fixmul16",,[[,,,,0,"File:mathfix.c:fixmul16"]]],["fixmulf16",,[[,,,,0,"File:mathfix.c:fixmulf16"]]],["fixrsqrt16",,[[,,,,0,"File:mathfix.c:fixrsqrt16"]]]]);
+NDSearch.OnPrefixDataLoaded("fix",["Function"],[["fixmul16",,[[,,,,0,"File:bluesense-bsp/mathfix.c:fixmul16"]]],["fixmulf16",,[[,,,,0,"File:bluesense-bsp/mathfix.c:fixmulf16"]]],["fixrsqrt16",,[[,,,,0,"File:bluesense-bsp/mathfix.c:fixrsqrt16"]]]]);

@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("con",["Function"],[["ConfigLoadScript",,[[,,,,0,"File:uiconfig.c:ConfigLoadScript"]]],["ConfigSaveScript",,[[,,,,0,"File:uiconfig.c:ConfigSaveScript"]]]]);
+NDSearch.OnPrefixDataLoaded("con",["Function"],[["ConfigLoadScript",,[[,,,,0,"File:bluesense-bsp/uiconfig.c:ConfigLoadScript"]]],["ConfigSaveScript",,[[,,,,0,"File:bluesense-bsp/uiconfig.c:ConfigSaveScript"]]]]);

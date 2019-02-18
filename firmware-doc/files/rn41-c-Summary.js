@@ -1,1 +1,0 @@
-NDFramePage.OnPageTitleLoaded("File:rn41.c","rn41.c");NDSummary.OnSummaryLoaded("File:rn41.c",[["C/C++","C"]],[["Files","File"],["Functions","Function"],["Groups","Group"]],[[137,0,0,"rn41","rn41"],[250,0,2,"Functions","Functions"],[251,0,1,"rn41_SetJ","rn41_SetJ"],[252,0,1,"rn41_GetExtendedParam","rn41_GetExtendedParam"],[253,0,1,"rn41_Setup","rn41_Setup"]]);

@@ -1,1 +1,0 @@
-NDFramePage.OnPageTitleLoaded("File:uiconfig.c","uiconfig.c");NDSummary.OnSummaryLoaded("File:uiconfig.c",[["C/C++","C"]],[["Functions","Function"],["Groups","Group"]],[[5,0,1,"Functions","Functions"],[18,0,0,"ConfigLoadScript","ConfigLoadScript"],[113,0,0,"ConfigSaveScript","ConfigSaveScript"]]);

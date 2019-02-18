@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("mot",["File"],[["motionconfig",,[[,,,,0,"File:mpu_config.c:motionconfig"]]]]);
+NDSearch.OnPrefixDataLoaded("mot",["File"],[["motionconfig",,[[,,,,0,"File:bluesense-bsp/mpu_config.c:motionconfig"]]]]);

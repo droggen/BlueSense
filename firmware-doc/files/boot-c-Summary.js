@@ -1,1 +1,0 @@
-NDFramePage.OnPageTitleLoaded("File:boot.c","boot.c");NDSummary.OnSummaryLoaded("File:boot.c",[["C/C++","C"]],[["Files","File"],["Functions","Function"],["Groups","Group"]],[[208,0,0,"boot","boot"],[209,0,2,"Functions","Functions"],[210,0,1,"boot_dbg","boot_dbg"],[211,0,1,"boot_bluetooth","boot_bluetooth"]]);

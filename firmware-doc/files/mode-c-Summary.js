@@ -1,1 +1,0 @@
-NDFramePage.OnPageTitleLoaded("File:mode.c","mode.c");NDSummary.OnSummaryLoaded("File:mode.c",[["C/C++","C"]],[["Files","File"]],[[132,0,0,"mode","mode"]]);

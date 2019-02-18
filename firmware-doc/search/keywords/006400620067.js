@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("dbg",["File","Function"],[["dbg",,[[,,,,0,"File:dbg.c:dbg"]]],["dbg_putbuf",,[[,,,,1,"File:dbg.c:dbg_putbuf"]]]]);
+NDSearch.OnPrefixDataLoaded("dbg",["File","Function"],[["dbg",,[[,,,,0,"File:bluesense-bsp/dbg.c:dbg"]]],["dbg_putbuf",,[[,,,,1,"File:bluesense-bsp/dbg.c:dbg_putbuf"]]]]);
