@@ -450,7 +450,7 @@ INTERNAL FUNCTIONS   INTERNAL FUNCTIONS   INTERNAL FUNCTIONS   INTERNAL FUNCTION
 		
 	The ADC logic is in _adc_ivect and separate from the ADC interrupt handler because:
 	 - _adc_ivect is used to initialise the conversion and receive conversion results; 
-	 - Calling the ISR would return with a RETI which would re-enable interrupts which is undersired.
+	 - Calling the ISR would return with a RETI which would re-enable interrupts which is undesired.
 ******************************************************************************/
 ISR(ADC_vect)
 {	

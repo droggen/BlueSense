@@ -181,6 +181,8 @@ SRC += bluesense-bsp/MadgwickAHRS_float.c
 #SRC += bluesense-bsp/MadgwickAHRS.c
 SRC += bluesense-bsp/mathfix.c
 SRC += bluesense-bsp/a3d.c
+SRC += bluesense-bsp/test.c
+SRC += bluesense-bsp/global.c
 
 
 
@@ -408,8 +410,9 @@ AVRDUDE_PROGRAMMER_BL = stk500v2
 AVRDUDE_WRITE_BIT_CLOCK = 2.5MHz
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
-AVRDUDE_PORT = usb	   # programmer connected to serial device
-AVRDUDE_PORT_BL = com12    # programmer connected to serial device
+AVRDUDE_PORT = usb		# programmer connected to serial device
+AVRDUDE_PORT_BL = com1	# programmer connected to serial device
+
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 AVRDUDE_WRITE_SECONDARY = -U flash:w:$(SECONDARYHEX).hex -D

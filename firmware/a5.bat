@@ -1,1 +1,0 @@
-set path=C:\avr-gcc-5\bin;%path%

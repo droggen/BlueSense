@@ -131,7 +131,7 @@ FILE *file_dbg;			// Debugging interface
 volatile unsigned long time_ms=0;
 
 #define TIMEOUTMS 1000
-#define TIMEOUTBOOTWAITMS 2500
+#define TIMEOUTBOOTWAITMS 4000
 
 const char FlashString[] PROGMEM = "This is a string held completely in flash memory.";
 
