@@ -92,6 +92,7 @@ typedef struct {
 	//unsigned long cursector;
 	unsigned long size;
 	//unsigned char used;
+	unsigned short time;
 } LOGENTRY;
 
 // Start location of the partition; there is no fixed rule defining where it should start except after the MBR. 

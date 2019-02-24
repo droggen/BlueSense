@@ -216,7 +216,7 @@ unsigned char CommandParserSync(char *buffer,unsigned char size)
 		system_settimefromrtc();
 		return 0;
 	}
-	timer_init(0,0);
+	timer_init(0,0,0);
 	return 0;
 }
 unsigned char CommandParserDate(char *buffer,unsigned char size)

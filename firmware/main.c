@@ -69,9 +69,9 @@ void ledtest()
 			PIODigitalWrite(pin,1);
 		_delay_ms(500);
 	}
-}
+} 
 
-
+extern  unsigned short _ufat_secfrommidnight_to_fattime(unsigned long secfrommidnight);
 /******************************************************************************
 Main program loop
 ******************************************************************************/
@@ -84,6 +84,27 @@ int main(void)
 	init_extended();
 	
 	//ledtest();
+		
+	/*while(1)
+	{
+		unsigned long secfrommidnight = timer_s_get_frommidnight();
+		printf("Time s: %lu time s midnight: %lu\n",timer_s_get(),secfrommidnight);
+		unsigned short h = secfrommidnight/3600;		// hours
+		secfrommidnight=secfrommidnight%3600;
+		unsigned short m = secfrommidnight/60;
+		secfrommidnight=secfrommidnight%60;
+		unsigned short s = secfrommidnight/2;
+		
+		unsigned short t = (h<<11) | (m<<5) | s;
+		
+		printf("H: %u M: %u S: %u\n",h,m,s);
+		printf("t: %02X\n\n",t);
+
+
+		_delay_ms(1000);
+		
+	}*/
+		
 		
 	mode_main();			// This never returns.
 	

@@ -14,6 +14,7 @@
 #include "ufat.h"
 #include "serial.h"
 #include "helper.h"
+#include "system-extra.h"
 
 /*
 	File: ufat
@@ -240,6 +241,8 @@ unsigned long _logoffsetcluster=128;						// Offset of the logging area from the
 //unsigned long testfilesize=60000;
 //unsigned long testfilecluster=3;
 
+unsigned short _ufat_secfrommidnight_to_fattime(unsigned long secfrommidnight);
+
 /************************************************************************************************************************************************************
 *************************************************************************************************************************************************************
 PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC FUNCTIONS   PUBLIC 
@@ -386,12 +389,19 @@ unsigned char ufat_format(unsigned char numlogfile)
 	memset(_logentries,0,sizeof(LOGENTRY)*_UFAT_NUMLOGENTRY);
 	for(unsigned i=0;i<numlogfile;i++)			// One more to indicate end 
 	{
-		sprintf(_logentries[i].name,"LOG-",);
-		sprint(_logentries[i].ext,"%03u",i);
+		// File name
+		#if UFAT_INCLUDENODENAME==1
+			sprintf(_logentries[i].name,"LOG-%s",system_getdevicename());
+		#else
+			strcpy(_logentries[i].name,"LOG-0000");
+		#endif		
+		// Extension
+		sprintf(_logentries[i].ext,"%03u",i);
 		_logentries[i].startcluster=_fsinfo.logstartcluster+_fsinfo.logsizecluster*i;
 		_logentries[i].startsector=_fsinfo.cluster_begin + (_logentries[i].startcluster-2)*_fsinfo.sectors_per_cluster;			// Cluster numbering starts at 2
 		//_logentries[i].size=_fsinfo.logsizecluster*_fsinfo.sectors_per_cluster*512;
 		_logentries[i].size=0;
+		_logentries[i].time = _ufat_secfrommidnight_to_fattime(timer_s_get_frommidnight());
 		/*if(i==0)
 			_logentries[i].size=64*64*512l;
 		if(i==1)
@@ -575,6 +585,7 @@ unsigned char ufat_log_close(void)
 		
 	// Here must write root
 	_logentries[_log_current_log].size = _log_current_size;
+	_logentries[_log_current_log].time = _ufat_secfrommidnight_to_fattime(timer_s_get_frommidnight());
 	rv = _ufat_write_root(_fsinfo.lognum);
 	if(rv)
 	{
@@ -1148,6 +1159,22 @@ unsigned char _ufat_format_mbr_boot(void)
 	return 0;	
 }*/
 
+unsigned short _ufat_secfrommidnight_to_fattime(unsigned long secfrommidnight)
+{
+	// FAT time format: hhhhh mmmmmm xxxxx
+	
+	unsigned short h = secfrommidnight/3600;		// hours
+	secfrommidnight=secfrommidnight%3600;
+	unsigned short m = secfrommidnight/60;
+	secfrommidnight=secfrommidnight%60;
+	unsigned short s = secfrommidnight/2;
+	
+	unsigned short t = (h<<11) | (m<<5) | s;
+
+	return t;
+}
+	
+
 /******************************************************************************
 	function: _ufat_write_root
 *******************************************************************************	
@@ -1180,7 +1207,28 @@ unsigned char _ufat_write_root(unsigned char numlogfile)
 		strcpy(fe->name,_logentries[i].name);
 		strcpy(fe->ext,_logentries[i].ext);
 		fe->attrib = 0x20;	// Read-only and archive
-		fe->writetime = 0b0100000010000100; 	// 8h8mn8"
+		//fe->writetime = 0b0100000010000100; 	// 8h8mn8"
+		//fe->writetime = _ufat_secfrommidnight_to_fattime(timer_s_get_frommidnight()); 	// 8h8mn8"
+		/*fe->writetime = 0x0000;
+		if(i==1)
+			fe->writetime = 10;
+		if(i==2)
+			fe->writetime = 0b100000; // 1mn
+		if(i==3)
+			fe->writetime = 0b1000000; // 2mn
+		if(i==4)
+			fe->writetime = 0b1100000; // 3mn
+		if(i==5)
+			fe->writetime = 0b100000000000; // 1h
+		if(i==6)
+			fe->writetime = 0b1000000000000; // 2h
+		if(i==7)
+			fe->writetime = 0b1100000000000; // 3h
+		if(i==8)
+			fe->writetime = 0b1011100000000000; // 23h			*/
+		//fe->writetime = 0x72bc;
+		
+		fe->writetime = _logentries[i].time;
 		fe->writedate = 0b0001000100101000;		// 8.08.1980
 		fe->createdate=fe->accessdate=fe->writedate;
 		fe->createtime=fe->writetime;
@@ -1560,6 +1608,7 @@ void ufat_fileentryraw2logentry(FILEENTRYRAW *fer,LOGENTRY *le)
 	le->startcluster|=fer->clusterlo;
 	le->startsector=_fsinfo.cluster_begin + (le->startcluster-2)*_fsinfo.sectors_per_cluster;				// Cluster numbering starts at 2
 	le->size=fer->size;
+	le->time = fer->createtime;
 	//le->used=le->name[0]==0xE5?0:1;
 }
 /******************************************************************************

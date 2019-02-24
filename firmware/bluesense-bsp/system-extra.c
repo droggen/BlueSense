@@ -68,8 +68,9 @@ void system_settimefromrtc(void)
 	
 	ds3232_readdatetime_conv_int(1,&h,&m,&s,&day,&month,&year);
 	unsigned long epoch_s = ((day-1)*24l+h)*3600l+m*60l+s;
+	unsigned long epoch_s_frommidnight = h*3600l+m*60l+s;
 	unsigned long epoch_us = (m*60l+s)*1000l*1000l;
-	timer_init(epoch_s,epoch_us);
+	timer_init(epoch_s,epoch_s_frommidnight,epoch_us);
 	t1=timer_ms_get();
 	fprintf_P(file_pri,PSTR("done: %02d.%02d.%02d %02d:%02d:%02d = %lu ms\n"),day,month,year,h,m,s,t1);
 

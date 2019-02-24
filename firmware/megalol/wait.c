@@ -114,6 +114,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ******************************************************************************/
 
 volatile unsigned long _timer_1hztimer_in_s=0;					// Incremented by 1s at each 1Hz timer callback.
+volatile unsigned long _timer_1hztimer_in_s_frommidnight=0;		// Incremented by 1s at each 1Hz timer callback (initialised using the _frommidnight time base).
 volatile unsigned long _timer_1hztimer_in_ms=0;					// Incremented by 1000ms at each 1Hz timer callback
 volatile unsigned long _timer_1hztimer_in_us=0;					// Incremented by 1000000us at each 1Hz timer callback
 volatile unsigned long _timer_time_ms_intclk=0;				// Increments by 1 every millisecond and never reset by 
@@ -153,18 +154,21 @@ TIMER_CALLBACK timer_50hzcallbacks[TIMER_NUMCALLBACKS];
 	Parameters:
 		epoch_s 	-	Time in seconds from an arbitrary "zero time". 
 						Used by the milliseconds timers (timer_ms_get).
+		epoch_s_frommidnight -	Time in seconds from an arbitrary "zero time" at midnight (e.g. current day). 
+						(unused)
 						
 		epoch_us	-	Time in microseconds from an arbitrary "zero time".
 						Used by the microseconds timers (timer_us_get).
 						
 ******************************************************************************/
-void timer_init(unsigned long epoch_s,unsigned long epoch_us)
+void timer_init(unsigned long epoch_s,unsigned long epoch_s_frommidnight,unsigned long epoch_us)
 {
 	// Ensures an atomic change
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		// Initialise the variables holding the time updated at the 1Hz tick
 		_timer_1hztimer_in_s=epoch_s;
+		_timer_1hztimer_in_s_frommidnight=epoch_s_frommidnight;
 		_timer_1hztimer_in_ms=epoch_s*1000l;
 		_timer_1hztimer_in_us=epoch_us;
 		
@@ -232,6 +236,7 @@ void _timer_tick_hz(void)
 {
 	// Increment the time updated on the 1Hz tick
 	_timer_1hztimer_in_s++;
+	_timer_1hztimer_in_s_frommidnight++;
 	
 	// Increment the 1hz update correction counter.
 	_timer_time_1hzupdatectr++;
@@ -517,6 +522,25 @@ unsigned long timer_s_get(void)
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		t=_timer_1hztimer_in_s;
+	}
+	return t;
+}
+/******************************************************************************
+	function: timer_s_get_frommidnight
+*******************************************************************************
+	Returns the time in seconds since midnight. 
+	
+	This function requires the  _timer_tick_hz callback to be called at 1Hz.
+	
+	Returns:
+		Time in seconds since the epoch	
+******************************************************************************/
+unsigned long timer_s_get_frommidnight(void)
+{	
+	unsigned long t;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		t=_timer_1hztimer_in_s_frommidnight;
 	}
 	return t;
 }
@@ -1158,7 +1182,7 @@ void timer_get_speedtest(void)
 	// Test timer
 	unsigned long *sb=(unsigned long*)sharedbuffer;
 	
-	timer_init(0,0);
+	timer_init(0,0,0);
 	
 	
 	unsigned long t=0;
