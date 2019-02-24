@@ -285,6 +285,8 @@ CDEFS += -DDBG_RN41TERMINAL=0
 CDEFS += -DBOOTLOADER=0
 # Set NOBLUETOOTHINIT=1 to prevent Bluetooth initialisation - keeps connection ongoing despite reset. For normal use set NOBLUETOOTHINIT=0.
 CDEFS += -DNOBLUETOOTHINIT=0
+# Set BLUETOOTH_POWERSAVE to: 0=default (high power); 1=lower power
+CDEFS += -DBLUETOOTH_POWERSAVE=0
 
 CDEFS += -D__DELAY_BACKWARD_COMPATIBLE__
 
@@ -604,7 +606,12 @@ program: $(TARGET).hex $(TARGET).eep sizeafter2
 	
 # Program the device with the STK500 bootloader
 programbl: $(TARGET).hex $(TARGET).eep sizeafter2
-	$(AVRDUDE) $(AVRDUDE_FLAGS_BL) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+	@echo Firmware size is $(HEXSIZETOTVAR), maximum size to allow for bootloader is 122880
+	@if test $(HEXSIZETOTVAR) -gt 122880; then echo The firmware is too large for a bootloader. Cannot flash.; fi
+	@if test $(HEXSIZETOTVAR) -le 122880; then echo Flashing firmware; \
+	$(AVRDUDE) $(AVRDUDE_FLAGS_BL) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM); fi
+	
+	
 	
 	
 
