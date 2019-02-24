@@ -11,7 +11,8 @@
 #include "spi.h"
 
 #include "sd.h"
-#include "main.h"
+#include "global.h"
+
 
 /*
 	File: sd_int
@@ -1318,11 +1319,15 @@ unsigned char _sd_multiblock_close(void)
 	// Send Stop Tran token
 	response = spi_rw_noselect(MMC_STOPMULTIBLOCK);
 	
-	printf("resp stop mb: %02X\n",response);
+	#if SD_DBG_STREAM==1
+	fprintf_P(file_pri,PSTR("resp stop mb: %02X\n"),response);
+	#endif
 	
 	response=_sd_block_stop_dowait();
 
-	printf("resp stop dowait: %02X\n",response);
+	#if SD_DBG_STREAM==1
+	fprintf_P(file_pri,PSTR("resp stop dowait: %02X\n"),response);
+	#endif
 
 	//testfewmore();
 	

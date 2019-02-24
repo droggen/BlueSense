@@ -104,7 +104,7 @@ unsigned char CommandParserTSLog(char *buffer,unsigned char size)
 			printf("Error opening log\n");
 			return 1;
 		}
-		log_printstatus();
+		log_printstatus(file_pri);
 		file_stream=file_log;
 	}
 	else

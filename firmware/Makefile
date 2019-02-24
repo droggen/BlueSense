@@ -606,6 +606,7 @@ program: $(TARGET).hex $(TARGET).eep sizeafter2
 	
 # Program the device with the STK500 bootloader
 programbl: $(TARGET).hex $(TARGET).eep sizeafter2
+	$(eval HEXSIZETOTVAR := $(shell $(HEXSIZETOT)))
 	@echo Firmware size is $(HEXSIZETOTVAR), maximum size to allow for bootloader is 122880
 	@if test $(HEXSIZETOTVAR) -gt 122880; then echo The firmware is too large for a bootloader. Cannot flash.; fi
 	@if test $(HEXSIZETOTVAR) -le 122880; then echo Flashing firmware; \

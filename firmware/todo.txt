@@ -71,3 +71,150 @@ TODO:	Identify the regular >50ms hicckups in the logging
 TODO:	Sometimes error writing log 4 (F,10) on S10 - ?
 BUG:	Stopeeing logging and quitting motion sampling mode with ! does not write battery statistics data unlike stopping logging with L first, then quitting with !
 */
+
+/*
+	Logging file system error 
+	
+	Samsung
+	
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) F,14
+	3) M,33,4,2 -> ok
+	
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	3) M,33,?,2 -> ok
+	
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) Wait boot completed, disconnect
+	3) Connect bluetooth
+	4) M,33,?,2 -> error
+	Note: over USB writes:
+				Terminating logging
+				resp stop mb: FF
+				resp stop dowait: 00
+				uFAT: Current log: 5
+					size: 7500
+					sector: 22347123
+				uFAT: Writing root... 
+				#t=2000 ms; V=4196 mV; I=26 mA; P=110 mW; wps=1401; errbsy=0; errfull=0; errsend=0; spl=100; log=7 KB; logmax=2232320 KB; logfull=0 %
+	Over Bluetooth writes:
+				Terminating logging
+				uFAT: Writing root... error
+				#t=2000 ms; V=4141 mV; I=-17 mA; P=-73 mW; wps=1129; errbsy=0; errfull=0; errsend=0; spl=100; log=7 KB; logmax=2232320 KB; logfull=0 %
+	Debug info are printed to USB (file_usb) instead of primary (file_pri)? 
+	
+	USB conected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) Wait boot completed, disconnect
+	3) Connect bluetooth
+	4) M,33,?,10-> 
+	5) While logging, keep BT connected and reconnect usb
+	6) See status -> ok
+	
+	Prints over Bluetooth:
+				Sample rate: 50
+				8367: Interface update 1 1
+				Terminating logging
+				uFAT: Writing root... 
+				#t=10000 ms; V=4195 mV; I=-13 mA; P=-57 mW; wps=1324; errbsy=0; errfull=0; errsend=0; spl=500; log=36 KB; logmax=2232320 KB; logfull=0 %
+	Prints over USB
+	LOG-0013.LOG start sector: 58064243 start cluster: 907008 size: 00000000h
+			resp stop mb: FF
+			resp stop dowait: 00
+			uFAT: Current log: 6
+				size: 37500
+				sector: 26811763
+
+	Bug could be:
+	- timing waiting for the stop - if connected over USB sending time is longer than if not connected where nothing is sent
+	-- Could explain working on other SD cards - timing issue
+	- does not explain the working after formatting
+	
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) Wait boot completed, disconnect
+	3) Connect bluetooth
+	4) X;F,14;!
+	5) M,33,?,2 -> ok
+
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) Wait boot completed, disconnect
+	3) Connect bluetooth
+	4) X;F,14;!
+	5) M,33,?,10 
+	5) While logging, keep BT connected and reconnect usb
+	6) See status -> ok. 
+	Log on USB:
+		resp stop mb: FF
+		resp stop dowait: 00
+		uFAT: Current log: 4
+			size: 37500
+			sector: 17882483
+
+	Code modified to write log_printstatus to file_pri
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) Wait boot completed, disconnect
+	3) Connect bluetooth
+	4) M,33,?,2 -> ok
+	-> Writing log_printstatus to file_pri (bluetooth) makes it work
+
+	Code modified to write log_printstatus to file_DBG
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) Wait boot completed, disconnect
+	3) Connect bluetooth
+	4) M,33,?,2 -> error
+	-> Writing log_printstatus to file_dbg (usb) makes it fail (but if we included a format, then it would work)
+	
+	Code modified: no call to log_printstatus 
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) Wait boot completed, disconnect
+	3) Connect bluetooth
+	4) M,33,?,2 -> error
+	-> No call to log_printstatus -> error. Issue linked to latency?
+	-> Even when formatting over BT doesn't work. 
+	
+	Code modified: no call to log_printstatus, delay 10ms
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) Wait boot completed, disconnect
+	3) Connect bluetooth
+	4) M,33,?,2 -> ok
+	-> delay between sd_streamcache_close and _ufat_write_root needed?
+	
+	
+	Code modified: no call to log_printstatus, no delay
+	USB connected:
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	3) M,33,?,2 -> error!
+	0) Turn off (USB connected)
+	1) Turn on (USB connected)
+	2) X;F,14;!
+	3) M,33,?,2 -> error
+
+
+
+
+	- try write the debug info to the primary (resp stop mb: FF; resp stop dowait: 00)
+		
+*/
+
+
+

@@ -907,7 +907,7 @@ unsigned char sd_streamcache_close(unsigned long *currentsect)
 {
 	unsigned char response;
 
-	#ifdef MMCDBG
+	#if SD_DBG_STREAM==1
 		printf_P(PSTR("sd_streamcache_close: strmopen: %d blkstr: %d wrinblk: %u addr: %lX\r"),_sd_write_stream_open,_sd_write_stream_block_started,_sd_write_stream_numwritten,_sd_write_stream_address);
 	#endif
 	
@@ -925,7 +925,7 @@ unsigned char sd_streamcache_close(unsigned long *currentsect)
 	if(_sd_write_stream_block_started)
 	{
 		unsigned short topad = 512-_sd_write_stream_numwritten;
-		#ifdef MMCDBG
+		#if SD_DBG_STREAM==1
 			printf("padding: %u topad: %u\n",_sd_write_stream_numwritten,topad);
 		#endif
 
@@ -950,7 +950,7 @@ unsigned char sd_streamcache_close(unsigned long *currentsect)
 		}	
 	}
 	
-	#ifdef MMCDBG
+	#if SD_DBG_STREAM==1
 		printf_P(PSTR("sd_streamcache_close after pad+flush: strmopen: %d blkstr: %d wrinblk: %u addr: %lX\r"),_sd_write_stream_open,_sd_write_stream_block_started,_sd_write_stream_numwritten,_sd_write_stream_address);
 	#endif
 
@@ -973,7 +973,7 @@ unsigned char sd_streamcache_close(unsigned long *currentsect)
 	// 5. Terminates the multiblock write
 	response = _sd_multiblock_close();
 	
-	#ifdef MMCDBG
+	#if SD_DBG_STREAM==1
 		printf_P(PSTR("_sd_multiblock_close: %02X\n"),response);
 	#endif
 	
@@ -985,6 +985,11 @@ unsigned char sd_streamcache_close(unsigned long *currentsect)
 		printf_P(PSTR("sd_streamcache_close: error multiblock close\n"));
 		return 1;
 	}
+
+	// On Samsung Evo (32GB) doing a regular block write immediately after streamclose leads to error (e.g. when updating the root)
+	// This seems to be due to the need for a delay. When bluetooth or USB connected this delay seems to be critical (likely due to the USB interrupt routine adding extra time).
+	// A delay of 5ms seems sufficient. Use 6ms for margin.
+	_delay_ms(6);
 
 	return 0;
 }

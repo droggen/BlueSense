@@ -132,7 +132,7 @@ unsigned char _ufat_log_fputbuf(char *buffer,unsigned char size);
 unsigned char ufat_log_close(void);
 void ufat_log_test(unsigned char lognum,unsigned long size,unsigned long reportevery);
 //void ufat_log_test22(unsigned char lognum,unsigned long size,unsigned char ch,unsigned bsize);
-void log_printstatus(void);
+void log_printstatus(FILE *f);
 unsigned long ufat_log_getmaxsize(void);
 unsigned long ufat_log_getsize(void);
 unsigned char ufat_log_getnumlogs(void);

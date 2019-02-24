@@ -55,6 +55,8 @@
 #define SD_CRC_CMD55							0x65
 
 //#define MMCDBG
+// Debug streaming write functions
+//#define SD_DBG_STREAM 1
 
 #define MMCPRECLOCK
 #define MMCPOSTCLOCK

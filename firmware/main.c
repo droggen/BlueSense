@@ -53,6 +53,25 @@
 #include "a3d.h"
 #include "pio.h"
 
+
+void ledtest()
+{
+	//char pin=3;
+	
+	for(char pin=0;pin<=6;pin++)
+		PIOPinMode(pin,PIOMODE_OUTPUT);
+	while(1)
+	{
+		for(char pin=0;pin<=6;pin++)
+			PIODigitalWrite(pin,0);
+		_delay_ms(500);
+		for(char pin=0;pin<=6;pin++)
+			PIODigitalWrite(pin,1);
+		_delay_ms(500);
+	}
+}
+
+
 /******************************************************************************
 Main program loop
 ******************************************************************************/
@@ -64,6 +83,7 @@ int main(void)
 	// Initialise the rest of the system
 	init_extended();
 	
+	//ledtest();
 		
 	mode_main();			// This never returns.
 	

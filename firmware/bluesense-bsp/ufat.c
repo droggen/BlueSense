@@ -386,7 +386,8 @@ unsigned char ufat_format(unsigned char numlogfile)
 	memset(_logentries,0,sizeof(LOGENTRY)*_UFAT_NUMLOGENTRY);
 	for(unsigned i=0;i<numlogfile;i++)			// One more to indicate end 
 	{
-		sprintf(_logentries[i].name,"LOG-%04u",i);
+		sprintf(_logentries[i].name,"LOG-",);
+		sprint(_logentries[i].ext,"%03u",i);
 		_logentries[i].startcluster=_fsinfo.logstartcluster+_fsinfo.logsizecluster*i;
 		_logentries[i].startsector=_fsinfo.cluster_begin + (_logentries[i].startcluster-2)*_fsinfo.sectors_per_cluster;			// Cluster numbering starts at 2
 		//_logentries[i].size=_fsinfo.logsizecluster*_fsinfo.sectors_per_cluster*512;
@@ -561,17 +562,23 @@ unsigned char ufat_log_close(void)
 	rv = sd_streamcache_close(0);
 	if(rv!=0)
 	{
-		printf_P(PSTR("%sFailed sd_write_stream_close\n"),_str_ufat);
+		fprintf_P(file_pri,PSTR("%sFailed sd_write_stream_close\n"),_str_ufat);
 	}
 	
 	// Must write last sector if any
-	log_printstatus();
+	
+	//log_printstatus(file_pri);
+	//log_printstatus(file_dbg);
+	//_delay_ms(10);
+	
+	
+		
 	// Here must write root
 	_logentries[_log_current_log].size = _log_current_size;
 	rv = _ufat_write_root(_fsinfo.lognum);
 	if(rv)
 	{
-		printf_P(PSTR("%sError writing root\n"),_str_ufat);
+		fprintf_P(file_pri,PSTR("%sError writing root\n"),_str_ufat);
 	}
 	// Two variant of the code exist. If _ufat_format_fat_log reserves only the minimum number of clusters needed for the file size then it must be called again here.
 	// Currently _ufat_format_fat_log reserves all clusters on formatting, and this does not need to be called here.
@@ -690,7 +697,7 @@ void ufat_log_test(unsigned char lognum,unsigned long size,unsigned long reporte
 		printf("Error opening log\n");
 		return;
 	}
-	log_printstatus();	
+	log_printstatus(file_pri);	
 	
 	cursize=0;
 	pkt=0;
@@ -1171,7 +1178,7 @@ unsigned char _ufat_write_root(unsigned char numlogfile)
 	{
 		fe=(FILEENTRYRAW*)(ufatblock+32+i*32);
 		strcpy(fe->name,_logentries[i].name);
-		strcpy(fe->ext,_logentries[i].name);
+		strcpy(fe->ext,_logentries[i].ext);
 		fe->attrib = 0x20;	// Read-only and archive
 		fe->writetime = 0b0100000010000100; 	// 8h8mn8"
 		fe->writedate = 0b0001000100101000;		// 8.08.1980
@@ -1693,14 +1700,15 @@ int _ufat_log_fputchar(char c,FILE *f)
 
 
 
-void log_printstatus(void)
+void log_printstatus(FILE *f)
 {
-	printf_P(PSTR("%sCurrent log: %u\n"),_str_ufat,_log_current_log);
-	printf_P(PSTR("\tsize: %lu\n"),_log_current_size);
-	printf_P(PSTR("\tsector: %lu\n"),_log_current_sector);
+	fprintf_P(f,PSTR("%sCurrent log: %u\n"),_str_ufat,_log_current_log);
+	fprintf_P(f,PSTR("\tsize: %lu\n"),_log_current_size);
+	fprintf_P(f,PSTR("\tsector: %lu\n"),_log_current_sector);
 }
 
 
+ 
  
  
  

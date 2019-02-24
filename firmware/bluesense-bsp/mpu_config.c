@@ -347,10 +347,12 @@ void mpu_config_motionmode(unsigned char sensorsr,unsigned char autoread)
 	//printf("return from mpu_config_motionmode\n");
 	
 	// Initialise Madgwick
+	#if ENABLEQUATERNION==1
 	MadgwickAHRSinit(_mpu_samplerate,_mpu_beta,(_mpu_samplerate/100)*8-1);			// All -> 12.5Hz
 	//MadgwickAHRSinit(_mpu_samplerate,_mpu_beta,(_mpu_samplerate/100)*4-1);			// All -> 25Hz
 	//MadgwickAHRSinit(_mpu_samplerate,_mpu_beta,(_mpu_samplerate/100)*2-1);			// All -> 50Hz
 	//MadgwickAHRSinit(_mpu_samplerate,_mpu_beta,(_mpu_samplerate/100)-1);				// All -> 100Hz
+	#endif
 	
 	_mpu_current_motionmode = sensorsr;
 }
