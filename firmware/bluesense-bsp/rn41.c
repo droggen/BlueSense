@@ -544,16 +544,26 @@ void rn41_Setup(FILE *file,FILE *filebt,unsigned char *devname)
 	unsigned short p_srvclass=0b00001001000;			// Service: capturing, positioning
 	unsigned short p_devclass=0b0011100011000;			// Device: wearable, wearable computer
 	
+	
+	
+	
+	
+#if (BLUETOOTH_POWERSAVE==0) || (BLUETOOTH_POWERSAVE==1)
+	#if BLUETOOTH_POWERSAVE==0
+	// Default (high power):
+	unsigned short p_inqw = 0x100;					// Default: 0100
+	unsigned short p_pagw = 0x100;					// Default: 0100
+	unsigned short p_lowpower = 0x0000;				// Default: 0000
+	#else
+	// BLUETOOTH_POWERSAVE==1
 	// Optimised (low power):
 	unsigned short p_inqw = 0x20;
 	unsigned short p_pagw = 0x20;						// Inquiry and page at 0x20 reduce power by -15mW. 
 	unsigned short p_lowpower = 0x0301;					// Off 3 seconds, on 1 second. Reduces by -2mW over inquiry/page settings
-	
-	
-	// Default (high power):
-	//unsigned short p_inqw = 0x100;					// Default: 0100
-	//unsigned short p_pagw = 0x100;					// Default: 0100
-	//unsigned short p_lowpower = 0x0000;				// Default: 0000
+	#endif
+#else
+#error BLUETOOTH_POWERSAVE undefined or invalid
+#endif
 	
 	// Various tries
 	//unsigned short p_inqw = 0x12;
