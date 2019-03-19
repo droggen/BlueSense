@@ -175,12 +175,19 @@ unsigned short system_getbattery(void)
 
 void system_adcpu_off(void)
 {
-	DDRA &= 0xf0;										// 4 extension ADC as input
+#if (HWVER==7) || (HWVER==9)
+	// 5 ADC are set as input, with pull-up off
+	DDRA &= 0b01110000;							// 5 extension ADC as input
+	PORTA = init_porta&0b01110000;				// disable pull-up on 4 ADC input
+#else
+	DDRA &= 0xf0;								// 4 extension ADC as input
 	PORTA = init_porta&0xf0;					// disable pull-up on 4 ADC input
+#endif
 }
 void system_adcpu_on(void)
 {
-	//DDRA &= 0xf0;										// 4 extension ADC as input
+	// No need to test HW version - porta goes to default settings which is pull-up.
+	//DDRA &= 0xf0;									// 4 extension ADC as input
 	PORTA = init_porta;								// enable pull-up on 4 ADC input
 }
 

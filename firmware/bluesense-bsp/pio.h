@@ -28,6 +28,6 @@ enum PIOMODE {
 
 void PIOPinMode(unsigned char pinnumber,PIOMODE mode);
 void PIODigitalWrite(unsigned char pinnumber,unsigned char set);
-unsigned char PIODigitalRead();
+unsigned char PIODigitalRead(unsigned char pinnumber);
 
 #endif
