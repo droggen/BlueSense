@@ -5,4 +5,3 @@ BlueSense2 IoT/wearable platform
 
 Documentation is in the doc folder.
 
-
