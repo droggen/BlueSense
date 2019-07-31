@@ -46,4 +46,10 @@ Besides USB, Bluetooth 2 and SD card interface with a FAT32 compatible filesyste
 ## Hardware details
 [Additional hardware details](/hardware/)
 
-<p>Main: <a href="main">main</a></p>
+
+# Buying
+
+BlueSense is available on Tindie.
+[Tindie](https://www.tindie.com/products/edutech/bluesense-wearable-motion-sensing-platform/)
+
+

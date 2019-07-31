@@ -17,10 +17,6 @@ permalink: /hardware/
 
 tbc
 
-## Hardware versions
-
-tbc
-
 ## Power consumption (table, discharge curve)
 
 tbc
