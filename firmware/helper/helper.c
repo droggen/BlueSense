@@ -552,7 +552,7 @@ unsigned char ParseComma(const char *str,unsigned char n,...)
 		
 	
 ******************************************************************************/
-/*unsigned char ParseCommaGetNumParam(const char *str)
+unsigned char ParseCommaGetNumParam(const char *str)
 {
 	unsigned char numtoken=0;
 	// Checks how many tokens are passed.
@@ -564,8 +564,12 @@ unsigned char ParseComma(const char *str,unsigned char n,...)
 		if(!p)
 			return numtoken;
 		
+		str = p+1;
+
+		numtoken++;
+
 	}
-}*/
+}
 /******************************************************************************
 	function: ParseCommaGetInt
 *******************************************************************************	

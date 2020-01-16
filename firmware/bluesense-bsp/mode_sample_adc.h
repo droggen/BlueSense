@@ -6,7 +6,7 @@
 
 extern unsigned long mode_adc_period;
 extern unsigned char mode_adc_mask;
-
+extern unsigned char mode_adc_fast;
 
 void mode_adc(void);
 

@@ -43,7 +43,7 @@
 
 unsigned long mode_adc_period;
 unsigned char mode_adc_mask;
-
+unsigned char mode_adc_fast;
 
 const char help_adcpullup[] PROGMEM="P,<on>: if on=1, activates pullups on user ADC inputs (channels 0-3), otherwise deactivate. In principle pullups should be deactivated.";
 
@@ -104,12 +104,13 @@ unsigned char CommandParserADCPullup(char *buffer,unsigned char size)
 
 
 
+
 /******************************************************************************
 	function: CommandParserADC
 *******************************************************************************	
 	Parses a user command to enter the ADC mode.
 	
-	Command format: A,<mask>,<period>
+	Command format: A,<mask>,<period>[,<fast>]
 	
 	Stores the mask and period in eeprom.
 	
@@ -120,35 +121,34 @@ unsigned char CommandParserADCPullup(char *buffer,unsigned char size)
 ******************************************************************************/
 unsigned char CommandParserADC(char *buffer,unsigned char size)
 {
-	unsigned char rv;
-	char *p1,*p2;
-	rv = ParseComma((char*)buffer,2,&p1,&p2);
-	if(rv)
-		return 2;
-		
-	// Get mask
-	unsigned int mask;
-	if(sscanf(p1,"%u",&mask)!=1)
+	unsigned long mask,period,fast=0;
+	if(ParseCommaGetNumParam((char*)buffer)==3)
 	{
-		return 2;
-	}	
+		if(ParseCommaGetLong((char*)buffer,3,&mask,&period,&fast))
+			return 2;
+	}
+	else
+	{
+		if(ParseCommaGetLong((char*)buffer,2,&mask,&period))
+			return 2;
+	}
+	
 	if(mask>0xff || mask==0)
 	{
 		return 2;
 	}
-	// Get period
-	unsigned long period;
-	if(sscanf(p2,"%lu",&period)!=1)
-	{
-		return 2;
-	}
-	
-	fprintf_P(file_pri,PSTR("mask: %02x. period: %lu\n"),mask,period);
+	// Round the period to multiple of 50us
+	if(period<50l) period=50l;
+	period=(period+25l)/50l;
+	period*=50l;
+			
+	fprintf_P(file_pri,PSTR("ADC mask: %02X. Period (rounded): %lu us. Fast: %u\n"),(unsigned)mask,period,(unsigned)fast);
 		
 	//ConfigSaveADCMask(mask);
 	//ConfigSaveADCPeriod(period);
 	mode_adc_period=period;
 	mode_adc_mask=mask;
+	mode_adc_fast=fast;
 	
 	CommandChangeMode(APP_MODE_ADC);
 
@@ -208,6 +208,8 @@ void mode_adc(void)
 	CurrentAnnotation=0;
 	
 	// Set the ADC prescaler; for this hardware: 11.0592MHz/64=172.8KHz, which is in the 50KHz-200KHz range recommended by the AVR datasheet
+	// Normal conversion: 13 clock cycles; first conversion: 25 clock cycles
+	// 11.0592MHz/64=172.8KHz / 13 = 13ksps
 	ADCSetPrescaler(ADCCONV_PRESCALER_64);	
 	//ADCSetPrescaler(ADCCONV_PRESCALER_128);	
 	
@@ -229,7 +231,16 @@ void mode_adc(void)
 	
 	
 	// Packet init
-	packet_init(&packet,"DXX",3);
+	/*if(mode_adc_fast)
+	{
+		// "Fast" mode: only 1 byte header.
+		packet_init(&packet,"D",1);
+	}
+	else
+	{*/
+		// Normal mode: usual DXX header.
+		packet_init(&packet,"DXX",3);
+	//}
 	
 	
 	//timer_init(1000,4284967296); // Debug hack: Set the epoch 
@@ -260,7 +271,8 @@ void mode_adc(void)
 
 		
 		// Periodic wait - timer_waitperiod_us returns the current time in us
-		time = timer_waitperiod_us(mode_adc_period,&p);
+		if(mode_adc_fast==0)		// In fast mode we rely on ADC delay to sequence operations
+			time = timer_waitperiod_us(mode_adc_period,&p);
 		
 		
 		// Display info if enabled
@@ -332,33 +344,63 @@ void mode_adc(void)
 		}		
 		else
 		{
-			// Packet encoding
-			packet_reset(&packet);
-			if(mode_stream_format_pktctr)
+			// Packet encoding: fast and normal mode
+			
+			if(mode_adc_fast==0)
 			{
-				packet_add16_little(&packet,pktctr);
+				packet_reset(&packet);
+				if(mode_stream_format_pktctr)
+				{
+					packet_add16_little(&packet,pktctr);
+				}
+				if(mode_stream_format_ts)
+				{
+					packet_add16_little(&packet,time&0xffff);
+					packet_add16_little(&packet,(time>>16)&0xffff);
+				}
+				if(mode_stream_format_bat)
+				{
+					packet_add16_little(&packet,system_getbattery());
+				}
+				if(mode_stream_format_label)
+				{
+					packet_add16_little(&packet,CurrentAnnotation);
+				}
+				for(unsigned i=0;i<numchannels;i++)
+				{
+					packet_add16_little(&packet,data[i]);
+				}
+				packet_end(&packet);
+				packet_addchecksum_fletcher16_little(&packet);
+				int s = packet_size(&packet);
+				putbufrv = fputbuf(file_stream,(char*)packet.data,s);
 			}
-			if(mode_stream_format_ts)
+			else
 			{
-				packet_add16_little(&packet,time&0xffff);
-				packet_add16_little(&packet,(time>>16)&0xffff);
+				for(unsigned i=0;i<numchannels;i++)
+				{
+					// Hack to avoid header to appear in data stream
+					unsigned char d=(unsigned char)(data[i]>>2);
+					//if(d=='D')
+						//d++;
+					//packet_add8(&packet,d);
+					buffer[i] = d;
+					putbufrv = fputbuf(file_stream,(char*)buffer,numchannels);
+				}
 			}
-			if(mode_stream_format_bat)
+			//packet_add8(&packet,'P');
+			//packet_add8(&packet,'Q');
+			//packet_add8(&packet,'R');
+			
+			/*packet_end(&packet);
+			if(mode_adc_fast==0)
 			{
-				packet_add16_little(&packet,system_getbattery());
+				packet_addchecksum_fletcher16_little(&packet);
 			}
-			if(mode_stream_format_label)
-			{
-				packet_add16_little(&packet,CurrentAnnotation);
-			}
-			for(unsigned i=0;i<numchannels;i++)
-			{
-				packet_add16_little(&packet,data[i]);
-			}
-			packet_end(&packet);
-			packet_addchecksum_fletcher16_little(&packet);
 			int s = packet_size(&packet);
-			putbufrv = fputbuf(file_stream,(char*)packet.data,s);
+			putbufrv = fputbuf(file_stream,(char*)packet.data,s);*/
+			//fprintf(file_pri,"pkt siz: %d\n",s); 
+			
 		}
 		
 		// Update the statistics in case of errors

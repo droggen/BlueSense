@@ -53,6 +53,7 @@ void fract16toa(_Fract a,char *ptr);
 //void swalloweol(FILE *file);
 unsigned char checkdigits(const char *str,unsigned char n);
 unsigned char ParseComma(const char *str,unsigned char n,...);
+unsigned char ParseCommaGetNumParam(const char *str);
 unsigned char ParseCommaGetInt(const char *str,int n,...);
 unsigned char ParseCommaGetLong(const char *str,int n,...);
 
