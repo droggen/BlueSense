@@ -42,6 +42,7 @@
 #include "mode_coulomb.h"
 #include "mode_sd.h"
 #include "mode_teststream.h"
+#include "mode_adcfast.h"
 
 
 const char help_x[] PROGMEM ="x";
@@ -58,6 +59,7 @@ unsigned char CommandParserx(char *buffer,unsigned char size)
 		
 	return 0;
 }
+
 
 
 
@@ -79,6 +81,7 @@ const COMMANDPARSER CommandParsersIdle[] =
 #endif
 	
 	{'A', CommandParserADC,help_a},
+	{'a', CommandParserADCFast,help_af},
 	//{'C', CommandParserClock,help_c},
 	//{'V', CommandParserDemo,help_demo},
 	//{'B', CommandParserBench,help_b},

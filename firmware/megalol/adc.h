@@ -39,6 +39,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define _ADC_CONVERSION_IDLE		0
 #define _ADC_CONVERSION_ONGOING		1
 
+// Define ADCCONV_START with the desired pre-scaler, ADC Enable, ADC Start. Do NOT set the interrupt enable. Interrupts are set in ADCCONV_START_INT
+#define ADCCONV_START 			(0b11000000|__adc_prescaler)				// ADEN, ADSC, prescaler
+#define ADCCONV_START_INT		(ADCCONV_START|0b00001000)					// ADEN, ADSC, prescaler, ADIE
+
 // Assuming 200kHz max frq, 13 clocks/conversion: 65uS/conversion -> wait 33uS, _delay_us(33);
 // Choosing a lower value speeds up the conversion but slows down the overall system
 #define _ADC_WAITCONV				33
@@ -48,6 +52,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 typedef void(*ADC_CALLBACK)(volatile unsigned short*);			// Callback type
 extern ADC_CALLBACK __adc_callback;								// Callback for the last triggered conversion
 extern volatile unsigned char __adc_convtype;					// 0: none, 1: ongoing
+
+extern unsigned char __adc_prescaler;
 
 // Public functions
 void ADCDeinit(void);

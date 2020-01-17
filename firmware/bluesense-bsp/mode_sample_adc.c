@@ -45,7 +45,7 @@ unsigned long mode_adc_period;
 unsigned char mode_adc_mask;
 unsigned char mode_adc_fast;
 
-const char help_adcpullup[] PROGMEM="P,<on>: if on=1, activates pullups on user ADC inputs (channels 0-3), otherwise deactivate. In principle pullups should be deactivated.";
+const char help_adcpullup[] PROGMEM="P,<on>: if on=1, activates s on user ADC inputs (channels 0-3), otherwise deactivate. In principle pullups should be deactivated.";
 
 const COMMANDPARSER CommandParsersADC[] =
 { 

@@ -48,6 +48,7 @@ const char help_d[] PROGMEM ="D[,<dd><mm><yy>] Query or set date";
 const char help_quit[] PROGMEM ="Exit current mode";
 const char help_h[] PROGMEM ="Help";
 const char help_a[] PROGMEM ="A,<hex>,<us>[,<fast>]: ADC mode. hex: ADC channel bitmask in hex; us: sample period in microseconds. In fast mode, us is discarded, ADC is transferred as fast as possible in binary on 8 bits without header/checksum (~8.2KHz for single channel).";
+const char help_af[] PROGMEM ="a,<pre>[,<delay>] Fast ADC acquisition of channel 0, 8-bit, binary. Pre is ADC prescaler from 0 (/8) to 4 (/128); 2-4 is suggested. Delay is an additional arbitrary delay to achieve desired sample rate. E.g. a,3,2 for 10KHz; ";
 const char help_s[] PROGMEM ="S,<us>: test streaming/logging mode; us: sample period in microseconds";
 const char help_f[] PROGMEM ="F,<bin>,<pktctr>,<ts>,<bat>,<label>: bin: 1 for binary, 0 for text; for others: 1 to stream, 0 otherwise";
 const char help_M[] PROGMEM ="M[,<mode>[,<logfile>[,<duration>]]: without parameters lists available modes, otherwise enters the specified mode.\n\t\tOptionally logs to logfile (use -1 not to log) and runs for the specified duration in seconds.";

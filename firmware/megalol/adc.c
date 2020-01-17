@@ -78,9 +78,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 unsigned char __adc_prescaler=ADCCONV_PRESCALER_128;
-// Define ADCCONV_START with the desired pre-scaler, ADC Enable, ADC Start. Do NOT set the interrupt enable. Interrupts are set in ADCCONV_START_INT
-#define ADCCONV_START 			(0b11000000|__adc_prescaler)				// ADEN, ADSC, prescaler
-#define ADCCONV_START_INT		(ADCCONV_START|0b00001000)					// ADEN, ADSC, prescaler, ADIE
+
 
 ADC_CALLBACK __adc_callback;							// Callback for chained conversion
 unsigned char __adc_autopoweroff=0;						// auto power off: 0=no, 1=yes

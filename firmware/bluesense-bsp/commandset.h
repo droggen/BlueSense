@@ -20,6 +20,7 @@ extern const char help_d[];
 extern const char help_quit[];
 extern const char help_h[];
 extern const char help_a[];
+extern const char help_af[];
 extern const char help_f[];
 extern const char help_M[];
 extern const char help_m[];
@@ -38,6 +39,7 @@ extern const char help_battery[];
 extern const char help_powertest[];
 extern const char help_callback[];
 extern const char help_clearbootctr[];
+
 
 extern const COMMANDPARSER CommandParsersDefault[];
 extern const unsigned char CommandParsersDefaultNum;
