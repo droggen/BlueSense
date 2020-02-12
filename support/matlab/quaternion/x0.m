@@ -20,7 +20,9 @@ view(0,30);
 
 h=draw_geom(vcoord,vconnect,vcol);
 
-bs2_read('COM7',@(q) gotquat(h,vcoord,vconnect,vcol,q));
+%bs2_read('COM7',@(q) gotquat(h,vcoord,vconnect,vcol,q));
+%bs2_read('COM16',@(q) gotquat(h,vcoord,vconnect,vcol,q));
+bs2_read_bt('btspp://000666868369',@(q) gotquat(h,vcoord,vconnect,vcol,q));
 
 %t=@toto;
 

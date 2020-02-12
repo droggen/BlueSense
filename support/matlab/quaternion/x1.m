@@ -23,8 +23,8 @@ h=draw_geom(vcoord,vconnect,vcol);
 
 
 % Read loop
-bs2_read('COM7',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
-%bs2_read_bt('btspp://000666868367',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
+%bs2_read('COM7',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
+bs2_read_bt('btspp://000666868369',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
 %bs2_read_bt('BlueSense-8367',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
 
 % Read callback
