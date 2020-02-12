@@ -172,6 +172,7 @@ SRC += bluesense-bsp/mode_testsync.c
 SRC += bluesense-bsp/mode_sd.c
 SRC += bluesense-bsp/mode_idle.c
 SRC += bluesense-bsp/mode_adcfast.c
+SRC += bluesense-bsp/mode_siggen.c
 #SRC += mode_bench.c
 SRC += bluesense-bsp/mode_bt.c
 #SRC += bluesense-bsp/mode_motionrecog.c

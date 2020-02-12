@@ -507,8 +507,9 @@ void mode_motionstream(void)
 	{
 	
 		
-		// Process user commands only if we do not run for a specified duration
-		if(mode_sample_motion_param.duration==0)
+		
+		//if(mode_sample_motion_param.duration==0)		// Process user commands only if we do not run for a specified duration
+		// Deactivated - 10.2.2020: test always commands
 		{
 			while(CommandProcess(CommandParsersMotionStream,CommandParsersMotionStreamNum));		
 			if(CommandShouldQuit())

@@ -43,6 +43,7 @@
 #include "mode_sd.h"
 #include "mode_teststream.h"
 #include "mode_adcfast.h"
+#include "mode_siggen.h"
 
 
 const char help_x[] PROGMEM ="x";
@@ -81,7 +82,12 @@ const COMMANDPARSER CommandParsersIdle[] =
 #endif
 	
 	{'A', CommandParserADC,help_a},
-	{'a', CommandParserADCFast,help_af},
+	
+#if 0
+	{'a', CommandParserADCFast,help_af},			// Optional: fast ADC
+	{'f', CommandParserSignalGen,help_siggen},	// Optional: signal generator
+#endif
+	
 	//{'C', CommandParserClock,help_c},
 	//{'V', CommandParserDemo,help_demo},
 	//{'B', CommandParserBench,help_b},
