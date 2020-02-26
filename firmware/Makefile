@@ -290,7 +290,8 @@ CDEFS += -DNOBLUETOOTHINIT=0
 # Set BLUETOOTH_POWERSAVE to: 0=default (high power); 1=lower power
 CDEFS += -DBLUETOOTH_POWERSAVE=0
 # UFAT_INCLUDENODENAME: 1=include the 4 digits of the node in the log file (e.g LOG-8554.### with ### the log number); 0=log file is called LOG-0000.### (with ### the log number)
-CDEFS += -DUFAT_INCLUDENODENAME=0
+#CDEFS += -DUFAT_INCLUDENODENAME=0
+CDEFS += -DUFAT_INCLUDENODENAME=1
 
 CDEFS += -D__DELAY_BACKWARD_COMPATIBLE__
 
