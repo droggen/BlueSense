@@ -53,13 +53,13 @@ const char help_af[] PROGMEM ="a,<pre>,<delay>,<offset> Fast ADC acquisition of 
 const char help_s[] PROGMEM ="S,<us>: test streaming/logging mode; us: sample period in microseconds";
 const char help_f[] PROGMEM ="F,<bin>,<pktctr>,<ts>,<bat>,<label>: bin: 1 for binary, 0 for text; for others: 1 to stream, 0 otherwise";
 const char help_M[] PROGMEM ="M[,<mode>[,<logfile>[,<duration>]]: without parameters lists available modes, otherwise enters the specified mode.\n\t\tOptionally logs to logfile (use -1 not to log) and runs for the specified duration in seconds.";
-const char help_m[] PROGMEM ="MPU test mode";
+const char help_m[] PROGMEM ="MPU functions";
 const char help_g[] PROGMEM ="G,<mode> enters motion recognition mode. The parameter is the sample rate/channels to acquire. Use G? to find more about modes";
 const char help_O[] PROGMEM ="O[,sec] Power off and no wakeup, or wakeup after sec seconds";
 const char help_o[] PROGMEM ="Display power used in off mode; if the node was turned off with O";
 const char help_p[] PROGMEM ="Store data to measure power in off mmodepower used in off mode; if the node was turned off with O";
 const char help_coulomb[] PROGMEM ="Coulomb counter test mode";
-const char help_sd[] PROGMEM ="SD card test mode";
+const char help_sd[] PROGMEM ="SD card functions";
 const char help_identify[] PROGMEM ="Identify device by blinking LEDs";
 const char help_annotation[] PROGMEM ="N,<number>: sets the current annotation";
 const char help_bootscript[] PROGMEM ="b[,run;a boot;script] Prints the current bootscript or sets a new one; multiple commands are delimited by a ;";
@@ -70,6 +70,7 @@ const char help_powertest[] PROGMEM="Power tests";
 const char help_callback[] PROGMEM ="Lists timer callbacks";
 const char help_clearbootctr[] PROGMEM ="Clear boot counter";
 //const char help_clear[] PROGMEM ="Lists timer callbacks";
+const char help_main_dbg[] PROGMEM ="== Debug/test ==";
 
 unsigned CurrentAnnotation=0;
 
@@ -411,7 +412,11 @@ unsigned char CommandParserHelp(char *buffer,unsigned char size)
 	fprintf_P(file_pri,PSTR("Available commands:\n"));
 	for(unsigned char i=0;i<CommandParsersCurrentNum;i++)
 	{
-		fprintf_P(file_pri,PSTR("\t%c\t"),CommandParsersCurrent[i].cmd);
+		//fprintf_P(file_pri,PSTR("\t%c\t"),CommandParsersCurrent[i].cmd);
+		if(CommandParsersCurrent[i].cmd)
+			fprintf(file_pri,"\t%c\t",CommandParsersCurrent[i].cmd);
+		else
+			fprintf(file_pri,"\t");
 		if(CommandParsersCurrent[i].help)
 			fputs_P(CommandParsersCurrent[i].help,file_pri);
 		fputc('\n',file_pri);

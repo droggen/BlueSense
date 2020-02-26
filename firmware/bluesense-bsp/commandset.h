@@ -40,7 +40,7 @@ extern const char help_powertest[];
 extern const char help_callback[];
 extern const char help_clearbootctr[];
 extern const char help_siggen[];
-
+extern const char help_main_dbg[];
 
 extern const COMMANDPARSER CommandParsersDefault[];
 extern const unsigned char CommandParsersDefaultNum;

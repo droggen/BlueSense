@@ -50,27 +50,31 @@ const char help_logtest[] PROGMEM="l,<lognum>,<sizekb>: QA test. Logs test data 
 const char help_sdbench[] PROGMEM="B,<benchtype>";
 const char help_sdbench2[] PROGMEM="b,<startsect>,<sizekb> stream cache write from startsect up to sizekb";
 const char help_sdbench3[] PROGMEM="1,<startsect>,<sizekb>,<preerasekb> stream cache write from startsect up to sizekb, optional preerase kb";
+const char help_sd_dbg[] PROGMEM ="== Debug/test ==";
 
 #define CommandParsersSDNum 15
 const COMMANDPARSER CommandParsersSD[CommandParsersSDNum] =
 { 
+	{'H', CommandParserHelp,help_h},	
+	{'!', CommandParserQuit,help_quit},		
+	{'F', CommandParserSDFormat,help_format},
+	// Test/debug
+	{0,0,help_sd_dbg},
 	{'I', CommandParserSDInit,help_sdinit},
+	{'V', CommandParserSDVolume,help_volume},
 	{'E', CommandParserSDErase,help_erase},
 	//{'e', CommandParserSDErase2,help_erase},
 	//{'X', CommandParserSDErase3,help_erase},
 	{'W', CommandParserSDWrite,help_write},
 	{'S', CommandParserSDStream,help_stream},
-	{'R', CommandParserSDRead,help_read},
-	{'V', CommandParserSDVolume,help_volume},
-	{'F', CommandParserSDFormat,help_format},
+	{'R', CommandParserSDRead,help_read},		
 	{'L', CommandParserSDLogTest,help_logtest},
 	//{'l', CommandParserSDLogTest2,help_logtest2},
 	{'B', CommandParserSDBench,help_sdbench},
 	{'b', CommandParserSDBench2,help_sdbench2},
 	{'1', CommandParserSDBench_t1,help_sdbench3},
 	{'2', CommandParserSDBench_t2,help_sdbench2},
-	{'H', CommandParserHelp,help_h},	
-	{'!', CommandParserQuit,help_quit}	
+	
 };
 
 unsigned char CommandParserSDErase(char *buffer,unsigned char size)

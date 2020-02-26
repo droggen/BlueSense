@@ -72,9 +72,7 @@ const COMMANDPARSER CommandParsersIdle[] =
 	{'Z',CommandParserSync,help_z},
 	//{'z',CommandParserSyncFromRTC,help_zsyncfromrtc},
 	{'Y',CommandParserTestSync,help_y},
-#if DBG_RN41TERMINAL==1
-	{'R',CommandParserBT,help_r},
-#endif
+
 	//{'L',CommandParserLCD,help_l},
 	
 #if DBG_TIMERELATEDTEST==1
@@ -91,11 +89,10 @@ const COMMANDPARSER CommandParsersIdle[] =
 	//{'C', CommandParserClock,help_c},
 	//{'V', CommandParserDemo,help_demo},
 	//{'B', CommandParserBench,help_b},
-	{'I', CommandParserIO,help_i},
+	
 	{'M', CommandParserMotion,help_M},
 	{'m', CommandParserMPUTest,help_m},
-	//{'G', CommandParserMotionRecog,help_g},
-	{'W', CommandParserSwap,help_w},
+	//{'G', CommandParserMotionRecog,help_g},	
 	{'O', CommandParserOff,help_O},
 	{'o', CommandParserOffPower,help_o},
 	{'F', CommandParserStreamFormat,help_f},
@@ -104,13 +101,20 @@ const COMMANDPARSER CommandParsersIdle[] =
 	{'c', CommandParserCoulomb,help_coulomb},
 #endif
 	{'Q', CommandParserBatteryInfoLong,help_batterylong},
-	{'q', CommandParserBatteryInfo,help_battery},
-	{'c', CommandParserCallback,help_callback},
+	{'q', CommandParserBatteryInfo,help_battery},	
 	{'X', CommandParserSD,help_sd},
-	//{'p', CommandParserPowerTest,help_powertest},
-	{'S', CommandParserTeststream,help_s},
+	//{'p', CommandParserPowerTest,help_powertest},	
 	{'b', CommandParserBootScript,help_bootscript},
 	{'?', CommandParserIdentify,help_identify},
+	// Test/debug
+	{0,0,help_main_dbg},
+#if DBG_RN41TERMINAL==1
+	{'R',CommandParserBT,help_r},
+#endif	
+	{'W', CommandParserSwap,help_w},
+	{'I', CommandParserIO,help_i},
+	{'S', CommandParserTeststream,help_s},
+	{'c', CommandParserCallback,help_callback},
 	{'~', CommandParserClearBootCounter,help_clearbootctr},
 	//{'x', CommandParserx,help_x}
 };

@@ -112,6 +112,7 @@ const char help_mt_l[] PROGMEM ="l[,<scale>] read or set the gyroscope full scal
 const char help_mt_o[] PROGMEM ="o,<offX>,<offY>,<offZ> Set the gyro bias";
 const char help_mt_k[] PROGMEM ="K,bitmap: 3-bit bitmap indicating whether to null acc|gyr|mag (not persistent)";
 const char help_mt_beta[] PROGMEM ="b[,betax100]: gets or sets the beta correction gain for the orientation sensing; suggested: 35 for b=0.035 (persistent)";
+const char help_mt_dbg[] PROGMEM ="== Debug/test ==";
 
 
 
@@ -119,13 +120,16 @@ const COMMANDPARSER CommandParsersMPUTest[] =
 { 
 	// Key functions
 	{'H', CommandParserHelp,help_h},
+	// Quit
+	{'!', CommandParserQuit,help_quit},
 	{'L', CommandParserMPUTest_AccScale,help_mt_L},
 	{'l', CommandParserMPUTest_GyroScale,help_mt_l},
 	{'G', CommandParserMPUTest_MagneticCalib,help_mt_G},
-	{'g', CommandParserMPUTest_GetMagneticCalib,help_mt_g},
-	{'B', CommandParserMPUTest_Bench,help_mt_B},
-	{'b', CommandParserMPUTest_Beta,help_mt_beta},
+	{'g', CommandParserMPUTest_GetMagneticCalib,help_mt_g},	
+	{'b', CommandParserMPUTest_Beta,help_mt_beta},	
 	// Test/debug
+	{0,0,help_mt_dbg},
+	{'K', CommandParserMPUTest_Bench,help_mt_B},
 	{'C', CommandParserMPUTest_Calibrate,help_mt_C},
 	{'c', CommandParserMPUTest_CalibrationData,help_mt_c},
 	{'o', CommandParserMPUTest_SetGyroBias,help_mt_o},
@@ -146,8 +150,7 @@ const COMMANDPARSER CommandParsersMPUTest[] =
 	{'t', CommandParserMPUTest_MagneticSelfTest,help_mt_t},
 	{'K', CommandParserMPUTest_Kill,help_mt_k},
 	//{'b', CommandParserMPUTest_BenchMath,help_mt_b},
-	// Quit
-	{'!', CommandParserQuit,help_quit}
+	
 };
 
 const unsigned char CommandParsersMPUTestNum=sizeof(CommandParsersMPUTest)/sizeof(COMMANDPARSER); 
