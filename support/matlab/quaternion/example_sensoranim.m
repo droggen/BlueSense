@@ -42,13 +42,25 @@ h=draw_geom(vcoord,vconnect,vcol);
 
 
 %% Read loop 
-bs2_read('COM9',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
+bs2_read('COM10',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
 %bs2_read_bt(btspp://0006668C409E,@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
 %bs2_read_bt('BlueSense-8367',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
 
 %% Read callback
 function gotquat(h,vcoord,vconnect,vcol,q,qdef)
+    persistent gotquatctr;
     
+    gotquatctr=gotquatctr+1;
+    if mod(gotquatctr,100)==0       % Don't print at too high rate
+
+        [yaw, pitch, roll] = quat2angle(q);
+        yaw = rad2deg(yaw);
+        pitch = rad2deg(pitch);
+        roll = rad2deg(roll);
+        fprintf(1,'Quaternion (w,x,y,z): %f %f %f %f  Yaw/pitch/roll: %f %f %f\n',q(1),q(2),q(3),q(4),yaw,pitch,roll);
+        %[q rad2deg([yaw pitch roll])]
+    end
+
 
     vcoord2 = vcoord;
     
