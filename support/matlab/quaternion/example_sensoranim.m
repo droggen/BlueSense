@@ -1,13 +1,32 @@
+%% example_sensoranim
+% Animates a sensor as the node moves.
+% The line "bs2_read" must be modified either as:
+% bs2_read('COMx'....
+% or
+% bs2_read_bt('btspp://0006668C409E',...
+% or 
+% bs2_read_bt('BlueSense-409E',...
+
+if exist('btaddress','var')==0
+    error('The variable btaddress must be defined. E.g. btaddress="btspp://000666868369"');
+end
+
+
 %% Sensor scenery
 
 [vcoord,vconnect,vcol]=create_sensor;
 
+
+
 qdef=NaN;               % Default
 %qdef=[-cos(45/180*pi) 0 0 sin(45/180*pi)];        % Rotate so that bluetooth points to north in the "zero" position
+%qdef=[+cos(45/180*pi) 0 0 sin(45/180*pi)];        % Rotate so that push button points to north in the "zero" position
 %qdef=[cos(45/180*pi) sin(45/180*pi) 0 0];        % Rotate so that bluetooth points to sky in the "zero" position
 
 
-% Initialise view
+
+
+%% Initialise view
 figure(1);
 clf;
 xlabel('X (to North)');
@@ -22,12 +41,12 @@ view(145,40);
 h=draw_geom(vcoord,vconnect,vcol);
 
 
-% Read loop
-%bs2_read('COM7',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
-bs2_read_bt('btspp://000666868369',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
+%% Read loop 
+bs2_read('COM9',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
+%bs2_read_bt(btspp://0006668C409E,@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
 %bs2_read_bt('BlueSense-8367',@(q) gotquat(h,vcoord,vconnect,vcol,q,qdef));
 
-% Read callback
+%% Read callback
 function gotquat(h,vcoord,vconnect,vcol,q,qdef)
     
 

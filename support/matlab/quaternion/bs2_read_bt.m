@@ -15,7 +15,7 @@ ser=Bluetooth(bt,1);
 
 ser
 
-set(ser,'Timeout',20);
+set(ser,'Timeout',40);
 
 ser
 
