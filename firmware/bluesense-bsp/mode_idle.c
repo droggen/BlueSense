@@ -83,6 +83,8 @@ const COMMANDPARSER CommandParsersIdle[] =
 	
 #if 0
 	{'a', CommandParserADCFast,help_af},			// Optional: fast ADC
+#endif
+#if 1
 	{'f', CommandParserSignalGen,help_siggen},	// Optional: signal generator
 #endif
 	
